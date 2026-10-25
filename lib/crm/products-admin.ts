@@ -1,5 +1,6 @@
 import { ProductAccent, ProductKind } from "@prisma/client";
 import { prisma } from "../db";
+import { CUSTOM_PAYMENT_PRODUCT_ID } from "./custom-payment-rules";
 import { uniqueSlug } from "./slug";
 
 const priceInclude = {
@@ -188,6 +189,11 @@ export const updateProduct = async (
     sortOrder?: number;
   }
 ) => {
+  // El producto oculto de los cobros de monto libre no se edita: activarlo o
+  // ponerle precio lo convertiría en un producto público. Se trata como si no
+  // existiera, igual que el resto de lo que Paquetes no lista.
+  if (id === CUSTOM_PAYMENT_PRODUCT_ID) throw new Error("NOT_FOUND");
+
   const existing = await prisma.product.findUnique({
     where: { id },
     include: priceInclude,
@@ -342,6 +348,9 @@ export type DeactivateProductResult = {
 export const deactivateProduct = async (
   id: string
 ): Promise<DeactivateProductResult> => {
+  // Ver `updateProduct`: el producto oculto de los pagos personalizados no se toca.
+  if (id === CUSTOM_PAYMENT_PRODUCT_ID) throw new Error("NOT_FOUND");
+
   const product = await prisma.product.findUnique({
     where: { id },
     select: {

@@ -29,7 +29,7 @@ import { POST as createPreferencePost } from "@/app/api/mercadopago/create-prefe
 import { POST as createOrderPost } from "@/app/api/paypal/create-order/route";
 import { POST as quotePost } from "@/app/api/payments/quote/route";
 import { resolveCheckoutContactIdForPayment } from "@/lib/crm/checkout-enrollment";
-import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
+import { findEnrollmentForCheckout, fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
 import { encodeCheckoutReference, parseCheckoutReference } from "@/lib/crm/checkout-reference";
 import { authorizeCustomPlanOrder } from "@/lib/crm/custom-payment";
 import { CUSTOM_PAYMENT_PRODUCT_ID, customPlanIdFor } from "@/lib/crm/custom-payment-rules";
@@ -42,7 +42,7 @@ import {
   revokePaymentLink,
 } from "@/lib/crm/payment-links";
 import { recordPayment } from "@/lib/crm/payments";
-import { listSellableProducts } from "@/lib/crm/products-admin";
+import { deactivateProduct, listSellableProducts, updateProduct } from "@/lib/crm/products-admin";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
 import { prisma } from "@/lib/db";
 import { getPlanFromDb, isActivePlanId } from "@/lib/plans-from-db";
@@ -236,6 +236,11 @@ const main = async () => {
   const mpId = `e2e-mp-${run}`;
   const pending = await createEnrollment({ contactId: tempContactId, productId: copPlanId, status: EnrollmentStatus.PENDING_PAYMENT, paidPurchase: true });
   check("la matrícula pendiente ya lleva el concepto y el monto", pending.label === `E2E abono ${run}` && pending.amountMinor === 500000 && pending.currency === "COP", { label: pending.label, a: pending.amountMinor, c: pending.currency });
+  check("guarda el id del enlace para poder volver a encontrarla", pending.externalRef === copLink.id, pending.externalRef);
+  check("el siguiente aviso de Mercado Pago reencuentra ESA matrícula (no abre otra pendiente)", (await findEnrollmentForCheckout(tempContactId, copPlanId)) === pending.id);
+  const otherLink = await createPaymentLink({ custom: { amountMinor: 7000, currency: "COP", concept: `E2E otro ${run}` }, expiresInDays: 1 });
+  created.linkIds.push(otherLink.id);
+  check("y no se mezcla con la matrícula de OTRO enlace de la misma persona", (await findEnrollmentForCheckout(tempContactId, customPlanIdFor(otherLink.id))) === null);
   await recordPayment({ enrollmentId: pending.id, provider: PaymentProvider.MERCADO_PAGO, providerPaymentId: mpId, status: PaymentStatus.PENDING, currency: "COP", amountMinor: 524934 });
   const approvedEnrollmentId = await fulfillCheckoutPayment({
     contactId: tempContactId,
@@ -254,6 +259,37 @@ const main = async () => {
   check("el enlace abierto también se sella (se paga una sola vez)", !!copPaid?.paidAt && copPaid.enrollmentId === approvedEnrollmentId, copPaid);
   const usdStill = await prisma.paymentLink.findUnique({ where: { id: usdLink.id } });
   check("sellar uno no toca el otro", usdStill?.enrollmentId === enrollmentId);
+
+  console.log("\n— Doble cobro en un enlace ya pagado");
+  const secondEnrollmentId = await fulfillCheckoutPayment({
+    contactId: payerContactId,
+    productId: usdPlanId,
+    provider: PaymentProvider.PAYPAL,
+    providerPaymentId: `${ppId}-segundo`,
+    status: PaymentStatus.APPROVED,
+    currency: "USD",
+    amountMinor: grossMinor,
+    paidAt: new Date(),
+  });
+  check("el segundo cobro NO se rechaza (el dinero ya entró): queda registrado", secondEnrollmentId !== enrollmentId && (await prisma.payment.count({ where: { providerPaymentId: `${ppId}-segundo` } })) === 1);
+  const stillFirst = await prisma.paymentLink.findUnique({ where: { id: usdLink.id } });
+  check("el enlace sigue sellado con el primer cobro", stillFirst?.enrollmentId === enrollmentId);
+  // `fireNotification` escribe en segundo plano (no bloquea el cobro): se espera
+  // a que llegue en vez de consultar al instante.
+  let alerts = await prisma.platformNotification.findMany({ where: { entityId: secondEnrollmentId, title: "Enlace de monto libre cobrado dos veces" } });
+  for (let i = 0; i < 20 && alerts.length === 0; i++) {
+    await new Promise((r) => setTimeout(r, 500));
+    alerts = await prisma.platformNotification.findMany({ where: { entityId: secondEnrollmentId, title: "Enlace de monto libre cobrado dos veces" } });
+  }
+  check("el equipo recibe la alerta para devolver el que sobra", alerts.length === 1, alerts.length);
+  const retryAlerts = await prisma.platformNotification.count({ where: { entityId: enrollmentId, title: "Enlace de monto libre cobrado dos veces" } });
+  check("y el reintento del PRIMER cobro no dispara falsa alarma", retryAlerts === 0, retryAlerts);
+
+  console.log("\n— El producto oculto no se puede activar ni editar");
+  check("updateProduct lo trata como inexistente", await throws(() => updateProduct(CUSTOM_PAYMENT_PRODUCT_ID, { isActive: true, amountUsd: 10 })));
+  check("deactivateProduct también", await throws(() => deactivateProduct(CUSTOM_PAYMENT_PRODUCT_ID)));
+  const stillHidden = await prisma.product.findUnique({ where: { id: CUSTOM_PAYMENT_PRODUCT_ID }, include: { prices: true } });
+  check("sigue inactivo y sin precios", stillHidden?.isActive === false && stillHidden.prices.length === 0, stillHidden);
 
   console.log("\n— Un enlace revocado no abre órdenes");
   const revoked = await createPaymentLink({ contactId: contact.id, custom: { amountMinor: 10000, currency: "USD", concept: `E2E revocado ${run}` } });

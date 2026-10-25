@@ -13,6 +13,7 @@ import {
 import { fulfillCheckoutPayment } from "@/lib/crm/checkout-fulfillment";
 import { assertPayPalCaptureAmount } from "@/lib/crm/enrollment-payment";
 import { parseCheckoutReference } from "@/lib/crm/checkout-reference";
+import { enrollmentKeyForPlan } from "@/lib/crm/custom-payment-rules";
 import { resolveRenamedProductId } from "@/lib/crm/renamed-product";
 import { enrichContactFromPayer } from "@/lib/crm/contacts";
 import { reconcilePendingCheckoutContact } from "@/lib/crm/checkout-placeholder";
@@ -265,7 +266,10 @@ export async function POST(req: NextRequest) {
           .findFirst({
             where: {
               contactId: checkout.contactId,
-              productId: checkout.planId,
+              // Un cobro libre cuelga del producto oculto: se busca por el id
+              // de su enlace. Con `productId: "enlace-…"` no encontraba nada y
+              // el rechazo se perdía sin dejar rastro.
+              ...enrollmentKeyForPlan(checkout.planId),
               status: "PENDING_PAYMENT",
             },
             orderBy: { createdAt: "desc" },

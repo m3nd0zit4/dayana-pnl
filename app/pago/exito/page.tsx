@@ -8,6 +8,8 @@ import {
 import { ProductKind } from "@prisma/client";
 import { formatCop, formatUsd, isPlanId, type PlanId } from "../../../lib/plans";
 import { minorToMajor } from "@/lib/crm/money";
+import { getCustomTerms } from "@/lib/crm/custom-payment";
+import { formatBareAmount } from "@/lib/crm/custom-payment-rules";
 import { getPlanFromDb } from "@/lib/plans-from-db";
 import { getEnrollmentById } from "../../../lib/crm/enrollments";
 import { getMemberByContactId } from "@/lib/crm/member-accounts";
@@ -188,9 +190,23 @@ const Page = async ({ searchParams }: PageProps) => {
   // price, since COP checkouts (Mercado Pago) charge in COP, not USD. This
   // fallback only applies until the real enrollment/payment resolves below
   // (or stays as-is for unknown/legacy return links with no enrollment).
-  let amountLabel = plan ? formatUsd(plan.amountUsd) : undefined;
-  let amountValue = plan?.amountUsd;
-  let paymentCurrency: "USD" | "COP" | undefined = plan ? "USD" : undefined;
+  // Un enlace de monto libre trae su propia moneda: en COP el plan tiene
+  // `amountUsd` en 0 (se leería «$0») y en USD `formatUsd` redondea los centavos.
+  const customTerms =
+    result.planId != null ? await getCustomTerms(result.planId) : null;
+  let amountLabel = customTerms
+    ? formatBareAmount(customTerms.amountMinor, customTerms.currency)
+    : plan
+      ? formatUsd(plan.amountUsd)
+      : undefined;
+  let amountValue = customTerms
+    ? minorToMajor(customTerms.amountMinor, customTerms.currency)
+    : plan?.amountUsd;
+  let paymentCurrency: "USD" | "COP" | undefined = customTerms
+    ? customTerms.currency
+    : plan
+      ? "USD"
+      : undefined;
   // Mismo string que calcula el step de Inngest para la Conversions API: es lo
   // que hace que Meta cuente UNA compra y no dos. Se deriva del id del pago,
   // así que ambos lados llegan al mismo valor sin coordinarse.
@@ -296,7 +312,12 @@ const Page = async ({ searchParams }: PageProps) => {
           amountValue = major;
           purchaseEventIdValue = purchaseEventId(paid.id);
           amountLabel =
-            paymentCurrency === "COP" ? formatCop(major) : formatUsd(major);
+            // Un cobro libre se enseña exacto (265.12, no «$265»).
+            enrollment.product.kind === ProductKind.OTHER
+              ? formatBareAmount(paid.amountMinor, paymentCurrency)
+              : paymentCurrency === "COP"
+                ? formatCop(major)
+                : formatUsd(major);
         }
       }
     } catch {

@@ -14,6 +14,7 @@ import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
 import { recordAdTrackingConsent } from "@/lib/crm/contacts";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
 import { authorizeCustomPlanOrder } from "@/lib/crm/custom-payment";
+import { isCustomPlanId } from "@/lib/crm/custom-payment-rules";
 import {
   clientIp,
   rateLimitDistributed,
@@ -165,6 +166,12 @@ export async function POST(req: Request) {
     }
     console.error("[mercadopago] amount", message);
     return NextResponse.json({ error: "config" }, { status: 500 });
+  }
+
+  // Con la cuenta de Mercado Pago en USD, un enlace en COP no tiene precio en
+  // dólares y saldría una preferencia de 0. Nunca se cobra cero.
+  if (isCustomPlanId(planId) && !(net > 0)) {
+    return NextResponse.json({ error: "wrong_currency" }, { status: 400 });
   }
 
   const base = siteBaseUrl();

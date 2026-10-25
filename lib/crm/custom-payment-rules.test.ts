@@ -11,6 +11,8 @@ import {
   customPlanFromTerms,
   customPlanIdFor,
   customTermsFromLink,
+  enrollmentKeyForPlan,
+  formatBareAmount,
   formatCustomAmount,
   isCustomPlanId,
   parseCustomPlanId,
@@ -209,7 +211,28 @@ describe("plan de un enlace libre", () => {
   });
 });
 
+describe("cómo se busca la matrícula de un plan", () => {
+  test("un enlace libre se busca por el id de su enlace, no por el producto oculto compartido", () => {
+    expect(enrollmentKeyForPlan(customPlanIdFor(LINK_ID))).toEqual({
+      productId: CUSTOM_PAYMENT_PRODUCT_ID,
+      externalRef: LINK_ID,
+    });
+  });
+
+  test("un producto normal, por su id y nada más", () => {
+    expect(enrollmentKeyForPlan("therapy-6")).toEqual({ productId: "therapy-6" });
+    expect("externalRef" in enrollmentKeyForPlan("course-live")).toBe(false);
+  });
+});
+
 describe("textos", () => {
+  test("formatBareAmount: el monto exacto, sin código de moneda", () => {
+    expect(formatBareAmount(25050, "USD")).toBe("$250.50");
+    expect(formatBareAmount(26512, "USD")).toBe("$265.12");
+    expect(formatBareAmount(500000, "COP")).toContain("500.000");
+    expect(formatBareAmount(500000, "COP")).not.toContain("COP");
+  });
+
   test("formatCustomAmount conserva los centavos que formatUsd redondea", () => {
     expect(formatCustomAmount(25050, "USD")).toBe("$250.50 USD");
     expect(formatCustomAmount(25000, "USD")).toBe("$250.00 USD");

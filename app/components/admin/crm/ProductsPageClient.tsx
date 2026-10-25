@@ -693,10 +693,14 @@ const ProductsPageClient = ({ preview, initialProducts, siteUrl = "" }: Props) =
                   <SearchableSelect
                     label="Tipo"
                     value={form.kind}
-                    options={Object.entries(KIND_LABEL).map(([value, label]) => ({
-                      value,
-                      label,
-                    }))}
+                    // «Otro» es el producto oculto de los pagos personalizados: no
+                    // se crea ni se elige a mano (el servidor sólo acepta los tres).
+                    options={Object.entries(KIND_LABEL)
+                      .filter(([value]) => value !== "OTHER")
+                      .map(([value, label]) => ({
+                        value,
+                        label,
+                      }))}
                     onChange={(kind) =>
                       setForm((f) => ({ ...f, kind: kind as ProductKind }))
                     }

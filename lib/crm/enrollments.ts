@@ -139,7 +139,9 @@ export const createEnrollment = async (input: {
       currency: custom?.currency ?? price?.currency ?? "USD",
       amountMinor: custom?.amountMinor ?? price?.amountMinor ?? null,
       leadAt: new Date(),
-      externalRef: null,
+      // Un cobro libre guarda el id de su enlace: es lo que permite volver a
+      // encontrar SU matrícula (aviso pendiente → aprobado, página de éxito).
+      externalRef: custom?.linkId ?? null,
     },
     include: { product: true },
   });

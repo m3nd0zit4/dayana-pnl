@@ -153,25 +153,50 @@ export const cleanCustomConcept = (concept: unknown): string | null => {
 };
 
 /**
- * El monto tal como se lee en la página: con centavos en USD, que
- * `formatUsd` redondea a dólares enteros (`$250.50` saldría `$251`).
+ * El monto sin el código de moneda: `$250.50` / `$500.000`. Con centavos en
+ * USD, que `formatUsd` redondea a dólares enteros (`$250.50` saldría `$251`).
+ * Para los sitios que ya añaden el código aparte («por $250.50 USD»).
  */
-export const formatCustomAmount = (
+export const formatBareAmount = (
   amountMinor: number,
   currency: CustomCurrency,
 ): string =>
   currency === "COP"
-    ? `${new Intl.NumberFormat("es-CO", {
+    ? new Intl.NumberFormat("es-CO", {
         style: "currency",
         currency: "COP",
         maximumFractionDigits: 0,
-      }).format(amountMinor)} COP`
-    : `${new Intl.NumberFormat("en-US", {
+      }).format(amountMinor)
+    : new Intl.NumberFormat("en-US", {
         style: "currency",
         currency: "USD",
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
-      }).format(amountMinor / 100)} USD`;
+      }).format(amountMinor / 100);
+
+/** El monto con su moneda, tal como se lee en la página: `$250.50 USD`. */
+export const formatCustomAmount = (
+  amountMinor: number,
+  currency: CustomCurrency,
+): string => `${formatBareAmount(amountMinor, currency)} ${currency}`;
+
+/**
+ * Cómo se busca la matrícula de un plan en la tabla `enrollments`.
+ *
+ * Un producto normal se encuentra por su `productId`. Un cobro libre NO: todos
+ * cuelgan del mismo producto oculto, así que buscar sólo por él mezclaría los
+ * cobros de enlaces distintos de la misma persona (el aviso pendiente de uno
+ * se pegaría a la matrícula ya pagada de otro). Lo que los distingue es el id
+ * del enlace, que `createEnrollment` guarda en `externalRef`.
+ */
+export const enrollmentKeyForPlan = (
+  planId: string,
+): { productId: string; externalRef?: string } => {
+  const linkId = parseCustomPlanId(planId);
+  return linkId
+    ? { productId: CUSTOM_PAYMENT_PRODUCT_ID, externalRef: linkId }
+    : { productId: planId };
+};
 
 /** Lo que de un enlace hace falta para construir su plan. */
 export type CustomLinkTerms = {

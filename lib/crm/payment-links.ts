@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from "node:crypto";
 
 import { prisma } from "@/lib/db";
+import { fireNotification } from "@/lib/notifications/platform/emit";
 import { getPlanFromDb } from "@/lib/plans-from-db";
 import { isPlanVisibleForRegion } from "@/lib/pricing/plan-visibility";
 import type { Plan } from "@/lib/plans";
@@ -199,10 +200,32 @@ export async function markPaymentLinkPaid(input: {
     // la misma persona. Se sella aunque no tenga ficha: se paga una sola vez.
     const customLinkId = parseCustomPlanId(input.productId);
     if (customLinkId) {
-      await prisma.paymentLink.updateMany({
+      const sealed = await prisma.paymentLink.updateMany({
         where: { id: customLinkId, paidAt: null },
         data: { paidAt: new Date(), enrollmentId: input.enrollmentId },
       });
+      if (sealed.count === 0) {
+        // Ya estaba cobrado. Lo normal es el reintento del MISMO cobro (la
+        // misma matrícula) y no pasa nada. Si es OTRA matrícula, la persona
+        // pagó dos veces —dos pestañas, dos órdenes abiertas a la vez—: el
+        // dinero ya entró y no se rechaza, pero el equipo tiene que saberlo
+        // para devolver el que sobra.
+        const link = await prisma.paymentLink.findUnique({
+          where: { id: customLinkId },
+          select: { enrollmentId: true, customConcept: true },
+        });
+        if (link?.enrollmentId && link.enrollmentId !== input.enrollmentId) {
+          fireNotification({
+            eventType: "PAYMENT_WEBHOOK_FAILED",
+            title: "Enlace de monto libre cobrado dos veces",
+            body: `«${link.customConcept ?? "Pago personalizado"}» ya estaba pagado y entró otro cobro. Revisa los pagos y devuelve el que sobre.`,
+            href: `/admin/enrollments/${input.enrollmentId}`,
+            entityType: "Enrollment",
+            entityId: input.enrollmentId,
+            staff: "ALL",
+          });
+        }
+      }
       return;
     }
 

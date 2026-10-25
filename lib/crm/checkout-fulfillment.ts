@@ -2,6 +2,7 @@ import { EnrollmentStatus, PaymentStatus, ProductKind } from "@prisma/client";
 import { prisma } from "../db";
 import { createEnrollment, markEnrollmentPaid } from "./enrollments";
 import { recordPayment, type RecordPaymentInput } from "./payments";
+import { enrollmentKeyForPlan } from "./custom-payment-rules";
 import { markPaymentLinkPaid } from "./payment-links";
 import { linkEnrollmentToWorkshopEdition } from "./workshop-pricing";
 import { redeemPromoCode } from "./promo-codes";
@@ -210,7 +211,9 @@ export const findEnrollmentForCheckout = async (
   const row = await prisma.enrollment.findFirst({
     where: {
       contactId,
-      productId,
+      // Un cobro libre se busca por el id de su enlace, no por el producto
+      // oculto que comparten todos: ver `enrollmentKeyForPlan`.
+      ...enrollmentKeyForPlan(productId),
       status: {
         in: [
           EnrollmentStatus.ACTIVE,
