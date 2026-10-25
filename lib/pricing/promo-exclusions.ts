@@ -19,6 +19,19 @@
  */
 export const PROMO_EXCLUDED_PRODUCT_IDS = ["course-live"] as const;
 
+/**
+ * Prefijo de los planes de un enlace con monto libre (`enlace-<id>`), que es el
+ * mismo de `CUSTOM_PLAN_PREFIX` en `lib/crm/custom-payment-rules.ts`. Se repite
+ * aquí porque este módulo no tiene dependencias a propósito; la prueba de
+ * `custom-payment-rules.test.ts` comprueba que las dos copias coinciden.
+ *
+ * Un monto libre ya es el precio final acordado: un descuento encima sería
+ * cobrar menos de lo que Dayana escribió, y un cupón sin productos asociados
+ * vale para todo el catálogo.
+ */
+export const CUSTOM_PLAN_ID_PREFIX = "enlace-";
+
 export const isPromoExcludedProduct = (productId?: string | null): boolean =>
   productId != null &&
-  (PROMO_EXCLUDED_PRODUCT_IDS as readonly string[]).includes(productId);
+  ((PROMO_EXCLUDED_PRODUCT_IDS as readonly string[]).includes(productId) ||
+    productId.startsWith(CUSTOM_PLAN_ID_PREFIX));

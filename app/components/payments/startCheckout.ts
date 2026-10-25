@@ -100,6 +100,11 @@ export const startCheckout = async (
         // que cobrar el total en silencio. Ver lib/crm/promo-codes.ts.
         return "Los códigos promocionales no aplican al curso.";
       }
+      if (data.error === "link_unavailable") {
+        // Enlace de monto libre revocado, vencido o ya pagado. Sin esto caería
+        // en el error genérico y quien ya pagó pensaría que falló.
+        return "Este enlace ya no está disponible. Si ya pagaste, no hace falta hacer nada más; si no, pídele a Dayana uno nuevo.";
+      }
       if (data.error === "no_subscription_plan") {
         return "La suscripción no está disponible todavía. Escríbenos por WhatsApp.";
       }

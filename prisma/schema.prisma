@@ -27,6 +27,11 @@ enum ProductKind {
   THERAPY
   COURSE
   WORKSHOP
+  /// Cobros que no son de catálogo: hoy sólo «Pago personalizado» (ver
+  /// `lib/crm/custom-payment.ts`). Es un tipo aparte a propósito: ninguna regla
+  /// de terapia (una activa por contacto), curso (membresía mensual) o taller
+  /// (edición, recordatorios) debe dispararse por un monto libre.
+  OTHER
 }
 
 /// El acento de color de la tarjeta pública. Conjunto CERRADO a propósito:
@@ -2095,6 +2100,26 @@ model PaymentLink {
 
   /// Quién lo generó, para la auditoría.
   createdByStaffId String? @map("created_by_staff_id")
+
+  /// Monto libre: el enlace cobra EXACTAMENTE esto en vez del precio de un
+  /// producto. Los tres van juntos o ninguno (`createPaymentLink` lo exige).
+  ///
+  /// Mismas unidades que `ProductPrice`: USD en centavos, COP en pesos enteros.
+  /// La moneda decide el riel —USD por PayPal, COP por Mercado Pago—, no el país
+  /// de quien abre el enlace: Dayana cotizó en una moneda y es esa la que se cobra.
+  ///
+  /// Vive aquí y no en la URL ni en el navegador: el precio sólo lo decide el
+  /// servidor. Es inmutable —cambiar el monto es crear otro enlace— porque
+  /// `capture-order` y los webhooks lo releen para comprobar lo cobrado, y un
+  /// importe que cambiara entre la orden y la captura rechazaría un pago legítimo.
+  ///
+  /// `productId` apunta al producto oculto «Pago personalizado» (`OTHER`), que
+  /// existe sólo para que la matrícula y el pago tengan a qué colgarse.
+  customAmountMinor Int?    @map("custom_amount_minor")
+  customCurrency    String? @map("custom_currency") @db.Char(3)
+  /// Qué se está cobrando, en palabras de Dayana: «Diferencia del paquete».
+  /// Es el título de la página de pago y la etiqueta de la matrícula.
+  customConcept     String? @map("custom_concept") @db.VarChar(140)
 
   /// Vencimiento opcional. Un enlace acordado en una llamada no debería seguir
   /// vivo meses después, cuando el precio ya cambió.

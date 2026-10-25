@@ -32,6 +32,9 @@ const EnlacesPagoPage = async () => {
     enrollmentId: l.enrollmentId,
     revokedAt: l.revokedAt?.toISOString() ?? null,
     createdAt: l.createdAt.toISOString(),
+    customAmountMinor: l.customAmountMinor,
+    customCurrency: l.customCurrency,
+    customConcept: l.customConcept,
     product: l.product,
     contact: l.contact,
   }));

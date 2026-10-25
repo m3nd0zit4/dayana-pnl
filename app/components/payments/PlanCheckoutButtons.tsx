@@ -16,6 +16,12 @@ type Props = {
   showWhatsApp?: boolean;
   /** Intercept the click (e.g. auth gate) instead of opening the checkout. */
   onPay?: (provider: "paypal" | "mercadopago") => void;
+  /**
+   * Fuerza el riel en vez de deducirlo del país. Lo usa un enlace de monto
+   * libre, que se cobra en la moneda que Dayana escribió (USD → PayPal, COP →
+   * Mercado Pago) aunque quien lo abra esté en otro país.
+   */
+  provider?: "paypal" | "mercadopago";
 };
 
 /**
@@ -34,6 +40,7 @@ const PlanCheckoutButtons = ({
   userCountry,
   showWhatsApp = true,
   onPay,
+  provider: forcedProvider,
 }: Props) => {
   const { openCheckout } = useCheckoutModal();
   // "Mounted" sin setState-en-efecto: evita el mismatch de hidratación.
@@ -43,7 +50,9 @@ const PlanCheckoutButtons = ({
     () => false,
   );
 
-  const isColombia = userCountry === "CO";
+  const isColombia = forcedProvider
+    ? forcedProvider === "mercadopago"
+    : userCountry === "CO";
   const pulse = isDark ? "bg-white/10" : "bg-black/[0.06]";
   const payBusy = false;
 

@@ -1,6 +1,12 @@
 "use client";
 
 import SendWhatsAppDialog from "@/app/components/admin/whatsapp/SendWhatsAppDialog";
+import {
+  CUSTOM_CONCEPT_MAX,
+  formatCustomAmount,
+  parseTypedAmount,
+  type CustomCurrency,
+} from "@/lib/crm/custom-payment-rules";
 import { paymentLinkPresets } from "@/lib/crm/whatsapp-presets";
 
 import Link from "next/link";
@@ -13,11 +19,13 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/app/components/ui/toggle-group";
 import ContactPickerField from "./ContactPickerField";
 import CrmModal from "./CrmModal";
 import CrmNewButton from "./CrmNewButton";
 import CrmPageHeader from "./CrmPageHeader";
 import CrmPageShell from "./CrmPageShell";
+import CrmSegmentedControl from "./CrmSegmentedControl";
 import SearchableSelect from "./SearchableSelect";
 import { useCrm } from "./CrmProvider";
 import { useActiveProducts } from "./hooks/useReferenceData";
@@ -25,6 +33,7 @@ import {
   CrmDataList,
   CrmDataListRow,
   CrmEmptyState,
+  CrmField,
   CrmFormActions,
   CrmLoadingState,
   CrmRowAction,
@@ -43,6 +52,10 @@ export type PaymentLinkListRow = {
   enrollmentId: string | null;
   revokedAt: string | null;
   createdAt: string;
+  /** Monto libre: los tres o ninguno. `null` en un enlace de producto. */
+  customAmountMinor?: number | null;
+  customCurrency?: string | null;
+  customConcept?: string | null;
   product: { id: string; title: string };
   /** Las demás opciones, cuando el enlace ofrece varias para elegir. */
   options?: { productId: string; product: { title: string } }[];
@@ -56,7 +69,35 @@ type Props = {
   siteUrl: string;
 };
 
+/**
+ * Qué se le cobra a la persona: un producto del catálogo o un monto libre.
+ * Excluyentes: un enlace cobra UNA cosa.
+ */
+type LinkKind = "product" | "custom";
+
+const KIND_SEGMENTS = [
+  { id: "product", label: "Producto" },
+  { id: "custom", label: "Monto libre" },
+] as const;
+
+/** Cómo se lee un enlace en la lista y en los mensajes: qué es y, si es libre, cuánto. */
+const linkLabel = (row: PaymentLinkListRow): string => {
+  if (
+    row.customConcept &&
+    row.customAmountMinor &&
+    (row.customCurrency === "USD" || row.customCurrency === "COP")
+  ) {
+    return `${row.customConcept} · ${formatCustomAmount(row.customAmountMinor, row.customCurrency)}`;
+  }
+  return row.product.title;
+};
+
 const emptyForm = () => ({
+  kind: "product" as LinkKind,
+  /** Monto libre: lo que ella teclea, tal cual (se interpreta en `parseTypedAmount`). */
+  customAmount: "",
+  customCurrency: "USD" as CustomCurrency,
+  customConcept: "",
   contactId: "",
   contactLabel: "",
   /** Lo que se ofrece. Varias = la persona elige UNA en la página. */
@@ -166,8 +207,29 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
    * el cobro se cuelga de su ficha). Un teléfono o correo sin nombre sí se
    * rechaza, porque acabaría saludando con el número.
    */
+  /** El monto tecleado ya interpretado, o `null` si no se entiende. */
+  const typedAmount = parseTypedAmount(form.customAmount, form.customCurrency);
+  /** Lo mismo en las unidades guardadas (centavos / pesos), sólo para mostrarlo. */
+  const previewMinor =
+    typedAmount === null
+      ? null
+      : form.customCurrency === "COP"
+        ? typedAmount
+        : Math.round(typedAmount * 100);
+
   const formProblem = (): string | null => {
-    if (form.productIds.length === 0) return "Elige al menos un producto.";
+    if (form.kind === "custom") {
+      if (!form.customConcept.trim()) {
+        return "Escribe qué se cobra: es lo que verá la persona.";
+      }
+      if (typedAmount === null) {
+        return form.customCurrency === "COP"
+          ? "Escribe el monto en pesos, sin decimales (por ejemplo 500.000)."
+          : "Escribe el monto en dólares, con hasta dos decimales (por ejemplo 250.50).";
+      }
+    } else if (form.productIds.length === 0) {
+      return "Elige al menos un producto.";
+    }
     // Texto escrito en la búsqueda sin elegir a nadie: antes se ignoraba y salía
     // un enlace abierto, el mismo error que con un nombre suelto.
     if (!form.contactId && contactQuery.trim()) {
@@ -200,6 +262,11 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
     missing_name: "Escribe el nombre de quien paga.",
     missing_contact_data: "Para un enlace a nombre de alguien, añade su teléfono o su correo.",
     missing_product: "Elige al menos un producto.",
+    missing_concept: "Escribe qué se cobra: es lo que verá la persona.",
+    invalid_amount: "El monto no es válido.",
+    amount_too_small: "El monto es demasiado pequeño.",
+    amount_too_large:
+      "El monto es demasiado grande: revisa que no sobre un cero. Si de verdad es ese, avísale al equipo técnico.",
   };
 
   const save = async () => {
@@ -227,10 +294,22 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                   email: form.buyerEmail.trim() || undefined,
                 }
               : undefined,
-          // El primero manda: es el que se guarda en el enlace y el que ya
-          // leen el panel y el sellado del cobro. El resto son opciones.
-          productId: form.productIds[0],
-          extraProductIds: form.productIds.slice(1),
+          // Monto libre: se manda lo tecleado ya interpretado y el SERVIDOR lo
+          // convierte a centavos/pesos y lo valida. Nunca va un producto.
+          ...(form.kind === "custom"
+            ? {
+                custom: {
+                  amount: typedAmount,
+                  currency: form.customCurrency,
+                  concept: form.customConcept.trim(),
+                },
+              }
+            : {
+                // El primero manda: es el que se guarda en el enlace y el que
+                // ya leen el panel y el sellado del cobro. El resto son opciones.
+                productId: form.productIds[0],
+                extraProductIds: form.productIds.slice(1),
+              }),
           note: form.note.trim() || undefined,
           expiresInDays: form.expiresInDays
             ? Number(form.expiresInDays)
@@ -260,7 +339,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
   const revoke = (row: PaymentLinkListRow) => {
     confirm({
       title: "Revocar el enlace",
-      message: `El enlace de ${row.product.title} dejará de funcionar. Quien lo tenga abierto verá una página de error.`,
+      message: `El enlace de ${linkLabel(row)} dejará de funcionar. Quien lo tenga abierto verá una página de error.`,
       confirmLabel: "Revocar",
       destructive: true,
       onConfirm: async () => {
@@ -365,12 +444,22 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
         onClose={() => setCreating(false)}
       >
         <div className="space-y-4">
+          {/* Qué se cobra: un producto del catálogo o un monto que no está en
+              ningún catálogo (un abono, una diferencia, un precio acordado). */}
+          <CrmSegmentedControl
+            aria-label="Qué se cobra"
+            segments={KIND_SEGMENTS}
+            value={form.kind}
+            onChange={(kind) => setForm((f) => ({ ...f, kind }))}
+          />
+
           {/* Los productos primero: es lo unico obligatorio y lo que decide
               el precio. A quien se le manda puede no saberse todavia.
 
               Se pueden anadir varios: la pagina los muestra todos y la
               persona paga UNO. Es el caso de «te mando lo de 3 y lo de 6
               sesiones y eliges», que antes obligaba a mandar dos enlaces. */}
+          {form.kind === "product" ? (
           <div className="space-y-2">
             <SearchableSelect
               id="payment-link-product"
@@ -432,6 +521,73 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
               </p>
             )}
           </div>
+          ) : (
+            <div className="space-y-4">
+              <CrmField
+                label="Qué se cobra"
+                description="Es lo que verá la persona en la página de pago."
+              >
+                <Input
+                  value={form.customConcept}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, customConcept: e.target.value }))
+                  }
+                  placeholder="Diferencia del paquete de 6 sesiones"
+                  maxLength={CUSTOM_CONCEPT_MAX}
+                />
+              </CrmField>
+
+              <div>
+                <Label className="mb-2">Moneda</Label>
+                <ToggleGroup
+                  value={[form.customCurrency]}
+                  onValueChange={(v) => {
+                    if (v[0] !== "USD" && v[0] !== "COP") return;
+                    // Otra moneda, otro monto: lo tecleado en dólares no vale en pesos.
+                    setForm((f) => ({
+                      ...f,
+                      customCurrency: v[0] as CustomCurrency,
+                      customAmount: "",
+                    }));
+                  }}
+                >
+                  <ToggleGroupItem value="USD" className="rounded-full">
+                    USD · PayPal
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="COP" className="rounded-full">
+                    COP · Mercado Pago
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+
+              <CrmField label={`Monto (${form.customCurrency})`}>
+                <Input
+                  inputMode="decimal"
+                  value={form.customAmount}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, customAmount: e.target.value }))
+                  }
+                  placeholder={
+                    form.customCurrency === "COP" ? "500.000" : "250.50"
+                  }
+                />
+              </CrmField>
+
+              {/* Lo que se va a cobrar, ya interpretado: es donde se caza un
+                  «500.000» leído como 500 antes de mandar el enlace. */}
+              {previewMinor !== null && (
+                <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+                  Se cobrará{" "}
+                  <strong>
+                    {formatCustomAmount(previewMinor, form.customCurrency)}
+                  </strong>
+                  . Tú recibes exactamente esto: la comisión de{" "}
+                  {form.customCurrency === "COP" ? "Mercado Pago" : "PayPal"} se
+                  suma al total que paga la persona.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="space-y-2">
             <ContactPickerField
@@ -525,7 +681,12 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
             </Button>
             <Button
               onClick={() => void save()}
-              disabled={saving || form.productIds.length === 0}
+              disabled={
+                saving ||
+                (form.kind === "product"
+                  ? form.productIds.length === 0
+                  : typedAmount === null || !form.customConcept.trim())
+              }
             >
               {saving ? "Creando…" : "Crear y copiar"}
             </Button>
@@ -600,7 +761,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
                       : "Enlace abierto"}
                   </p>
                   <p className="truncate text-xs text-muted-foreground">
-                    {row.product.title}
+                    {linkLabel(row)}
                     {row.options && row.options.length > 0
                       ? ` y ${row.options.length} ${row.options.length === 1 ? "opción más" : "opciones más"}`
                       : ""}
@@ -656,7 +817,7 @@ const PaymentLinksPageClient = ({ preview, initialLinks, siteUrl }: Props) => {
           onClose={() => setWaRow(null)}
           contactId={waRow.contact.id}
           name={`${waRow.contact.firstName} ${waRow.contact.lastName ?? ""}`.trim()}
-          presets={paymentLinkPresets({ url: urlFor(waRow.token), product: waRow.product.title })}
+          presets={paymentLinkPresets({ url: urlFor(waRow.token), product: waRow.customConcept ?? waRow.product.title })}
           source="enlaces-pago"
         />
       )}

@@ -13,6 +13,7 @@ import {
 import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
 import { recordAdTrackingConsent } from "@/lib/crm/contacts";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
+import { authorizeCustomPlanOrder } from "@/lib/crm/custom-payment";
 import {
   clientIp,
   rateLimitDistributed,
@@ -75,6 +76,13 @@ export async function POST(req: Request) {
   const plan = await getPlanFromDb(planId);
   if (!plan) {
     return NextResponse.json({ error: "invalid_plan" }, { status: 400 });
+  }
+
+  // Un enlace de monto libre cuesta lo que Dayana escribió en ESE enlace: sólo
+  // abre órdenes quien trae su token, y sólo mientras esté vivo y sin pagar.
+  // (Uno en USD no tiene precio COP y cae en `no_cop_price` más abajo.)
+  if (!(await authorizeCustomPlanOrder(planId, body.paymentLinkToken))) {
+    return NextResponse.json({ error: "link_unavailable" }, { status: 403 });
   }
 
   // Sin formulario previo: Mercado Pago pide email al pagar y lo devuelve en

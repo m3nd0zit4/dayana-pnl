@@ -20,6 +20,20 @@ const contactName = (contact: {
   firstName: string;
 }): string => contact.displayName ?? contact.firstName;
 
+/**
+ * Qué se cobró, para los avisos al equipo. Un cobro de monto libre cuelga del
+ * producto oculto «Pago personalizado», que no dice nada: lo que lo describe es
+ * el concepto que Dayana escribió, guardado como etiqueta de la matrícula. Para
+ * el resto de productos sigue siendo el título del producto, como siempre.
+ */
+const paidItemTitle = (enrollment: {
+  label: string | null;
+  product: { kind: string; title: string };
+}): string =>
+  enrollment.product.kind === "OTHER" && enrollment.label
+    ? enrollment.label
+    : enrollment.product.title;
+
 export type RecordPaymentInput = {
   enrollmentId: string;
   provider: PaymentProvider;
@@ -118,7 +132,7 @@ export const recordPayment = async (
     fireNotification({
       eventType: "PAYMENT_APPROVED",
       title: `Pago aprobado: ${who} — ${amountLabel}`,
-      body: `${enrollment.product.title} · ${PROVIDER_LABEL[input.provider]}`,
+      body: `${paidItemTitle(enrollment)} · ${PROVIDER_LABEL[input.provider]}`,
       entityType: "Payment",
       entityId: payment.id,
       metadata: {
@@ -133,7 +147,7 @@ export const recordPayment = async (
       fireNotification({
         eventType: "MANUAL_PAYMENT_RECORDED",
         title: `Pago manual registrado: ${who} — ${amountLabel}`,
-        body: enrollment.product.title,
+        body: paidItemTitle(enrollment),
         href: `/admin/enrollments/${input.enrollmentId}`,
         entityType: "Payment",
         entityId: payment.id,
@@ -155,7 +169,7 @@ export const recordPayment = async (
       fireNotification({
         eventType: "PAYMENT_CONTACT_INCOMPLETE",
         title: `Falta el teléfono de ${who}`,
-        body: `Pagó ${enrollment.product.title} (${amountLabel}) y no dejó número. Escríbele para coordinar.`,
+        body: `Pagó ${paidItemTitle(enrollment)} (${amountLabel}) y no dejó número. Escríbele para coordinar.`,
         href: `/admin/contacts/${enrollment.contactId}`,
         entityType: "Contact",
         entityId: enrollment.contactId,

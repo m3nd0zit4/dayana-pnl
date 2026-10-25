@@ -4,6 +4,7 @@ export const PRODUCT_KIND_LABEL: Record<ProductKind, string> = {
   THERAPY: "Terapia",
   COURSE: "Curso",
   WORKSHOP: "Taller",
+  OTHER: "Otro",
 };
 
 export type ProductOption = {

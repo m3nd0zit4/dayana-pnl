@@ -4,6 +4,11 @@ import { z } from "zod";
 import { requireWriteStaff, resolveAdminStaff } from "@/lib/auth/api-staff";
 import { fireAuditLog } from "@/lib/crm/audit";
 import {
+  cleanCustomConcept,
+  customAmountToMinor,
+  type CustomCurrency,
+} from "@/lib/crm/custom-payment-rules";
+import {
   createPaymentLink,
   listPaymentLinksForContact,
   listRecentPaymentLinks,
@@ -34,7 +39,19 @@ const createSchema = z.object({
       email: z.string().trim().email().max(200).optional(),
     })
     .optional(),
-  productId: z.string().min(1),
+  /** Un producto del catálogo, o `custom`: una de las dos, nunca las dos. */
+  productId: z.string().min(1).optional(),
+  /**
+   * Monto libre. `amount` es lo que ella teclea (`250.50` USD, `500000` COP);
+   * la conversión a centavos/pesos es del servidor, nunca del navegador.
+   */
+  custom: z
+    .object({
+      amount: z.number(),
+      currency: z.string(),
+      concept: z.string().max(400),
+    })
+    .optional(),
   /** Opciones adicionales: el enlace muestra varias y la persona elige una. */
   extraProductIds: z.array(z.string().min(1)).max(9).optional(),
   note: z.string().max(400).optional(),
@@ -72,8 +89,40 @@ export async function POST(req: NextRequest) {
             ? "invalid_expiry"
             : field === "productId"
               ? "missing_product"
-              : "invalid_request";
+              : field === "amount"
+                ? "invalid_amount"
+                : field === "concept"
+                  ? "missing_concept"
+                  : "invalid_request";
     return NextResponse.json({ error }, { status: 400 });
+  }
+
+  // Un producto o un monto libre, exactamente uno: un enlace cobra UNA cosa.
+  const { custom: customInput } = parsed.data;
+  if (!parsed.data.productId && !customInput) {
+    return NextResponse.json({ error: "missing_product" }, { status: 400 });
+  }
+  if (customInput && (parsed.data.productId || parsed.data.extraProductIds?.length)) {
+    return NextResponse.json({ error: "invalid_request" }, { status: 400 });
+  }
+
+  let custom:
+    | { amountMinor: number; currency: CustomCurrency; concept: string }
+    | undefined;
+  if (customInput) {
+    const amount = customAmountToMinor(customInput.amount, customInput.currency);
+    if (!amount.ok) {
+      return NextResponse.json({ error: amount.error }, { status: 400 });
+    }
+    const concept = cleanCustomConcept(customInput.concept);
+    if (!concept) {
+      return NextResponse.json({ error: "missing_concept" }, { status: 400 });
+    }
+    custom = {
+      amountMinor: amount.amountMinor,
+      currency: amount.currency,
+      concept,
+    };
   }
 
   // Un nombre sin teléfono ni correo no identifica a nadie: antes se descartaba
@@ -87,7 +136,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { contactId, buyer, ...rest } = parsed.data;
+    const { contactId, buyer, custom: _custom, ...rest } = parsed.data;
     // La ficha escrita a mano se resuelve AL CREAR el enlace, no al pagar: asi
     // el enlace ya sale con dueno y el cobro se le cuelga directo.
     const resolvedContactId =
@@ -95,6 +144,7 @@ export async function POST(req: NextRequest) {
 
     const link = await createPaymentLink({
       ...rest,
+      custom,
       contactId: resolvedContactId,
       staffUserId: staff.id,
     });
@@ -104,7 +154,19 @@ export async function POST(req: NextRequest) {
       action: "CREATE",
       entityType: "PaymentLink",
       entityId: link.id,
-      changes: { productId: link.product.id, contactId: link.contact?.id ?? null },
+      changes: {
+        productId: link.product.id,
+        contactId: link.contact?.id ?? null,
+        // El importe y el motivo quedan en la auditoría: es dinero que se
+        // cobra por un monto que no está en ningún catálogo.
+        ...(custom
+          ? {
+              customAmountMinor: custom.amountMinor,
+              customCurrency: custom.currency,
+              customConcept: custom.concept,
+            }
+          : {}),
+      },
     });
 
     return NextResponse.json({ link });

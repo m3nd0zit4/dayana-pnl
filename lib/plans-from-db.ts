@@ -4,6 +4,8 @@ import { resolveUsdToCopRate } from "./crm/site-settings";
 import type { Plan } from "./plans";
 import { prisma } from "./db";
 import { resolveProductAccent } from "@/lib/products/accents";
+import { getCustomPlan } from "./crm/custom-payment";
+import { isCustomPlanId } from "./crm/custom-payment-rules";
 
 const kindToPlanKind = (kind: ProductKind): Plan["kind"] =>
   kind === ProductKind.THERAPY ? "therapy" : "course";
@@ -121,6 +123,11 @@ const isSellable = (product: {
   product.isActive && (!product.isCourseContent || product.sellsStandalone);
 
 export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
+  // Un enlace de pago con monto libre es un plan cuyo precio vive en el propio
+  // enlace. Se resuelve aquí, en el portón que ya usan PayPal, Mercado Pago, la
+  // cotización y los webhooks, para que ninguno tenga que saber que existe.
+  if (isCustomPlanId(planId)) return getCustomPlan(planId);
+
   const product = await prisma.product.findUnique({
     where: { id: planId },
     include: {
@@ -138,6 +145,8 @@ export const getPlanFromDb = async (planId: string): Promise<Plan | null> => {
 };
 
 export const isActivePlanId = async (planId: string): Promise<boolean> => {
+  if (isCustomPlanId(planId)) return (await getCustomPlan(planId)) !== null;
+
   const product = await prisma.product.findUnique({
     where: { id: planId },
     select: { isActive: true, isCourseContent: true, sellsStandalone: true },

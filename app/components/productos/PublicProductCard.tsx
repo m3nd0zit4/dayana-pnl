@@ -38,6 +38,11 @@ export type PublicProductCardProps = {
    * vez de a pagar. Por defecto la tarjeta sigue enseñando el precio.
    */
   hidePrice?: boolean;
+  /**
+   * Sustituye al precio calculado. Lo usa el enlace de monto libre: `formatUsd`
+   * redondea a dólares enteros, y un cobro de `$250.50` se leería `$251`.
+   */
+  priceLabel?: string;
   className?: string;
 };
 
@@ -62,6 +67,7 @@ const PublicProductCard = ({
   footnote,
   size = "default",
   hidePrice = false,
+  priceLabel,
   className = "",
 }: PublicProductCardProps) => {
   const compact = size === "sm";
@@ -116,7 +122,7 @@ const PublicProductCard = ({
         <span
           className={`font-[font2] leading-none ${compact ? "text-3xl" : "text-4xl"} ${accent}`}
         >
-          {priceOf(plan, isColombia)}
+          {priceLabel ?? priceOf(plan, isColombia)}
         </span>
         {plan.unitPrice && (
           <span className="font-[font1] text-base text-black/50">

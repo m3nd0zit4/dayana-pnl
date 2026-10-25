@@ -66,9 +66,13 @@ export const activePaymentLinkFor = async (contactId: string | null): Promise<{ 
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
     },
     orderBy: { createdAt: "desc" },
-    select: { token: true, product: { select: { title: true } } },
+    select: { token: true, customConcept: true, product: { select: { title: true } } },
   });
-  return link ? { url: `${getSiteUrl()}/pagar/${link.token}`, product: link.product.title } : null;
+  // Un enlace de monto libre cuelga del producto oculto «Pago personalizado»:
+  // lo que se cobra lo dice su concepto.
+  return link
+    ? { url: `${getSiteUrl()}/pagar/${link.token}`, product: link.customConcept ?? link.product.title }
+    : null;
 };
 
 export type ReceiptInput = {

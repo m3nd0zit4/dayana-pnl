@@ -15,6 +15,8 @@ import { encodeCheckoutReference } from "@/lib/crm/checkout-reference";
 import { siteBaseUrl } from "@/lib/mercadopago/amount";
 import { recordAdTrackingConsent } from "@/lib/crm/contacts";
 import { validatePromoCode } from "@/lib/crm/promo-codes";
+import { authorizeCustomPlanOrder } from "@/lib/crm/custom-payment";
+import { isCustomPlanId } from "@/lib/crm/custom-payment-rules";
 import {
   clientIp,
   rateLimitDistributed,
@@ -75,6 +77,23 @@ export async function POST(req: NextRequest) {
   if (!plan) {
     return NextResponse.json(
       { error: "invalid_plan", message: "Plan no disponible" },
+      { status: 400 }
+    );
+  }
+
+  // Un enlace de monto libre cuesta lo que Dayana escribió en ESE enlace: sólo
+  // abre órdenes quien trae su token, y sólo mientras esté vivo y sin pagar.
+  if (!(await authorizeCustomPlanOrder(planId, body.paymentLinkToken))) {
+    return NextResponse.json(
+      { error: "link_unavailable", message: "Este enlace ya no está disponible." },
+      { status: 403 }
+    );
+  }
+  // PayPal sólo cobra USD. Un enlace en COP lleva `amountUsd` en 0 y saldría
+  // una orden de 0 dólares.
+  if (isCustomPlanId(planId) && !(plan.amountUsd > 0)) {
+    return NextResponse.json(
+      { error: "wrong_currency", message: "Este enlace se paga por Mercado Pago." },
       { status: 400 }
     );
   }

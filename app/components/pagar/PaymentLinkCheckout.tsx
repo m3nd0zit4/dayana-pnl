@@ -22,6 +22,11 @@ type Props = {
    * pagos acabarían en el mismo contacto.
    */
   token?: string;
+  /**
+   * Riel forzado, para un enlace de monto libre: su moneda decide quién cobra,
+   * no el país de quien lo abre. Ver `PlanCheckoutButtons`.
+   */
+  provider?: "paypal" | "mercadopago";
 };
 
 /**
@@ -35,16 +40,16 @@ type Props = {
  * Sin salida por WhatsApp: la conversación ya ocurrió, y ofrecerla otra vez
  * aquí es devolver al punto de partida a quien ya llegó al final.
  */
-const PaymentLinkCheckout = ({ plan, userCountry, token }: Props) => {
+const PaymentLinkCheckout = ({ plan, userCountry, token, provider }: Props) => {
   const { openCheckout } = useCheckoutModal();
 
-  const handlePay = (provider: "paypal" | "mercadopago") => {
+  const handlePay = (chosen: "paypal" | "mercadopago") => {
     if (token) {
       void fetch(`/api/pagar/${token}/checkout`, { method: "POST" }).catch(
         () => {},
       );
     }
-    openCheckout(plan.id, provider, token ? { paymentLinkToken: token } : {});
+    openCheckout(plan.id, chosen, token ? { paymentLinkToken: token } : {});
   };
 
   return (
@@ -54,6 +59,7 @@ const PaymentLinkCheckout = ({ plan, userCountry, token }: Props) => {
       userCountry={userCountry}
       showWhatsApp={false}
       onPay={handlePay}
+      provider={provider}
     />
   );
 };

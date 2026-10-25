@@ -5,6 +5,17 @@ import { getPlanFromDb } from "@/lib/plans-from-db";
 import { isPlanVisibleForRegion } from "@/lib/pricing/plan-visibility";
 import type { Plan } from "@/lib/plans";
 
+import { ensureCustomPaymentProduct } from "./custom-payment";
+import {
+  CUSTOM_PAYMENT_PRODUCT_ID,
+  customPlanFromTerms,
+  customPlanIdFor,
+  customTermsFromLink,
+  formatCustomAmount,
+  parseCustomPlanId,
+  type CustomCurrency,
+} from "./custom-payment-rules";
+
 /**
  * Enlaces de pago: una página con un solo producto, generada desde el panel.
  *
@@ -28,6 +39,10 @@ export type PaymentLinkRow = {
   paidAt: Date | null;
   enrollmentId: string | null;
   createdAt: Date;
+  /** Monto libre: los tres o ninguno. Ver `PaymentLink.customAmountMinor`. */
+  customAmountMinor: number | null;
+  customCurrency: string | null;
+  customConcept: string | null;
   product: { id: string; title: string };
   /** Las opciones adicionales, si el enlace ofrece varias. */
   options: { productId: string; product: { title: string } }[];
@@ -46,6 +61,9 @@ const SELECT = {
   paidAt: true,
   enrollmentId: true,
   createdAt: true,
+  customAmountMinor: true,
+  customCurrency: true,
+  customConcept: true,
   product: { select: { id: true, title: true } },
   options: {
     select: { productId: true, product: { select: { title: true } } },
@@ -175,6 +193,19 @@ export async function markPaymentLinkPaid(input: {
   enrollmentId: string;
 }): Promise<void> {
   try {
+    // Un enlace de monto libre se sella por su id exacto, que viaja en el id de
+    // plan. Buscar por «contacto + producto» aquí sería ambiguo justo en el caso
+    // que este enlace existe para cubrir: varios cobros de importes distintos a
+    // la misma persona. Se sella aunque no tenga ficha: se paga una sola vez.
+    const customLinkId = parseCustomPlanId(input.productId);
+    if (customLinkId) {
+      await prisma.paymentLink.updateMany({
+        where: { id: customLinkId, paidAt: null },
+        data: { paidAt: new Date(), enrollmentId: input.enrollmentId },
+      });
+      return;
+    }
+
     const pending = await prisma.paymentLink.findFirst({
       where: {
         contactId: input.contactId,
@@ -205,7 +236,14 @@ export async function createPaymentLink(input: {
   /** Opcional: un enlace puede crearse sin saber todavia a quien se manda. */
   contactId?: string | null;
   /** La primera opcion. Con `productIds` es la primera de la lista. */
-  productId: string;
+  productId?: string;
+  /**
+   * Monto libre en lugar de un producto del catálogo. Excluyente con
+   * `productId` y `extraProductIds`: un enlace cobra UNA cosa, y lo que se
+   * cobra aquí es exactamente este importe. Llega ya validado y convertido
+   * (`customAmountToMinor`); aquí sólo se guarda.
+   */
+  custom?: { amountMinor: number; currency: CustomCurrency; concept: string };
   /**
    * Las demas opciones, cuando el enlace ofrece varias para elegir. La
    * primera se guarda ademas en `productId` para que todo lo que ya leia el
@@ -222,15 +260,36 @@ export async function createPaymentLink(input: {
       ? new Date(Date.now() + input.expiresInDays * 24 * 60 * 60 * 1000)
       : null;
 
+  if (input.custom) {
+    if (input.productId || input.extraProductIds?.length) {
+      throw new Error("CUSTOM_LINK_HAS_PRODUCT");
+    }
+    // El producto oculto tiene que existir antes de la clave foránea.
+    await ensureCustomPaymentProduct();
+  } else if (!input.productId) {
+    throw new Error("MISSING_PRODUCT");
+  }
+
+  const productId = input.custom
+    ? CUSTOM_PAYMENT_PRODUCT_ID
+    : (input.productId as string);
+
   const extras = (input.extraProductIds ?? []).filter(
-    (id) => id && id !== input.productId,
+    (id) => id && id !== productId,
   );
 
   return prisma.paymentLink.create({
     data: {
       token: newToken(),
       contactId: input.contactId ?? null,
-      productId: input.productId,
+      productId,
+      ...(input.custom
+        ? {
+            customAmountMinor: input.custom.amountMinor,
+            customCurrency: input.custom.currency,
+            customConcept: input.custom.concept,
+          }
+        : {}),
       note: input.note?.trim() || null,
       expiresAt,
       createdByStaffId: input.staffUserId ?? null,
@@ -293,6 +352,17 @@ export type ResolvedPaymentLink = {
     email: string | null;
     phoneE164: string;
   } | null;
+  /**
+   * Presente sólo en un enlace de monto libre. La página lo trata distinto: la
+   * moneda decide el riel (no el país de quien mira), el precio se pinta con
+   * centavos, y un enlace ya cobrado enseña «ya está pagado» en vez de 404.
+   */
+  custom?: {
+    currency: CustomCurrency;
+    /** «$250.00 USD» / «$500.000 COP», listo para pintar. */
+    amountLabel: string;
+    paid: boolean;
+  };
 };
 
 /**
@@ -310,11 +380,16 @@ export async function resolvePaymentLink(
   const link = await prisma.paymentLink.findUnique({
     where: { token },
     select: {
+      id: true,
       token: true,
       note: true,
       revokedAt: true,
       expiresAt: true,
+      paidAt: true,
       productId: true,
+      customAmountMinor: true,
+      customCurrency: true,
+      customConcept: true,
       options: { select: { productId: true }, orderBy: { sortOrder: "asc" } },
       contact: {
         select: { id: true, firstName: true, email: true, phoneE164: true },
@@ -324,6 +399,26 @@ export async function resolvePaymentLink(
 
   if (!link || link.revokedAt) return null;
   if (link.expiresAt && link.expiresAt < new Date()) return null;
+
+  // Monto libre: el precio es el del propio enlace, no el de un producto, y el
+  // riel lo decide la moneda — por eso no se pasa por `isPlanVisibleForRegion`,
+  // que escondería un enlace en USD a quien lo abre desde Colombia.
+  const terms = customTermsFromLink(link);
+  if (terms) {
+    const plan = customPlanFromTerms(terms);
+    return {
+      token: link.token,
+      note: link.note,
+      plan,
+      plans: [plan],
+      contact: link.contact,
+      custom: {
+        currency: terms.currency,
+        amountLabel: formatCustomAmount(terms.amountMinor, terms.currency),
+        paid: link.paidAt !== null,
+      },
+    };
+  }
 
   // El precio sale del catálogo, no del enlace. `getPlanFromDb` ya rechaza los
   // productos que no son comprables (los cursos de la biblioteca), así que un
@@ -417,8 +512,10 @@ export async function resolvePaymentLinkOwner(
   const link = await prisma.paymentLink.findUnique({
     where: { token: clean },
     select: {
+      id: true,
       contactId: true,
       productId: true,
+      customAmountMinor: true,
       options: { select: { productId: true } },
       revokedAt: true,
       expiresAt: true,
@@ -427,6 +524,12 @@ export async function resolvePaymentLinkOwner(
 
   if (!link || link.revokedAt) return null;
   if (link.expiresAt && link.expiresAt < new Date()) return null;
+
+  // Un enlace libre ofrece un solo «plan»: el suyo, con id propio. El producto
+  // oculto al que cuelga la matrícula no es lo que se ofrece ni se compra.
+  if (link.customAmountMinor) {
+    return { contactId: link.contactId, productIds: [customPlanIdFor(link.id)] };
+  }
 
   return {
     contactId: link.contactId,

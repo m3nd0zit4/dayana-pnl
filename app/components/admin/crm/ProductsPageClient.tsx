@@ -84,6 +84,7 @@ const KIND_LABEL: Record<ProductKind, string> = {
   THERAPY: "Terapia 1:1",
   COURSE: "Curso",
   WORKSHOP: "Taller",
+  OTHER: "Otro",
 };
 
 /**
@@ -139,6 +140,17 @@ const KIND_FIELDS: Record<
     unitPricePlaceholder: "",
     diagnosticHeadline: false,
     featuresPlaceholder: "Ej. 1 día en vivo por Zoom",
+  },
+  // `OTHER` es «Pago personalizado», que `listSellableProducts` no lista: este
+  // formulario nunca lo abre. La entrada existe porque el tipo es exhaustivo.
+  OTHER: {
+    sessionsLabel: "Formato",
+    sessionsPlaceholder: "",
+    sessionsCount: false,
+    unitPrice: false,
+    unitPricePlaceholder: "",
+    diagnosticHeadline: false,
+    featuresPlaceholder: "",
   },
 };
 

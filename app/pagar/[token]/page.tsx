@@ -8,6 +8,7 @@ import {
   markPaymentLinkOpened,
   resolvePaymentLink,
 } from "@/lib/crm/payment-links";
+import { providerForCurrency } from "@/lib/crm/custom-payment-rules";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 import { BRAND } from "@/lib/contact";
 
@@ -63,18 +64,45 @@ const PagarPage = async ({
     await markPaymentLinkOpened(token);
   }
 
-  const { plans, contact, note } = link;
+  const { plans, contact, note, custom } = link;
+
+  // Un enlace de monto libre se paga una sola vez. Quien vuelve a abrirlo ya
+  // pagado ve que está resuelto, no un 404 que parezca que falló.
+  if (custom?.paid) {
+    return (
+      <main className="flex min-h-[100svh] items-center justify-center bg-hero-paper px-5 py-12 text-ink">
+        <div className="w-full max-w-md">
+          <p className="font-[font2] text-[10px] uppercase tracking-[0.3em] text-terracotta">
+            {BRAND.name}
+          </p>
+          <h1 className="mt-4 font-[font2] text-3xl uppercase leading-[0.95]">
+            Este pago ya está recibido
+          </h1>
+          <p className="mt-3 font-[font1] text-base leading-snug text-black/60">
+            No tienes que hacer nada más. Si tienes alguna duda, escríbele a
+            Dayana por WhatsApp.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <PagarShell
       plans={plans}
-      isColombia={isColombia}
+      // En un enlace libre la moneda es la del enlace, no la del país.
+      isColombia={custom ? custom.currency === "COP" : isColombia}
       greetingName={greetingFor(contact?.firstName)}
       note={note}
+      priceLabel={custom?.amountLabel}
       action={(plan) => (
         <PaymentLinkCheckout
           plan={plan}
           userCountry={userCountry}
           token={token}
+          provider={
+            custom ? providerForCurrency(custom.currency) : undefined
+          }
         />
       )}
     />

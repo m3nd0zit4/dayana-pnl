@@ -39,6 +39,10 @@ export const listSellableProducts = async () =>
         // Paquetes de talleres viejos. Terapias y cursos inactivos siguen
         // apareciendo, porque desde aqui se reactivan.
         { OR: [{ kind: { not: "WORKSHOP" } }, { isActive: true }] },
+        // «Pago personalizado» (`OTHER`) es el producto oculto al que cuelgan
+        // los enlaces de monto libre. Está inactivo y sin precio a propósito;
+        // listarlo aquí invitaría a activarlo desde el botón de reactivar.
+        { kind: { not: "OTHER" } },
       ],
     },
     orderBy: [{ sortOrder: "asc" }, { title: "asc" }],

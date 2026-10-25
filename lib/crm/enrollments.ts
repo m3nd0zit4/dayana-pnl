@@ -6,6 +6,11 @@ import {
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { prisma } from "../db";
 import { assignEnrollmentContact } from "./checkout-placeholder";
+import { ensureCustomPaymentProduct, getCustomTerms } from "./custom-payment";
+import {
+  CUSTOM_PAYMENT_PRODUCT_ID,
+  isCustomPlanId,
+} from "./custom-payment-rules";
 import { ENROLLMENT_STATUS_LABEL } from "./enrollment-labels";
 import { formatMoneyMinor } from "./money";
 import { getProduct, productSessionsTotal } from "./products";
@@ -56,7 +61,18 @@ export const createEnrollment = async (input: {
    */
   paidPurchase?: boolean;
 }): Promise<Prisma.EnrollmentGetPayload<{ include: { product: true } }>> => {
-  const product = await getProduct(input.productId);
+  // Un cobro de monto libre llega con el id de plan de su enlace
+  // (`enlace-<id>`), que no es una fila de `Product`: la matrícula cuelga del
+  // producto oculto «Pago personalizado» y toma de AQUÍ lo que se cobró y por
+  // qué, porque ese producto no tiene precio y su título es genérico.
+  const custom = await getCustomTerms(input.productId);
+  if (isCustomPlanId(input.productId) && !custom) {
+    throw new EnrollmentValidationError("Product not found", "PRODUCT_NOT_FOUND");
+  }
+  if (custom) await ensureCustomPaymentProduct();
+  const productId = custom ? CUSTOM_PAYMENT_PRODUCT_ID : input.productId;
+
+  const product = await getProduct(productId);
   if (!product) {
     throw new EnrollmentValidationError("Product not found", "PRODUCT_NOT_FOUND");
   }
@@ -92,7 +108,7 @@ export const createEnrollment = async (input: {
     const pending = await prisma.enrollment.findFirst({
       where: {
         contactId: input.contactId,
-        productId: input.productId,
+        productId,
         status: {
           in: [EnrollmentStatus.LEAD, EnrollmentStatus.PENDING_PAYMENT],
         },
@@ -112,16 +128,16 @@ export const createEnrollment = async (input: {
   const enrollment = await prisma.enrollment.create({
     data: {
       contactId: input.contactId,
-      productId: input.productId,
+      productId,
       workshopEditionId: input.workshopEditionId ?? null,
       status: input.status ?? EnrollmentStatus.LEAD,
-      label: input.label ?? product.title,
+      label: input.label ?? custom?.concept ?? product.title,
       parentEnrollmentId: input.parentEnrollmentId ?? null,
       isPrimary: input.isPrimary ?? false,
       sessionsTotal,
       sessionsUsed: 0,
-      currency: price?.currency ?? "USD",
-      amountMinor: price?.amountMinor ?? null,
+      currency: custom?.currency ?? price?.currency ?? "USD",
+      amountMinor: custom?.amountMinor ?? price?.amountMinor ?? null,
       leadAt: new Date(),
       externalRef: null,
     },

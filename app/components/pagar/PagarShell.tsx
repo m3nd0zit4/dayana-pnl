@@ -46,6 +46,11 @@ type Props = {
   note?: string | null;
   /** Los botones de pago de cada opcion. */
   action: (plan: Plan) => ReactNode;
+  /**
+   * El precio ya formateado, para un enlace de monto libre (con centavos). Si no
+   * se da, cada tarjeta calcula el suyo a partir del plan y la región.
+   */
+  priceLabel?: string;
 };
 
 const PagarShell = ({
@@ -54,6 +59,7 @@ const PagarShell = ({
   greetingName = null,
   note = null,
   action,
+  priceLabel,
 }: Props) => (
   <main className="flex min-h-[100svh] items-center justify-center bg-hero-paper px-5 py-12 text-ink">
     {/* Una entrada y nada más. Quien abre un enlace de pago ya decidió:
@@ -88,6 +94,7 @@ const PagarShell = ({
               plan={plan}
               isColombia={isColombia}
               size="sm"
+              priceLabel={priceLabel}
               action={action(plan)}
             />
           ))}
