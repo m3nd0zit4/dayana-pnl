@@ -178,7 +178,7 @@ export const isWorkshopChoice = (text: string | null | undefined): boolean => {
 };
 
 const SPOT =
-  /\b(cupo|cupos|separ(ar|arlo|arla|arme|ame|o|e)|reserv(ar|arlo|arla|arme|ame|o|e)|pagar|pagarlo|pagarla|pago|link|enlace)\b/;
+  /\b(cupo|cupos|separ(ar|arlo|arla|arme|ame|o|e)|reserv(ar|arlo|arla|arme|ame|o|e)|pagar|pagarlo|pagarla|pago|paga|pagas|pagamos|pagaria|link|enlace|transferencia|consignar|consignacion|tarjeta|paypal|nequi|pse)\b/;
 /** Todavía no, o no puede: no es elegir el cupo ahora. */
 const NOT_NOW =
   /\b(no (puedo|tengo|me alcanza|se)|todavia no|aun no|despues|luego|mas adelante|mas tarde|otro dia|(la )?(otra|proxima) semana|quincena|fin de mes|cuando (me|tenga|cobre|paguen|pueda)|pensarlo|lo pienso)\b/;

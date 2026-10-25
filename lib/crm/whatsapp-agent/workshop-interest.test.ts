@@ -350,6 +350,11 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
       "Quiero pagar el taller",
       "Mándame el enlace porfa",
       "Puedo pagar con tarjeta?",
+      "¿Cómo se paga?",
+      "¿Cuál es el link del taller?",
+      "¿Cuánto cuesta y dónde pago?",
+      "Se puede por transferencia?",
+      "Con tarjeta?",
     ]) {
       expect([t, wantsWorkshopSpot(t)]).toEqual([t, true]);
     }
