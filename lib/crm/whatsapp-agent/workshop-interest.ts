@@ -87,7 +87,9 @@ export const isWorkshopAsk = (text: string | null | undefined, w: OpenWorkshop):
   // «taller de X» con una X que no es de este taller: es otro.
   const of = /\btaller(?:es)? de (?:la |el |los |las )?([a-z0-9ñ]+)/.exec(t);
   if (of && !words.includes(of[1]) && !MONTHS.includes(of[1]) && !/^\d/.test(of[1]) && !["dayana", "pnl"].includes(of[1])) return false;
-  return words.some(has) || date || INTEREST.test(t);
+  // Con «taller», el día solo también es esta edición (Sergio, 25-oct: «Para el taller de el 15»).
+  const day = Boolean(dm && new RegExp(`\\b${dm.day}\\b`).test(t));
+  return words.some(has) || date || day || INTEREST.test(t);
 };
 
 type Line = { direction: string; body: string | null; sentAt?: Date | null; source?: string | null };
@@ -145,6 +147,8 @@ const namesWorkshop = (text: string, w: OpenWorkshop): boolean => {
 const FLOW_STEP = /\b(desde que pais|en que ciudad|cual te queda mejor|responderme con el numero|cual de estas|ya no esta libre|horas libres)\b/;
 /** Lo de su propio proceso («¿a qué cuenta pago mi terapia?»): esa respuesta no sigue lo del taller. */
 const OWN_PROCESS = /\b(sesion|sesiones|terapia|terapias|paquete|proceso|comprobante|transferi\w*)\b/;
+/** ¿Habla de su propio proceso (la terapia, sus sesiones, su paquete)? */
+export const aboutOwnProcess = (text: string): boolean => OWN_PROCESS.test(foldForSearch(text));
 /** Cuántos mensajes nuestros se miran hacia atrás buscando la oferta (país, ciudad, horas, «¿cuál de estas?»…). */
 const MAX_STEPS = 6;
 const DAY_MS = 24 * 3600_000;
@@ -180,19 +184,19 @@ export const isWorkshopChoice = (text: string | null | undefined): boolean => {
 const SPOT =
   /\b(cupo|cupos|separ(ar|arlo|arla|arme|ame|o|e)|reserv(ar|arlo|arla|arme|ame|o|e)|pagar|pagarlo|pagarla|pago|paga|pagas|pagamos|pagaria|link|enlace|transferencia|consignar|consignacion|tarjeta|paypal|nequi|pse)\b/;
 /** Todavía no, o no puede: no es elegir el cupo ahora. */
-const NOT_NOW =
-  /\b(no (puedo|tengo|me alcanza|se)|todavia no|aun no|despues|luego|mas adelante|mas tarde|otro dia|(la )?(otra|proxima) semana|quincena|fin de mes|cuando (me|tenga|cobre|paguen|pueda)|pensarlo|lo pienso)\b/;
+// «Después pago», «la otra semana» o «¿me respetan la promoción si pago después?» sí
+// llevan el enlace (dueña, 25-oct, Sergio: «tiene que enviar lo del taller»); no poder pagar, no.
+const NOT_NOW = /\b(no (puedo|tengo|me alcanza|se)|todavia no|aun no|pensarlo|lo pienso)\b/;
 /** Prefiere hablar antes con Dayana (o mezcla las dos cosas): lo decide el modelo. */
 const WANTS_CALL = /\b(llamada|llamar|llamame|agend\w*|hablar|explique|explica)\b/;
-/** Ya pagó (lo lleva el comprobante, no el enlace otra vez), o pregunta por cuotas o descuentos (Dayana). */
-const PAID_OR_TERMS =
-  /\b(ya (pague|transferi|consigne|deposite|hice el pago|realice el pago)|pague|transferi|comprobante|cuotas|abono|abonar|descuento|la mitad)\b/;
+/** Ya pagó: lo lleva el comprobante, no el enlace otra vez. */
+const PAID_OR_TERMS = /\b(ya (pague|transferi|consigne|deposite|hice el pago|realice el pago)|pague|transferi|comprobante)\b/;
 
 /**
- * ¿Elige separar su cupo ahora? «Quiero separar mi cupo», «¿cómo pago?», «el
- * enlace»; tras nuestra pregunta del cupo o la llamada (`afterChoice`), también
- * «la primera» o «1». No «después pago», «no puedo pagar», «prefiero la
- * llamada», «ya pagué» ni «¿se puede en cuotas?».
+ * ¿Habla de pagar el taller o elige su cupo? «Quiero separar mi cupo», «¿cómo
+ * pago?», «el enlace», «después pago», «¿se puede en cuotas?»; tras nuestra
+ * pregunta del cupo o la llamada (`afterChoice`), también «la primera» o «1».
+ * No «no puedo pagar», «prefiero la llamada» ni «ya pagué».
  */
 export const wantsWorkshopSpot = (said: string, opts: { afterChoice?: boolean } = {}): boolean => {
   const t = foldForSearch(said).trim();
@@ -230,8 +234,24 @@ export const workshopLinkSent = (lines: Line[], now = Date.now()): boolean =>
   );
 
 /** Lo que recibe quien elige separar su cupo (el enlace va debajo). */
-export const workshopLinkReply = (w: OpenWorkshop): string =>
-  `Claro 🙏 Aquí tienes el enlace para separar tu cupo en el taller «${w.title}». Ahí ves el valor y puedes pagar en línea; con el pago tu cupo queda separado.`;
+export const workshopLinkReply = (w: OpenWorkshop, opts: { handoff?: boolean; promo?: boolean } = {}): string =>
+  opts.promo
+    ? // La promoción que Dayana dio en el webinar (Sergio, 25-oct: «las 4 clases gratis»): la IA no la
+      // conoce, nunca la confirma; Dayana sí. El enlace va ya: a veces la promoción dura un día.
+      `La promoción te la confirma Dayana por aquí 🙏 Para que no la pierdas, aquí tienes el enlace para separar tu cupo en el taller «${w.title}»: ahí ves el valor y puedes pagar en línea.`
+    : opts.handoff
+      ? // Preguntó algo que solo Dayana sabe (cuotas, un descuento): el enlace y Dayana le contesta.
+        `Tu pregunta se la paso a Dayana y te confirma por aquí 🙏 Mientras, aquí tienes el enlace para separar tu cupo en el taller «${w.title}»: ahí ves el valor y puedes pagar en línea.`
+      : `Claro 🙏 Aquí tienes el enlace para separar tu cupo en el taller «${w.title}». Ahí ves el valor y puedes pagar en línea; con el pago tu cupo queda separado.`;
+
+/**
+ * ¿Habla de una promoción? En los webinars Dayana regala promociones (dueña,
+ * 25-oct: «a veces las personas dicen voy a pagar esto con esta promoción… el
+ * modelo no tiene contexto porque es algo que se habla en la reunión»).
+ */
+const PROMO = /\b(promo|promos|promocion|promociones|regalo|regalan|regalaron|regalaste|bono|bonos|obsequio|beneficio|clases gratis|sesiones gratis|descuento|oferta)\b/;
+export const mentionsPromo = (text: string): boolean => PROMO.test(foldForSearch(text));
+
 
 /**
  * La llamada para el taller (aunque ya haya tenido su llamada gratis) solo
@@ -369,6 +389,15 @@ export const workshopFollowLine = (lines: Line[], w: OpenWorkshop, now = Date.no
   }
   return `SIGUE LO DEL TALLER: está separando su llamada con Dayana para inscribirse al taller «${w.title}» (ya se la ofrecimos). Si dice que sí, ${hours}. Si prefiere separar su cupo de una vez o pide pagar, send_workshop_link. No digas el valor.`;
 };
+
+/**
+ * La línea del prompt cuando habla de pagar el taller y la conversación ya no lo
+ * nombra (preguntó por él en las últimas 24 h; Sergio, 25-oct: «Es que es
+ * respecto al pago»). Lo que no sabe (la promoción de la clase, cuotas) lo
+ * contesta Dayana; el enlace va igual.
+ */
+export const workshopPayLine = (w: OpenWorkshop): string =>
+  `PAGO DEL TALLER: habla de pagar el taller «${w.title}» (o de la promoción que Dayana dio en el webinar). Mándale el enlace de pago con send_workshop_link (va debajo; no lo escribas) en un mensaje corto: ahí ve el valor y paga en línea. Si pregunta por una promoción o algo que no sabes (cuotas, un descuento), mándale el enlace igual y escala con category=payment para que Dayana se lo confirme; nunca confirmes tú una promoción ni le digas solo que lo consultas. No digas el valor ni le ofrezcas la llamada para pagar.`;
 
 /** La respuesta del código si el modelo dice que no hay taller o se lo pasa a Dayana. */
 export const workshopReply = (w: OpenWorkshop, opts: { upcomingLabel: string | null }): string => {

@@ -66,6 +66,13 @@ const WEBINAR: GuestEvent = {
   startsAt: new Date("2026-10-18T14:30:00Z"),
   startsAtHasTime: true,
 };
+// El webinar de esta mañana (la evaluación corre a las 19:00 UTC del 14): ya pasó, como el del 25 para Sergio.
+const WEBINAR_DONE: GuestEvent = {
+  eventLabel: "Webinar Gratuito",
+  headline: "Webinar Gratuito",
+  startsAt: new Date("2026-10-14T13:30:00Z"),
+  startsAtHasTime: true,
+};
 const WEBINAR_CLIENT = (name: string) =>
   [
     `Nombre en el CRM: ${name} (cómo llamarla: mira NOMBRE)`,
@@ -1212,5 +1219,76 @@ export const SCENARIOS: Scenario[] = [
       mustNotMatch: [/pagar\/p\/therapy/i, /\$|\bcop\b|\busd\b|190/i],
     },
     goal: "«La primera» es separar su cupo: le manda el enlace de pago del taller (no el de su paquete de sesiones). Sin horas ni el valor.",
+  },
+  // Sergio (25-oct): preguntó por el taller el día antes, fue al webinar y luego habló del pago; la IA
+  // le contestó que Dayana le explicaba las formas de pago en la llamada y escaló la promoción de la
+  // clase («Déjame consultarlo con Dayana»). Dueña: «tiene que enviar lo del taller».
+  {
+    id: "sergio-es-respecto-al-pago",
+    origin: "Sergio (México), 25-oct: tras el webinar, «Oye tengo una duda» / «Es que es respecto al pago» (preguntó por el taller el día antes)",
+    name: "Sergio",
+    stage: "conversando",
+    personTimezone: "America/Mexico_City",
+    freeEvent: WEBINAR_DONE,
+    transcript: [
+      { ...person("Quiero saber el costo de el taller de sanación de el dinero ( 15 de noviembre ) y horarios"), sentAt: new Date("2026-10-13T20:29:00Z") },
+      {
+        ...ai("Sergio, te bendigo. Sobre el taller de sanación del dinero del 15 de noviembre, Dayana te explica todo en una llamada gratis. Si quieres, te la agendo."),
+        sentAt: new Date("2026-10-13T20:29:30Z"),
+      },
+      { ...person("Dayana, me encantó tu clase, felicidades"), sentAt: new Date("2026-10-14T18:41:00Z") },
+      { ...person("Oye tengo una duda"), sentAt: new Date("2026-10-14T18:41:05Z") },
+      { ...ai("Te bendigo, Sergio. Qué alegría que te haya gustado la clase. Cuéntame, ¿cuál es tu duda?"), sentAt: new Date("2026-10-14T18:41:20Z") },
+      { ...person("Es que es respecto al pago"), sentAt: new Date("2026-10-14T18:42:00Z") },
+    ],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
+      mustNotMatch: [/en la llamada/i, /\$|\bcop\b|\busd\b|190/i],
+    },
+    goal: "Habla del pago del taller por el que preguntó ayer: le manda el enlace de pago del taller (va debajo) en un mensaje corto. No le dice que Dayana le explica las formas de pago en una llamada. Sin el valor.",
+  },
+  {
+    id: "sergio-promocion-de-la-clase",
+    origin: "Sergio (México), 25-oct: «¿si hago el pago posterior me va a respetar la promoción de las 4 clases gratis?» (la promoción la dio Dayana en el webinar); la IA escaló y no le mandó nada",
+    name: "Sergio",
+    stage: "conversando",
+    personTimezone: "America/Mexico_City",
+    freeEvent: WEBINAR_DONE,
+    transcript: [
+      { ...person("Quiero saber el costo de el taller de sanación de el dinero ( 15 de noviembre ) y horarios"), sentAt: new Date("2026-10-13T20:29:00Z") },
+      { ...person("Dayana, me encantó tu clase, felicidades"), sentAt: new Date("2026-10-14T18:41:00Z") },
+      { ...ai("Te bendigo, Sergio. Qué alegría que te haya gustado la clase. Cuéntame, ¿cuál es tu duda?"), sentAt: new Date("2026-10-14T18:41:20Z") },
+      { ...person("Para el taller de el 15"), sentAt: new Date("2026-10-14T18:42:30Z") },
+      {
+        ...ai("Sí, el taller «Tu Sanación con el Dinero» está abierto. ¿Quieres separar tu cupo ya con el enlace de pago (ahí ves el valor) o agendar primero una llamada con Dayana?"),
+        sentAt: new Date("2026-10-14T18:42:40Z"),
+      },
+      { ...person("Pero si hago el pago posterior me va a respetar la promoción de las 4 clases gratis?"), sentAt: new Date("2026-10-14T18:43:00Z") },
+      { ...person("Por qué dijo que el pago tendría que ser hoy"), sentAt: new Date("2026-10-14T18:43:20Z") },
+    ],
+    expect: {
+      outcome: "reply",
+      silentAlert: "normal",
+      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/, /promoci[oó]n/i, /Dayana/],
+      mustNotMatch: [/s[ií],? (te )?(la )?respet|se respeta|s[ií] aplica|te la respetamos/i, /\$|\bcop\b|\busd\b|190/i],
+    },
+    goal: "No sabe de la promoción del webinar: no la confirma ni la niega, le dice que Dayana se la confirma por aquí y le manda ya el enlace de pago del taller (la promoción puede durar un día). Dayana recibe el aviso. Nunca solo «déjame consultarlo».",
+  },
+  {
+    id: "webinar-paga-con-la-promocion",
+    origin: "Dueña, 25-oct: después del webinar la gente escribe «voy a pagar con la promoción» y el modelo no tiene ese contexto (se dijo en la reunión)",
+    name: "Gloria",
+    stage: "conversando",
+    personTimezone: "America/Bogota",
+    freeEvent: WEBINAR_DONE,
+    transcript: [person("Hola! quiero pagar con la promoción que dio Dayana hoy en el webinar")],
+    expect: {
+      outcome: "reply",
+      silentAlert: "normal",
+      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/, /promoci[oó]n/i],
+      mustNotMatch: [/s[ií],? (te )?(la )?respet|se respeta|s[ií] aplica/i, /\$|\bcop\b|\busd\b|190/i],
+    },
+    goal: "La promoción del webinar es para el taller: le manda el enlace de pago del taller y le dice que Dayana le confirma la promoción. No la confirma ni dice solo «déjame consultarlo». Dayana recibe el aviso.",
   },
 ];

@@ -58,6 +58,7 @@ import { phoneFromWhatsAppId } from "@/lib/phone";
 import { registeredEventLines, type RegisteredFreeEvent } from "./free-event-registration";
 import { guestEventCounts, guestLine, guestReply, wantsProcess, type GuestEvent } from "./webinar-guest";
 import {
+  aboutOwnProcess,
   isWorkshopAsk,
   isWorkshopChoice,
   isWorkshopOffer,
@@ -70,7 +71,9 @@ import {
   workshopFollowLine,
   workshopLeadActive,
   workshopLine,
+  mentionsPromo,
   workshopLinkReply,
+  workshopPayLine,
   workshopReply,
   type OpenWorkshop,
 } from "./workshop-interest";
@@ -1012,13 +1015,6 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const workshopAskNow = Boolean(workshop) && workshopLead && isWorkshopAsk(lastInbound.join("\n"), workshop!);
   // El enlace de pago del taller (dueña, 25-oct: «que pregunte si para separar su cupo o agendar»).
   const workshopPay = workshop?.payUrl ?? null;
-  // Elige separar su cupo ya («quiero separar mi cupo», «el enlace», «la primera» tras la pregunta): va el enlace.
-  const lastOutbound = [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND");
-  const workshopSpot =
-    Boolean(workshopPay) &&
-    (workshopAskNow || workshopFlow) &&
-    !lastInboundMedia &&
-    wantsWorkshopSpot(lastInbound.join("\n"), { afterChoice: isWorkshopChoice(lastOutbound?.body) });
   // Su llamada ya agendada (también sin agenda automática), para decirle que ahí la inscribe Dayana.
   const workshopCall =
     upcomingCall ??
@@ -1064,6 +1060,29 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           { now, tz: input.freeCall?.personTimezone ?? timezone, lookbackDays: 30 }
         )
       : null;
+  // Elige separar su cupo o habla de pagar el taller («quiero separar mi cupo», «el enlace»,
+  // «la primera» tras la pregunta): va el enlace. También si preguntó por el taller en las
+  // últimas 24 h y la conversación ya no lo nombra (Sergio, 25-oct: «Es que es respecto al
+  // pago» y la IA le dijo que Dayana le explicaba en la llamada), salvo que tenga un pago de
+  // su proceso pendiente (el enlace o los datos de Dayana, una cotización) o hable de él.
+  const lastOutbound = [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND");
+  const processPay = Boolean(chatLink || chatPayInfo || quoteSit || dayanaPaymentInfo(input.transcript, now));
+  const saidNow = lastInbound.join("\n");
+  // Estuvo en el webinar (los últimos 3 días) y habla de pagar con la promoción que Dayana
+  // dio ahí (dueña, 25-oct): con el taller abierto, es la del taller.
+  const webinarAt = input.freeEvent?.startsAt?.getTime() ?? null;
+  const afterWebinar = webinarAt !== null && webinarAt <= now.getTime() && now.getTime() - webinarAt < 3 * 24 * 3600_000;
+  const promoAsk = mentionsPromo(saidNow);
+  const workshopSpot =
+    Boolean(workshopPay) &&
+    !input.clientMode &&
+    (workshopAskNow ||
+      workshopFlow ||
+      ((workshopLead || (afterWebinar && promoAsk)) && !processPay && !aboutOwnProcess(saidNow))) &&
+    !lastInboundMedia &&
+    wantsWorkshopSpot(saidNow, { afterChoice: isWorkshopChoice(lastOutbound?.body) });
+  // Pregunta por una promoción que la IA no conoce: la confirma Dayana, el enlace va ya.
+  const workshopPromo = workshopSpot && promoAsk;
   const paymentTools = {
     ...(methods.length > 0
       ? {
@@ -1200,7 +1219,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             execute: async () => {
               if (!workshopPay) return log("send_workshop_link", {}, { ok: false, reason: "Ya pagó este taller: no le mandes el enlace." });
               // Solo a quien habla del taller (no es el enlace de pago de su proceso).
-              if (!workshopLead) return log("send_workshop_link", {}, { ok: false, reason: "No está hablando del taller: no le mandes este enlace." });
+              if (!workshopLead && !workshopSpot) return log("send_workshop_link", {}, { ok: false, reason: "No está hablando del taller: no le mandes este enlace." });
               // Pregunta por el taller y todavía no eligió (eval 25-oct: a «¿el costo del taller?» le mandaba el enlace sin preguntar).
               if (workshopAskNow && !workshopSpot) {
                 return log("send_workshop_link", {}, {
@@ -1909,7 +1928,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         ? workshopLine(workshop, { upcomingLabel: upcomingLabelText })
         : workshop && workshopFlow && !workshopCall
           ? workshopFollowLine(input.transcript, workshop, now.getTime())
-          : null,
+          : workshop && workshopSpot
+            ? workshopPayLine(workshop)
+            : null,
       guestEvent
         ? guestLine(guestEvent, input.transcript, { timezone, now: now.getTime() })
         : salesOn
@@ -2138,9 +2159,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !quotePay;
   const wrongWorkshopReply =
     modelOutcome.kind === "reply" && (saysNoWorkshop(modelOutcome.message) || Boolean(state.paymentLink) || state.paymentDetails.length > 0);
+  // Una promoción que la IA no conoce (dueña, 25-oct: «el modelo deja de responder y la
+  // persona no tiene respuesta… a veces las promociones tienen tiempo limitado»): siempre el
+  // enlace + «la promoción te la confirma Dayana», conteste o escale el modelo (nunca la confirma).
+  const promoFix = workshopPromo && !(modelOutcome.kind === "escalate" && modelOutcome.category === "clinical");
   const workshopFix: "link" | "info" | null = !workshopGuard
     ? null
-    : workshopSpot && (wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown", "payment"].includes(modelOutcome.category)))
+    : workshopSpot &&
+        (promoFix || wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown", "payment"].includes(modelOutcome.category)))
       ? "link"
       : workshopAskNow && (wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown"].includes(modelOutcome.category)))
         ? "info"
@@ -2166,6 +2192,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               ? "La asistente le contó del taller y le preguntó si separa su cupo o agenda la llamada."
               : "La asistente le contó del taller y le ofreció la llamada para inscribirse."
         })`.slice(0, 300),
+      };
+    }
+    // Contestó el modelo, pero la promoción la confirma Dayana: se entera igual (la persona lo sabe).
+    if (promoFix) {
+      state.silentEscalation ??= {
+        category: "payment",
+        severity: "normal",
+        reason: `Pregunta por una promoción («${saidNow.slice(0, 160)}»). La asistente le mandó el enlace del taller y le dijo que tú le confirmas la promoción.`,
       };
     }
   }
@@ -2268,7 +2302,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             : workshopOnly && workshop
               ? {
                   kind: "reply",
-                  message: workshopFix === "link" ? workshopLinkReply(workshop) : workshopReply(workshop, { upcomingLabel: upcomingLabelText }),
+                  message:
+                    workshopFix === "link"
+                      ? // Escaló una pregunta que solo Dayana sabe (la promoción, cuotas): el enlace y Dayana le contesta.
+                        workshopLinkReply(workshop, { handoff: modelOutcome.kind === "escalate", promo: promoFix })
+                      : workshopReply(workshop, { upcomingLabel: upcomingLabelText }),
                 }
               : serious
                 ? { kind: "reply", message: serious }
@@ -2347,17 +2385,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     ) {
       addLink(workshopPay);
       log("send_workshop_link", { auto: true }, { ok: true, note: "Lo pegó el código: eligió separar su cupo o la respuesta hablaba del enlace sin la herramienta." });
-      // Si su texto ya habla del enlace, sale tal cual; si contesta otra cosa («¿es en
-      // pesos?»), se suma la frase del enlace; si pregunta algo (el país, «¿te refieres a…?») u ofrecía horas, la del cupo.
-      const asksBack = /\?/.test(text);
+      // Si su texto ya habla del enlace, sale tal cual; si no (Sergio, 25-oct: «Dayana te
+      // explica las formas de pago en la llamada»), la respuesta del cupo: sumarle el enlace
+      // a otra cosa lo contradice.
       if (spotOverSlots) state.slotOffer = null;
-      text = spotOverSlots
-        ? workshopLinkReply(workshop)
-        : /\b(enlace|link)\b/.test(foldForSearch(text))
-          ? withoutFakeLinks(text) || text
-          : asksBack || !text.trim()
-            ? workshopLinkReply(workshop)
-            : `${text.trim()}${/[.!]$/.test(text.trim()) ? "" : "."} Aquí tienes el enlace para separar tu cupo; ahí ves el valor y puedes pagar en línea.`;
+      text =
+        !spotOverSlots && /\b(enlace|link)\b/.test(foldForSearch(text)) ? withoutFakeLinks(text) || text : workshopLinkReply(workshop);
     }
     // Eligió el cupo, va el enlace y el texto le vuelve a preguntar (eval 25-oct: «La
     // primera» + el enlace + «¿desde qué país me escribes?»): la respuesta del cupo.

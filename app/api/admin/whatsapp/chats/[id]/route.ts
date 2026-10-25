@@ -236,14 +236,18 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
         where: { conversationId: id, status: { not: "FAILED" } },
         orderBy: { sentAt: "desc" },
         take: 40,
-        select: { direction: true, body: true, isAutoReply: true },
+        select: { direction: true, body: true, isAutoReply: true, sentAt: true, source: true, clientKey: true },
       });
       const draft = await draftAutoReply({
         config,
+        // Con la hora y el origen: «preguntó por el taller hace 24 h», «lo mandó Dayana» (25-oct).
         transcript: messages.reverse().map((m) => ({
           direction: m.direction === "INBOUND" ? "INBOUND" : "OUTBOUND",
           body: m.body,
           isAutoReply: m.isAutoReply,
+          sentAt: m.sentAt,
+          source: m.source,
+          clientKey: m.clientKey,
         })),
         name: conversation.participantName,
         client: await clientContext(conversation.contactId),

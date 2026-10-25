@@ -172,6 +172,12 @@ const ChatView = ({
       setText(data.draft.message);
       lastDraft.current = data.draft.message;
     } else {
+      // Escalaría: igual deja en el cuadro lo que le diría, para revisarlo y mandarlo (dueña, 25-oct:
+      // «no me deja aprobar»). Sin pisar lo que ya estabas escribiendo.
+      if (data.draft.message && !text.trim()) {
+        setText(data.draft.message);
+        lastDraft.current = data.draft.message;
+      }
       toast(`La IA te lo dejaría a ti: ${data.draft.reason}`, "info");
     }
   };
