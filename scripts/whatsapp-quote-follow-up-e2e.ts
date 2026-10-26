@@ -151,7 +151,28 @@ const main = async () => {
     ]);
     const r7 = await sweep(c7);
     check("no salió nada: todavía no le toca", sent.length === 0 && "not_due" in r7, { r7, sent });
+
+    console.log("\n8. Cristina (26-oct): el 1º no le llegó (Meta) y Dayana lo borró: no sale otra vez");
+    const c8 = await chat("8", [{ dir: "OUT", body: QUOTE, at: ago(3) }, { dir: "IN", body: "Gracias", at: ago(3) }]);
+    await sweep(c8);
+    const first = sent[0];
+    check("antes de borrarlo, le tocaba el 1º", Boolean(first?.source.endsWith(":1")), sent);
+    // Como lo dejaba la bitácora antes de guardar `source`: solo el texto.
+    await prisma.auditLog.create({
+      data: { action: "WHATSAPP_FAILED_DELETED", entityType: "WhatsAppChat", entityId: c8, changes: { messageId: "e2e", body: first?.text ?? "", failedReason: "User's number is part of an experiment" } },
+    });
+    const r8 = await sweep(c8);
+    check("borrado (bitácora vieja, por el texto): no sale", sent.length === 0, { r8, sent });
+    const c9 = await chat("9", [{ dir: "OUT", body: QUOTE, at: ago(3) }, { dir: "IN", body: "Gracias", at: ago(3) }]);
+    await sweep(c9);
+    const again = sent[0];
+    await prisma.auditLog.create({
+      data: { action: "WHATSAPP_FAILED_RESENT", entityType: "WhatsAppChat", entityId: c9, changes: { messageId: "e2e", body: "(otro texto)", source: again?.source ?? "" } },
+    });
+    const r9 = await sweep(c9);
+    check("reenviado (bitácora con `source`): no sale", sent.length === 0, { r9, sent });
   } finally {
+    await prisma.auditLog.deleteMany({ where: { entityType: "WhatsAppChat", entityId: { in: ids } } });
     await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversationId: { in: ids } } });
     await prisma.whatsAppDossier.deleteMany({ where: { conversationId: { in: ids } } });
     await prisma.conversationMessage.deleteMany({ where: { conversationId: { in: ids } } });

@@ -4,7 +4,8 @@ import { sureFirstName } from "@/lib/sure-name";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
-import { ensureTemplatesSubmitted } from "../whatsapp-templates";
+import { fillVars } from "../whatsapp-outbound-plan";
+import { approvedTemplateFor, ensureTemplatesSubmitted } from "../whatsapp-templates";
 import { chatNameInfo } from "./chat-name";
 import { followUpDue, followUpText, isQuoteLine, QUOTE_FOLLOW_UP_SOURCE, QUOTE_STATE_LABEL, quoteHowText, quoteSituation } from "./quote-follow-up-rules";
 import { quoteLinesFor, quoteZoneFor } from "./quote-follow-up-view";
@@ -88,6 +89,25 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
 
   const name = sureFirstName(await chatNameInfo(conversationId));
   const n = s.sent + 1;
+  const source = `${QUOTE_FOLLOW_UP_SOURCE}${s.quoteAt.getTime()}:${n}`;
+  const text = followUpText(due.kind, s.state, name);
+  // WhatsApp no lo entregó y Dayana lo borró o lo reenvió (Cristina, 26-oct: «User's
+  // number is part of an experiment»): ya no está en el chat, así que la cuenta volvía
+  // a 0 y salía otra vez. La bitácora lo recuerda: por `source` y, en los de antes de
+  // guardarlo, por el texto (el libre o el de la plantilla, con el nombre como sale).
+  const template = await approvedTemplateFor(QUOTE_TEMPLATE_KEY).catch(() => null);
+  const bodies = [text, ...(template?.body ? [fillVars(template.body, { nombre: name?.trim() || "😊" })] : [])];
+  const triedBefore = await prisma.auditLog.findFirst({
+    where: {
+      action: { in: ["WHATSAPP_FAILED_DELETED", "WHATSAPP_FAILED_RESENT"] },
+      entityType: "WhatsAppChat",
+      entityId: conversationId,
+      createdAt: { gte: s.quoteAt },
+      OR: [{ changes: { path: ["source"], equals: source } }, ...bodies.map((b) => ({ changes: { path: ["body"], equals: b } }))],
+    },
+    select: { id: true },
+  });
+  if (triedBefore) return "blocked";
   const r = await send({
     recipient: (conv.contactId ? await recipientFromContact(conv.contactId) : null) ?? {
       contactId: conv.contactId,
@@ -95,11 +115,11 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
       name: name ?? conv.participantName,
       optedOut: false,
     },
-    text: followUpText(due.kind, s.state, name),
+    text,
     templateKey: QUOTE_TEMPLATE_KEY,
     vars: { nombre: name ?? "" },
     // `recordatorio:`: sale solo, no cuenta como que Dayana contestó.
-    source: `${QUOTE_FOLLOW_UP_SOURCE}${s.quoteAt.getTime()}:${n}`,
+    source,
     isAutoReply: true,
     clientKey: `cotizacion:${conversationId}:${s.quoteAt.getTime()}:${n}`,
   }).catch((e: unknown) => ({ status: "failed" as const, error: e instanceof Error ? e.message : String(e) }));

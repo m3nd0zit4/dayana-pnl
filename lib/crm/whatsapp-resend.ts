@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { writeAuditLog } from "./audit";
 import { sendMetaMessage, type SendAttachment } from "@/lib/meta/send";
 import { buildContactWhatsAppUrl } from "@/lib/whatsapp-contact";
+import { isMetaExperiment } from "./whatsapp-delivery-labels";
 import { windowStateOf } from "./whatsapp-outbound-plan";
 import { recipientFromContact, sendWhatsAppToRecipient } from "./whatsapp-outbound";
 import { approvedTemplateFor, refreshTemplatesIfPending } from "./whatsapp-templates";
@@ -37,7 +38,7 @@ export const deleteFailedMessage = async (input: {
 }): Promise<boolean> => {
   const m = await prisma.conversationMessage.findFirst({
     where: { id: input.messageId, conversationId: input.conversationId, direction: "OUTBOUND", status: "FAILED" },
-    select: { id: true, body: true, failedReason: true, sentAt: true },
+    select: { id: true, body: true, failedReason: true, sentAt: true, source: true },
   });
   if (!m) return false;
   await prisma.conversationMessage.delete({ where: { id: m.id } });
@@ -46,7 +47,8 @@ export const deleteFailedMessage = async (input: {
     action: input.why === "resent" ? "WHATSAPP_FAILED_RESENT" : "WHATSAPP_FAILED_DELETED",
     entityType: "WhatsAppChat",
     entityId: input.conversationId,
-    changes: { messageId: m.id, body: m.body, failedReason: m.failedReason, sentAt: m.sentAt.toISOString() },
+    // `source`: el seguimiento de la cotización no vuelve a salir (`quote-follow-up.ts`).
+    changes: { messageId: m.id, body: m.body, failedReason: m.failedReason, sentAt: m.sentAt.toISOString(), source: m.source },
   }).catch(() => undefined);
   return true;
 };
@@ -87,6 +89,7 @@ export const resendFailedMessage = async (input: {
       attachments: true,
       isAutoReply: true,
       source: true,
+      failedReason: true,
       conversation: {
         select: { id: true, channel: true, externalThreadId: true, lastInboundAt: true, contactId: true, participantName: true },
       },
@@ -134,6 +137,15 @@ export const resendFailedMessage = async (input: {
     }
   }
 
+  // Meta no le entrega plantillas por ahora (Cristina, 26-oct): otra plantilla fallaría igual.
+  if (isMetaExperiment(original.failedReason)) {
+    const own = /^\d+$/.test(conv.externalThreadId) ? `+${conv.externalThreadId}` : null;
+    return {
+      status: "phone",
+      url: own ? buildContactWhatsAppUrl(own, body) : null,
+      reason: "Meta no le entrega plantillas a este número por ahora (no es un error nuestro): mándalo desde tu WhatsApp, o cuando ella escriba se le puede contestar desde aquí.",
+    };
+  }
   // Fuera de las 24 h: solo con plantilla aprobada (y solo texto), la que
   // corresponde a lo que era el mensaje.
   const keys = resendTemplateKeys(original.source);

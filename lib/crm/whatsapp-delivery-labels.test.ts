@@ -56,3 +56,11 @@ describe("shortWhen", () => {
     expect(text.startsWith("3 oct, ")).toBe(true);
   });
 });
+
+describe("failedLabel: Meta en un grupo de prueba (Cristina, 26-oct)", () => {
+  test("«User's number is part of an experiment» se explica en español", () => {
+    expect(deliveryLabel("FAILED", "User's number is part of an experiment").label).toBe(
+      "No le llegó: Meta no le entrega plantillas por ahora (no es un error nuestro): escríbele desde tu celular o espera a que te escriba"
+    );
+  });
+});

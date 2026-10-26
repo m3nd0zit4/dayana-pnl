@@ -12,8 +12,17 @@
 
 export type DeliveryTone = "wait" | "ok" | "read" | "fail";
 
+/**
+ * Meta la puso en un grupo de prueba que por un tiempo no recibe plantillas de
+ * marketing (130472, Cristina 26-oct: «User's number is part of an experiment»).
+ * Un mensaje normal dentro de las 24 h sí le llega.
+ */
+export const isMetaExperiment = (reason: string | null | undefined): boolean => /part of an experiment|130472/i.test(reason ?? "");
+
 export const failedLabel = (reason: string): string =>
-  /undeliverable/i.test(reason)
+  isMetaExperiment(reason)
+    ? "Meta no le entrega plantillas por ahora (no es un error nuestro): escríbele desde tu celular o espera a que te escriba"
+    : /undeliverable/i.test(reason)
     ? "WhatsApp no pudo entregarlo a esa persona"
     : /24|re-engagement|window|ventana/i.test(reason)
       ? "pasaron más de 24 h desde su último mensaje"
