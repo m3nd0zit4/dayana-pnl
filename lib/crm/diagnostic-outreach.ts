@@ -81,6 +81,11 @@ const oneLine = (text: string) =>
 
 const firstNameOf = (name: string | null | undefined) => (name ?? "").trim().split(/\s+/)[0] || "";
 
+/** Escribió por WhatsApp en las últimas 2 h: está conversando ahora. */
+const LIVE_CHAT_MS = 2 * 3600_000;
+export const isLiveChat = (lastInboundAt: Date | null, now = Date.now()): boolean =>
+  lastInboundAt !== null && now - lastInboundAt.getTime() < LIVE_CHAT_MS;
+
 /** Sin clave de Gemini (o si falla): un mensaje sencillo, sin lectura. */
 const fallbackAnalysis = (name: string, signals: DiagnosticSignals): z.infer<typeof analysisSchema> => ({
   feeling: "",
@@ -305,7 +310,7 @@ export const runDiagnosticOutreach = async (
     });
     const conv = await prisma.conversation.findUniqueOrThrow({
       where: { id: conversation.id },
-      select: { aiMode: true, priorityAt: true, _count: { select: { messages: true } } },
+      select: { aiMode: true, priorityAt: true, lastInboundAt: true, _count: { select: { messages: true } } },
     });
     // El modo general manda: ningún chat es más suelto que él. Se calcula,
     // no se guarda en el chat (guardarlo lo dejaba pegado).
@@ -334,6 +339,15 @@ export const runDiagnosticOutreach = async (
         entityId: conversation.id,
         staff,
       });
+    }
+
+    // Ya está conversando por WhatsApp: el primer mensaje («Hola, te bendigo. Soy la
+    // asistente de Dayana…») la saludaba otra vez en medio de la conversación
+    // (Claudia, 26-oct: esperaba el enlace del taller y le llegó eso). La IA sigue
+    // esa conversación y ya lee la autoevaluación (`diagnosticContextFor`).
+    if (!opts.force && isLiveChat(conv.lastInboundAt)) {
+      await setStatus(diagnosticId, "SKIPPED", "Ya estaba conversando por WhatsApp: la IA sigue esa conversación con la autoevaluación.");
+      return { status: "SKIPPED", reason: "Ya estaba conversando.", conversationId: conversation.id };
     }
 
     await refreshTemplatesIfPending().catch(() => undefined);

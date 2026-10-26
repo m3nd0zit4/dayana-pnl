@@ -1182,6 +1182,28 @@ export const SCENARIOS: Scenario[] = [
     goal: "Eligió la llamada: le da horas reales para la llamada con Dayana (sin preguntarle qué día prefiere). Sin el enlace de pago ni el valor.",
   },
   {
+    id: "taller-no-ve-el-valor",
+    origin: "26-oct (Claudia): tras la pregunta del cupo o la llamada dice que no ha podido ver el valor; la IA le volvió a preguntar si quería el enlace",
+    name: "Claudia",
+    stage: "nueva",
+    personTimezone: "America/Argentina/Cordoba",
+    transcript: [
+      person("Hola Dayana, te escribo desde tu página de enlaces."),
+      ai("Hola, te bendigo. Soy la asistente de Dayana. ¿Cómo estás?"),
+      person("Gracias bendiones.  Bien.\nNecesoto info del taller"),
+      ai(
+        "Me alegra que estés bien. El taller se llama Tu Sanación con el Dinero y es una jornada en vivo por Google Meet el 15 de noviembre. Las inscripciones están abiertas. ¿Quieres separar tu cupo ya con el enlace de pago (ahí ves el valor) o agendar primero una llamada con Dayana?"
+      ),
+      person("Ahi me fijo. No he podido ver cual es valor del taller"),
+    ],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
+      mustNotMatch: [/\$|\bcop\b|\busd\b|190|dólares/i, /¿quieres que te (env[ií]e|mande)/i, /offer_free_call|¿desde qué país/i],
+    },
+    goal: "El valor está en el enlace: se lo manda ya (va debajo) en un mensaje corto, sin volver a preguntarle si lo quiere. Sin decir el valor.",
+  },
+  {
     id: "taller-pide-el-enlace-de-una",
     origin: "25-oct: alguien que ya decidió y pide pagar el taller de una vez",
     name: "Gloria",

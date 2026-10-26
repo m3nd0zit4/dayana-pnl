@@ -373,7 +373,25 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
     for (const t of ["La primera", "1", "la 1", "Primero", "opción 1"]) expect([t, wantsWorkshopSpot(t, { afterChoice: true })]).toEqual([t, true]);
     expect(wantsWorkshopSpot("La primera", { afterChoice: false })).toBe(false);
   });
-  test("no es el enlace: prefiere la llamada, no puede pagar, ya pagó o pregunta el precio", () => {
+  test("tras la pregunta del cupo o la llamada, preguntar el valor es pedir el enlace (Claudia, 26-oct)", () => {
+    for (const t of [
+      "Ahi me fijo. No he podido ver cual es valor del taller",
+      "¿Cuánto cuesta?",
+      "Cuál es el precio?",
+      "No sé cuánto cuesta",
+      "No puedo ver el valor",
+      "Y cuánto vale?",
+    ]) {
+      expect([t, wantsWorkshopSpot(t, { afterChoice: true })]).toEqual([t, true]);
+    }
+    // Sin la pregunta antes, el valor solo no: primero va la pregunta (la línea del taller).
+    expect(wantsWorkshopSpot("¿Cuánto cuesta?")).toBe(false);
+    // «Vale» es «de acuerdo», y no poder pagar sigue sin ser el enlace.
+    for (const t of ["Vale", "Vale, gracias", "No puedo pagar ese valor", "Ese precio no me alcanza", "Cuánto cuesta? prefiero hablar con Dayana"]) {
+      expect([t, wantsWorkshopSpot(t, { afterChoice: true })]).toEqual([t, false]);
+    }
+  });
+  test("no es el enlace: prefiere la llamada, no puede pagar o ya pagó", () => {
     for (const t of [
       "Prefiero la llamada primero",
       "Mejor agendar con Dayana",
@@ -382,7 +400,6 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
       "Todavía no, lo pienso",
       "Ya pagué",
       "Te mando el comprobante",
-      "¿Cuánto cuesta?",
       "Una pregunta",
       "Sí",
     ]) {

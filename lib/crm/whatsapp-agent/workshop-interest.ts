@@ -191,16 +191,24 @@ const NOT_NOW = /\b(no (puedo|tengo|me alcanza|se)|todavia no|aun no|pensarlo|lo
 const WANTS_CALL = /\b(llamada|llamar|llamame|agend\w*|hablar|explique|explica)\b/;
 /** Ya pagó: lo lleva el comprobante, no el enlace otra vez. */
 const PAID_OR_TERMS = /\b(ya (pague|transferi|consigne|deposite|hice el pago|realice el pago)|pague|transferi|comprobante)\b/;
+/** Pregunta el valor (no «vale», que también es «de acuerdo»). */
+const PRICE = /\b(valor|precio|precios|costo|costos|cuesta|cuestan|cuanto (vale|valen|es|sale|seria|queda))\b/;
+/** No puede pagarlo (no «no puedo ver el valor»). */
+const CANT_PAY = /\b(no (puedo|podria) pagar\w*|no tengo (plata|dinero|con que)|no me alcanza)\b/;
 
 /**
  * ¿Habla de pagar el taller o elige su cupo? «Quiero separar mi cupo», «¿cómo
  * pago?», «el enlace», «después pago», «¿se puede en cuotas?»; tras nuestra
- * pregunta del cupo o la llamada (`afterChoice`), también «la primera» o «1».
+ * pregunta del cupo o la llamada (`afterChoice`), también «la primera», «1» o
+ * preguntar el valor, que está en el enlace (Claudia, 26-oct: «No he podido ver
+ * cuál es el valor del taller» y la IA le volvió a preguntar si quería el enlace).
  * No «no puedo pagar», «prefiero la llamada» ni «ya pagué».
  */
 export const wantsWorkshopSpot = (said: string, opts: { afterChoice?: boolean } = {}): boolean => {
   const t = foldForSearch(said).trim();
-  if (!t || PAID_OR_TERMS.test(t) || NOT_NOW.test(t) || WANTS_CALL.test(t)) return false;
+  if (!t || PAID_OR_TERMS.test(t) || WANTS_CALL.test(t)) return false;
+  if (opts.afterChoice && PRICE.test(t) && !CANT_PAY.test(t)) return true;
+  if (NOT_NOW.test(t)) return false;
   if (opts.afterChoice && t.length <= 30 && /^(la |el |lo |opcion )?(1|uno|primer[ao]?)\b(?!\s*pregunta)/.test(t)) return true;
   return SPOT.test(t);
 };
@@ -385,7 +393,7 @@ export const workshopFollowLine = (lines: Line[], w: OpenWorkshop, now = Date.no
   }
   const lastOffer = [...lines].reverse().find((l) => l.direction === "OUTBOUND" && namesWorkshop(l.body ?? "", w));
   if (lastOffer && isWorkshopChoice(lastOffer.body)) {
-    return `SIGUE LO DEL TALLER «${w.title}»: le preguntamos si quiere separar su cupo de una vez (el enlace de pago) o agendar primero una llamada con Dayana. Si elige el cupo, pagar o el enlace: send_workshop_link (va debajo; no lo escribas). Si elige la llamada: ${hours}. Si no queda claro cuál prefiere, pregúntaselo. No digas el valor: lo ve en el enlace.`;
+    return `SIGUE LO DEL TALLER «${w.title}»: le preguntamos si quiere separar su cupo de una vez (el enlace de pago) o agendar primero una llamada con Dayana. Si elige el cupo, pagar o el enlace, o pregunta el valor (está en el enlace): send_workshop_link (va debajo; no lo escribas). Si elige la llamada: ${hours}. Si no queda claro cuál prefiere, pregúntaselo. No digas el valor: lo ve en el enlace.`;
   }
   return `SIGUE LO DEL TALLER: está separando su llamada con Dayana para inscribirse al taller «${w.title}» (ya se la ofrecimos). Si dice que sí, ${hours}. Si prefiere separar su cupo de una vez o pide pagar, send_workshop_link. No digas el valor.`;
 };
