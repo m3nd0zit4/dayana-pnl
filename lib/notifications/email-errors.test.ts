@@ -30,6 +30,9 @@ describe("isGatedSweepTemplate", () => {
     for (const key of ["payment_confirmation", "member_invite", "payment_otp", "WHATSAPP_AI_ESCALATED"]) {
       expect(isGatedSweepTemplate(key)).toBe(false);
     }
+    // Empieza igual que los barridos pero es una difusión desde el panel.
+    expect(isGatedSweepTemplate("workshop_open")).toBe(false);
+    expect(isGatedSweepTemplate("webinar_unknown")).toBe(false);
     expect(isGatedSweepTemplate(null)).toBe(false);
     expect(isGatedSweepTemplate(undefined)).toBe(false);
   });

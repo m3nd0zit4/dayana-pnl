@@ -29,9 +29,16 @@ export const EMAIL_QUOTA_BLOCK_MS = 60 * 60 * 1000;
  * Cuánto tiene que llevar apagado el bloqueo anterior para que uno nuevo cuente
  * como OTRO apagado y avise otra vez. Sin esto, cada sondeo horario que falla
  * renovaba la bandera y avisaba de nuevo: un apagado de varios días daba ~24
- * avisos al día. Mientras el apagado sea continuo, el aviso es uno.
+ * avisos al día. Mientras los sondeos sigan renovando (cada hora), el aviso es
+ * uno.
+ *
+ * Son 4 h y no más: la bandera no se limpia al recuperarse (no hay un «salió un
+ * correo» que la apague), así que un apagado NUEVO a las pocas horas del
+ * anterior sólo se distingue por el hueco. Con 12 h, uno que empezara a las 9 h
+ * de otro terminado a medianoche pasaba en silencio. Un sondeo que llega tras
+ * 4 h sin renovar es, en el peor caso, un recordatorio de más.
  */
-export const EMAIL_QUOTA_ALERT_QUIET_MS = 12 * 60 * 60 * 1000;
+export const EMAIL_QUOTA_ALERT_QUIET_MS = 4 * 60 * 60 * 1000;
 
 const isUniqueViolation = (e: unknown): boolean =>
   e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002";

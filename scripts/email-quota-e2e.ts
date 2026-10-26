@@ -264,8 +264,8 @@ const main = async () => {
   check("ocho activaciones a la vez: exactamente UNA avisa", racers.filter(Boolean).length === 1, racers);
   await setSiteSetting(EMAIL_QUOTA_SETTING, new Date(Date.now() - 2 * 3600_000).toISOString());
   check("el sondeo horario que vuelve a fallar renueva SIN avisar otra vez (mismo apagón)", (await markEmailQuotaExhausted()) === false && (await emailQuotaBlockedUntil()) !== null);
-  await setSiteSetting(EMAIL_QUOTA_SETTING, new Date(Date.now() - 13 * 3600_000).toISOString());
-  check("pasadas 12 h sin bloqueo, el siguiente SÍ es otro apagón y avisa", (await markEmailQuotaExhausted()) === true);
+  await setSiteSetting(EMAIL_QUOTA_SETTING, new Date(Date.now() - 5 * 3600_000).toISOString());
+  check("pasadas 4 h sin bloqueo, el siguiente SÍ es otro apagón y avisa", (await markEmailQuotaExhausted()) === true);
 
   console.log("\n— Con el bloqueo puesto: el barrido espera, lo manual prueba");
   mode = "ok";

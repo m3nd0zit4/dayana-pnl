@@ -1,7 +1,7 @@
 import { PaymentStatus } from "@prisma/client";
 import { prisma } from "../db";
 import { minorToMajor } from "../crm/money";
-import { getSiteSetting, setSiteSetting } from "../crm/site-settings";
+import { claimDailyAlert } from "../crm/daily-alert-flag";
 import { emitPlatformNotification } from "../notifications/platform/emit";
 import { getSiteUrl } from "../site-url";
 import { purchaseEventId, sendCapiEvent } from "./capi";
@@ -46,9 +46,7 @@ const CAPI_TOKEN_ALERT_SETTING = "meta.capi.token_alert_day" as const;
 
 const alertTokenInvalidOncePerDay = async (): Promise<void> => {
   try {
-    const today = new Date().toISOString().slice(0, 10);
-    if ((await getSiteSetting(CAPI_TOKEN_ALERT_SETTING)) === today) return;
-    await setSiteSetting(CAPI_TOKEN_ALERT_SETTING, today);
+    if (!(await claimDailyAlert(CAPI_TOKEN_ALERT_SETTING))) return;
     await emitPlatformNotification({
       eventType: "SYSTEM_ALERT",
       title: "Meta no está recibiendo tus compras",

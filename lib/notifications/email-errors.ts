@@ -46,8 +46,21 @@ export const isEmailQuotaError = (message: string | null | undefined): boolean =
  * freno. Todo lo demás —confirmación de pago, invitación al portal, código de
  * pago— se manda de una en una, no se reintenta, y si no sale hay que saberlo.
  */
+const GATED_SWEEP_TEMPLATES: ReadonlySet<string> = new Set([
+  "webinar_meet_link",
+  "webinar_reminder_24h",
+  "webinar_reminder_1h",
+  "workshop_reminder_24h",
+  "workshop_reminder_1h",
+]);
+
+/**
+ * Lista explícita y no un prefijo: `workshop_open` (la difusión de un taller
+ * desde el panel) empieza igual pero NO es un barrido, y tratarla como tal
+ * habría dado por avisado un fallo que nadie ha avisado.
+ */
 export const isGatedSweepTemplate = (templateKey?: string | null): boolean =>
-  /^(webinar_|workshop_)/.test(templateKey ?? "");
+  templateKey != null && GATED_SWEEP_TEMPLATES.has(templateKey);
 
 /**
  * Clave con la que el aviso de «no se pudo entregar» se agrupa en la campana

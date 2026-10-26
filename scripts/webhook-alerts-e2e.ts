@@ -103,9 +103,18 @@ const main = async () => {
   if (recentSigned === 0) {
     console.log("\n— Entrega SIN firma y NINGÚN webhook firmado en 6 h (MP dejó de firmar, o el panel apunta mal)");
     await prisma.webhookEvent.deleteMany({ where: { eventId: { startsWith: "e2e-firmado-" } } });
-    await post("/api/webhooks/mercadopago", { resource: "https://api.mercadolibre.com/collections/notifications/55", topic: "payment" });
+    // Los IPN llegan en ráfaga y cada uno lanza su propia comprobación: el
+    // «una vez al día» tiene que aguantar a seis a la vez, no leer-y-escribir.
+    await Promise.all(
+      Array.from({ length: 6 }, (_, i) =>
+        post("/api/webhooks/mercadopago", { resource: `https://api.mercadolibre.com/collections/notifications/${55 + i}`, topic: "payment" }),
+      ),
+    );
     const first = await waitForAlerts(1);
-    check("SÍ avisa", first.length === 1, first.length);
+    await wait(1500);
+    const firstFinal = await alerts();
+    check("SÍ avisa", first.length >= 1, first.length);
+    check("y seis a la vez dan EXACTAMENTE UN aviso", firstFinal.length === 1, firstFinal.length);
     check("y dice qué revisar", /webhook/i.test(first[0]?.body ?? "") && /firmado/i.test(first[0]?.body ?? ""), first[0]?.body);
     await post("/api/webhooks/mercadopago", { resource: "https://api.mercadolibre.com/collections/notifications/56", topic: "payment" });
     await wait(1500);

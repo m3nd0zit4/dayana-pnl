@@ -45,14 +45,32 @@ const main = async () => {
     select: { id: true, enrollmentId: true, paidAt: true, currency: true, amountMinor: true },
   });
 
-  console.log(`Compras con consentimiento, sin enviar, de los últimos ${WINDOW_DAYS} días: ${pending.length}`);
+  // `sendPurchaseToMetaCapi` trabaja por MATRÍCULA y envía su ÚLTIMO pago
+  // aprobado. Un pago más antiguo de una matrícula con otro posterior no se
+  // puede reenviar por esta vía (saldría reportado como «ya enviado» o se
+  // enviaría el otro): se separa y se dice.
+  const sendable: typeof pending = [];
+  const superseded: typeof pending = [];
   for (const p of pending) {
+    const latest = await prisma.payment.findFirst({
+      where: { enrollmentId: p.enrollmentId, status: PaymentStatus.APPROVED },
+      orderBy: { paidAt: "desc" },
+      select: { id: true },
+    });
+    (latest?.id === p.id ? sendable : superseded).push(p);
+  }
+
+  console.log(`Compras con consentimiento, sin enviar, de los últimos ${WINDOW_DAYS} días: ${pending.length}`);
+  for (const p of sendable) {
     console.log(` - pago ${p.id} · ${p.paidAt?.toISOString()} · ${p.currency} ${p.amountMinor}`);
   }
-  if (!SEND || pending.length === 0) return;
+  for (const p of superseded) {
+    console.log(` - pago ${p.id} · NO se puede reenviar con este script: su matrícula tiene un pago más reciente (súbelo a mano en Events Manager)`);
+  }
+  if (!SEND || sendable.length === 0) return;
 
   let sent = 0;
-  for (const p of pending) {
+  for (const p of sendable) {
     try {
       const r = await sendPurchaseToMetaCapi(p.enrollmentId);
       const ok = r.status === "sent";
@@ -67,7 +85,7 @@ const main = async () => {
       console.log(`   ❌ ${p.id}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  console.log(`Enviadas: ${sent} de ${pending.length}`);
+  console.log(`Enviadas: ${sent} de ${sendable.length}`);
 };
 
 main()

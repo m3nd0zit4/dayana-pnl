@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { PaymentProvider } from "@prisma/client";
 import { fireAuditLog } from "@/lib/crm/audit";
-import { getSiteSetting, setSiteSetting } from "@/lib/crm/site-settings";
+import { claimDailyAlert } from "@/lib/crm/daily-alert-flag";
 import { prisma } from "@/lib/db";
 import {
   registerWebhookEvent,
@@ -25,9 +25,13 @@ export const dynamic = "force-dynamic";
 const UNSIGNED_ALERT_SETTING = "mp.webhook.unsigned_alert_day";
 /** Si en este tiempo entró algún webhook FIRMADO, lo sin firma es el IPN duplicado. */
 const SIGNED_LOOKBACK_MS = 6 * 60 * 60 * 1000;
-/** Margen para que el firmado del mismo pago se registre (`after()`) antes de mirar. */
+/**
+ * Margen para que el firmado del mismo pago se registre (`after()`, un par de
+ * segundos) antes de mirar. 20 s y no más: cada entrega sin firma mantiene la
+ * función viva todo este tiempo y los IPN llegan en ráfaga.
+ */
 const unsignedGraceMs = (): number =>
-  Number(process.env.MP_UNSIGNED_GRACE_MS ?? 45_000);
+  Number(process.env.MP_UNSIGNED_GRACE_MS ?? 20_000);
 
 const runAfter = (fn: () => Promise<void>): void => {
   try {
@@ -57,9 +61,8 @@ const alertIfNoSignedWebhookRecently = async (): Promise<void> => {
       },
     });
     if (signed > 0) return;
-    const today = new Date().toISOString().slice(0, 10);
-    if ((await getSiteSetting(UNSIGNED_ALERT_SETTING)) === today) return;
-    await setSiteSetting(UNSIGNED_ALERT_SETTING, today);
+    // Atómico: los IPN llegan en ráfaga y cada uno lanza esta comprobación.
+    if (!(await claimDailyAlert(UNSIGNED_ALERT_SETTING))) return;
     fireNotification({
       eventType: "PAYMENT_WEBHOOK_FAILED",
       title: "Mercado Pago envía avisos sin firma y ninguno firmado",
