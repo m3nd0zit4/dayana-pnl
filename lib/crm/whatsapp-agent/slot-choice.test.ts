@@ -4,7 +4,7 @@ import { dualZoneLabel } from "./free-call-rules";
 import { promiseBreach } from "./promise-guard";
 import { getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 
-import { bookedLabelsFor, bookedMessage, offerList, offerMessage, replyToOffer, resolveChoice, withoutSlotLines, type OfferedSlot } from "./slot-choice";
+import { bookedLabelsFor, bookedMessage, claimMatches, offerList, offerMessage, replyToOffer, resolveChoice, withoutSlotLines, type OfferedSlot } from "./slot-choice";
 
 const BOG = "America/Bogota";
 const MEX = "America/Mexico_City";
@@ -235,5 +235,36 @@ describe("offerList y withoutSlotLines", () => {
     // Revisión 21-oct: «hoy mismo» sin la hora (la lista la trae) hacía saltar el freno.
     expect(withoutSlotLines("Claro. Hoy mismo Dayana tiene espacio.")).toBe("Claro.");
     expect(withoutSlotLines("Con gusto, mañana en la tarde hay espacio.")).toBe("");
+  });
+});
+
+// Laura, 26-oct (lunes): miércoles 28 8:15 a. m., jueves 29 11:15 a. m. y viernes 30 9:00 a. m.
+const laura: OfferedSlot[] = [
+  { startIso: "2026-10-28T13:15:00.000Z", label: "miércoles, 28 de octubre, 8:15 a. m." },
+  { startIso: "2026-10-29T16:15:00.000Z", label: "jueves, 29 de octubre, 11:15 a. m." },
+  { startIso: "2026-10-30T14:00:00.000Z", label: "viernes, 30 de octubre, 9:00 a. m." },
+];
+const lauraCtx = { personTz: BOG, dayanaTz: BOG, now: new Date("2026-10-26T18:08:14.000Z") };
+
+describe("Laura, 26-oct: la cortesía alrededor de la elección", () => {
+  test("«Disculpa mejor viernes, 30 de octubre, 9:00 a.m.» + «Te agradezco mucho» es la tercera", () => {
+    expect(one(resolveChoice("Disculpa mejor viernes, 30 de octubre, 9:00 a.m. Te agradezco mucho", laura, lauraCtx))).toBe(laura[2].startIso);
+    expect(one(resolveChoice("Perdón, mejor la 2, muchas gracias doctora", laura, lauraCtx))).toBe(laura[1].startIso);
+  });
+  test("lo que no es elegir sigue sin serlo", () => {
+    expect(resolveChoice("Disculpa, el viernes no puedo", laura, lauraCtx).kind).toBe("none");
+    expect(resolveChoice("Te agradezco mucho", laura, lauraCtx).kind).toBe("none");
+  });
+  test("lenient (lo respalda la confirmación del modelo): lee lo largo, pero no un «no» ni una pregunta", () => {
+    const long = "Ay qué pena contigo, me equivoqué de día, mejor el viernes 30 de octubre a las 9:00 a.m. que salgo temprano";
+    expect(resolveChoice(long, laura, lauraCtx).kind).toBe("none");
+    expect(one(resolveChoice(long, laura, lauraCtx, { lenient: true }))).toBe(laura[2].startIso);
+    expect(resolveChoice("el viernes no me sirve, ¿hay otro?", laura, lauraCtx, { lenient: true }).kind).toBe("none");
+  });
+  test("claimMatches: la confirmación del modelo es esa opción", () => {
+    const claim = "Perfecto, Laura. Tu llamada con Dayana queda para el viernes 30 de octubre a las 9:00 a. m.";
+    expect(claimMatches(claim, laura[2], lauraCtx)).toBe(true);
+    expect(claimMatches(claim, laura[1], lauraCtx)).toBe(false);
+    expect(claimMatches("Listo, quedó agendada 🙏", laura[2], lauraCtx)).toBe(false);
   });
 });

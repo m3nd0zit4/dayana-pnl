@@ -50,7 +50,7 @@ import { wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
 import { closingNotNeeded, promisesHandoff, pseudoEscalation, withoutToolText, writesAccountNumber } from "./reply-guards";
-import { BREACH_HOLDING, BREACH_REASON, promiseBreach } from "./promise-guard";
+import { BREACH_HOLDING, BREACH_REASON, confirmsCall, promiseBreach } from "./promise-guard";
 import { chatNameInfo } from "./chat-name";
 import { latestFreeCallOffer, offeredFreeCallSlots } from "./free-call";
 import { bookingTurn } from "./booking-turn";
@@ -633,23 +633,23 @@ export const runWhatsAppAi = async (input: {
       !chatNow!.priorityAt &&
       chatNow!.aiModeOverride !== "MANUAL" &&
       !(await answeredSince(conversationId, since));
-    const agendaTurn =
-      stillOurs
-        ? await bookingTurn({
-            config,
-            conversationId,
-            contactId: conversation.contactId,
-            phone,
-            firstName: sureFirstName(nameInfo),
-            name: sureFirstName(nameInfo) ?? name,
-            personTz,
-            dayanaTz: timezone,
-            messages: conversation.messages,
-          }).catch((e: unknown) => {
-            console.warn("[whatsapp-agent] agenda sin el modelo", e);
-            return null;
-          })
-        : null;
+    const agendaInput = {
+      config,
+      conversationId,
+      contactId: conversation.contactId,
+      phone,
+      firstName: sureFirstName(nameInfo),
+      name: sureFirstName(nameInfo) ?? name,
+      personTz,
+      dayanaTz: timezone,
+      messages: conversation.messages,
+    };
+    const agendaTurn = stillOurs
+      ? await bookingTurn(agendaInput).catch((e: unknown) => {
+          console.warn("[whatsapp-agent] agenda sin el modelo", e);
+          return null;
+        })
+      : null;
     const latestOffer = freeCallOn ? ((await latestFreeCallOffer(conversationId).catch(() => null))?.options ?? null) : null;
     // Inscrita a un evento gratuito, sin llamada ni compra: si no pidió nada
     // personal, la IA le da la bienvenida al evento (`webinar-guest.ts`).
@@ -658,7 +658,7 @@ export const runWhatsAppAi = async (input: {
         ? await guestFreeEvent(conversation.contactId, phone).catch(() => null)
         : null;
 
-    const result =
+    const thought =
       agendaTurn ??
       (await think({
         config,
@@ -684,6 +684,27 @@ export const runWhatsAppAi = async (input: {
         freeEvent,
         workshop,
       }));
+    // Eligió una hora de la lista y el modelo se la confirmó sin agendarla: el freno la
+    // cambiaba por «Déjame confirmarlo con Dayana» (Laura, 26-oct; dueña: «para una
+    // sesión gratis el modelo no tiene que confirmarlo con Dayana, así que reagenda o
+    // agenda»). Si lo que escribió y lo que confirmó el modelo son la misma opción, la
+    // agenda (o la mueve) el código, con la confirmación de la reserva de verdad.
+    const rescued =
+      !agendaTurn &&
+      stillOurs &&
+      thought.outcome.kind === "reply" &&
+      !thought.booking &&
+      !thought.bookingNotice &&
+      !thought.bookingRequest &&
+      confirmsCall(thought.outcome.message)
+        ? await bookingTurn({ ...agendaInput, claim: thought.outcome.message }).catch((e: unknown) => {
+            console.warn("[whatsapp-agent] agenda de la hora que confirmó el modelo", e);
+            return null;
+          })
+        : null;
+    const result = rescued
+      ? { ...rescued, model: thought.model, usage: thought.usage, toolCalls: [...thought.toolCalls, ...rescued.toolCalls] }
+      : thought;
 
     const meta = {
       model: result.model,

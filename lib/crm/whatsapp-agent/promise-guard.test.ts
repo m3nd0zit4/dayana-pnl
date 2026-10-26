@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { promiseBreach, timesIn } from "./promise-guard";
+import { confirmsCall, promiseBreach, timesIn } from "./promise-guard";
 
 const none = { backing: [], hasBooking: false, bookingToday: false };
 const OFFERED = [
@@ -318,5 +318,15 @@ describe("21-oct, auditoría después de Natalia: lo que todavía se escapaba", 
     expect(timesIn("la llamada dura 2 h; atención 24h; 15 horas; un día de 23 h; a las dos les escribo; las tres opciones")).toEqual([]);
     expect(verdict("Para tu llamada tengo el jueves a las cuatro de la tarde. ¿Te sirve?").breach).toBe("invented_slots");
     expect(verdict("Para tu llamada tengo el jueves a las 15 h. ¿Te sirve?").breach).toBeNull();
+  });
+});
+
+describe("confirmsCall (Laura, 26-oct: la agenda el código si es la hora que eligió)", () => {
+  test("confirmar la llamada", () => {
+    expect(confirmsCall("Perfecto, Laura. Tu llamada con Dayana queda para el viernes 30 de octubre a las 9:00 a. m.")).toBe(true);
+  });
+  test("ofrecer horas o hablar de otra cosa no", () => {
+    expect(confirmsCall("Con gusto, estas son las horas libres de Dayana")).toBe(false);
+    expect(confirmsCall("Te entiendo. Si quieres, te agendo una llamada gratis de 15 minutos con ella.")).toBe(false);
   });
 });

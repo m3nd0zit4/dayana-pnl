@@ -15,6 +15,9 @@
  * 5. Ya tiene llamada y elige otra de una lista nueva → se mueve la misma.
  * 6. Elige la que ya tiene → «ya está agendada», sin otra reserva.
  * 7. Una pregunta («¿la de las 3 es hora Colombia?») → el modelo.
+ * 8. Laura (26-oct): «Disculpa mejor viernes… 9:00 a.m.» + «Te agradezco mucho» → se agenda.
+ * 9. Lo largo lo ve el modelo; si confirma esa misma hora sin agendarla, la agenda el
+ *    código (`claim`); si confirma otra, nada.
  */
 export {};
 
@@ -49,6 +52,13 @@ const main = async () => {
     c: at(base, "12:45"),
     friAm: at(base + 1, "09:00"),
     friPm: at(base + 1, "15:00"),
+    // Pasos 8 y 9: horas propias (la del paso 5 ya está tomada).
+    lauraA: at(base + 5, "08:15"),
+    lauraB: at(base + 6, "11:15"),
+    lauraC: at(base + 7, "09:00"),
+    longA: at(base + 8, "08:15"),
+    longC: at(base + 9, "09:00"),
+    longD: at(base + 9, "15:00"),
   };
   const free = new Set(Object.values(slots).map((d) => d.toISOString()));
   const slot = (d: Date) => ({ startIso: d.toISOString(), endIso: new Date(d.getTime() + 15 * 60_000).toISOString(), dateKey: getDateKeyInTz(d, TZ), time: "" });
@@ -109,8 +119,9 @@ const main = async () => {
         isAutoReply: direction === "OUTBOUND",
       },
     });
-  const turn = async (conv: { id: string; contactId: string | null; externalThreadId: string }) =>
+  const turn = async (conv: { id: string; contactId: string | null; externalThreadId: string }, claim?: string) =>
     bookingTurn({
+      claim,
       config,
       conversationId: conv.id,
       contactId: conv.contactId,
@@ -203,6 +214,30 @@ const main = async () => {
     await offer(asks.id, [slots.a, slots.friPm]);
     await say(asks.id, "INBOUND", "¿la de las 3 es hora Colombia?");
     check("sigue el modelo (null)", (await turn(asks)) === null);
+
+    const dayLabel = (d: Date) => new Intl.DateTimeFormat("es-CO", { timeZone: TZ, weekday: "long", day: "numeric", month: "long" }).format(d).replace(",", "");
+    console.log("\n8. Laura: la cortesía alrededor de la elección");
+    const laura = await newChat(7);
+    await offer(laura.id, [slots.lauraA, slots.lauraB, slots.lauraC]);
+    await say(laura.id, "INBOUND", `Disculpa mejor ${dayLabel(slots.lauraC)}, 9:00 a.m.`);
+    await say(laura.id, "INBOUND", "Te agradezco mucho");
+    const r8 = await turn(laura);
+    const b8 = await bookingsOf(laura.id);
+    check("agenda sin el modelo", r8?.model === "agenda" && r8.bookingNotice?.kind === "booked", r8?.outcome);
+    check("a las 9:00 a. m. de ese día", b8.length === 1 && b8[0].startsAt.getTime() === slots.lauraC.getTime(), b8.map((b) => b.startsAt));
+
+    console.log("\n9. Lo largo: el modelo; si confirma esa hora sin agendar, el código la agenda");
+    const long = await newChat(8);
+    await offer(long.id, [slots.longA, slots.longC, slots.longD]);
+    await say(long.id, "INBOUND", `Ay qué pena contigo, me equivoqué de día, mejor el ${dayLabel(slots.longC)} a las 9:00 a.m. que salgo temprano`);
+    check("sin confirmación del modelo: el modelo (null)", (await turn(long)) === null);
+    check("confirma otra hora: nada", (await turn(long, `Listo, tu llamada con Dayana queda para el ${dayLabel(slots.longD)} a las 3:00 p. m.`)) === null);
+    const r9 = await turn(long, `Perfecto, tu llamada con Dayana queda para el ${dayLabel(slots.longC)} a las 9:00 a. m.`);
+    const b9 = await bookingsOf(long.id);
+    check("confirma esa hora: agendada", r9?.bookingNotice?.kind === "booked" && b9.length === 1 && b9[0].startsAt.getTime() === slots.longC.getTime(), {
+      outcome: r9?.outcome,
+      b9: b9.map((b) => b.startsAt),
+    });
   } finally {
     setFreeCallCalendarForTests({});
     await prisma.whatsAppBooking.deleteMany({ where: { conversationId: { in: conversations } } });

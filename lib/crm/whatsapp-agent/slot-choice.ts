@@ -63,6 +63,9 @@ const FILLER = new Set(
 const CHOICE_WORDS = new Set([
   ...FILLER,
   ..."a las los lo del en para con mi tu su al hoy manana pasado tarde noche mediodia am pm m p h hrs hora horas horario colombia mexico peru espana dayana agendame agenda agendala puede ser te bendigo bendiciones amen dios".split(" "),
+  // La cortesía alrededor de la elección (Laura, 26-oct: «Disculpa mejor viernes, 30 de
+  // octubre, 9:00 a.m.» + «Te agradezco mucho» no se agendó y le dijeron que Dayana lo confirmaba).
+  ..."disculpa disculpe disculpame perdon perdona perdoname agradezco agradecida agradecido mucho muchas muchisimas mil amable muy doctora dra".split(" "),
   ..."lunes martes miercoles jueves viernes sabado domingo".split(" "),
   ..."enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split(" "),
   ...Object.keys(ORDINAL),
@@ -168,9 +171,18 @@ const pickedNumber = (folded: string, count: number): number | null => {
   return null;
 };
 
-export const resolveChoice = (text: string, options: OfferedSlot[], ctx: ChoiceContext): Choice => {
+/** Con `lenient` (la confirmación del modelo la respalda), lo largo y las palabras sueltas valen; un «no», «otra» o una pregunta no. */
+const LENIENT_MAX_CHARS = 200;
+
+export const resolveChoice = (text: string, options: OfferedSlot[], ctx: ChoiceContext, opts: { lenient?: boolean } = {}): Choice => {
   const folded = foldForSearch(text).replace(/\s+/g, " ").trim();
-  if (!options.length || !folded || folded.length > MAX_CHOICE_CHARS || NOT_A_CHOICE.test(folded) || !onlyChoiceWords(folded)) {
+  if (
+    !options.length ||
+    !folded ||
+    folded.length > (opts.lenient ? LENIENT_MAX_CHARS : MAX_CHOICE_CHARS) ||
+    NOT_A_CHOICE.test(folded) ||
+    (!opts.lenient && !onlyChoiceWords(folded))
+  ) {
     return { kind: "none" };
   }
   const filters = filtersOf(folded);
@@ -186,6 +198,12 @@ export const resolveChoice = (text: string, options: OfferedSlot[], ctx: ChoiceC
   const found = options.filter((o) => matches(o, filters, ctx));
   if (found.length === 1) return { kind: "one", option: found[0] };
   return found.length > 1 ? { kind: "many", options: found } : { kind: "none" };
+};
+
+/** ¿Lo que confirmó el modelo («tu llamada queda para el viernes 30 a las 9:00 a. m.») es esta opción? Con día u hora, y todo cuadra. */
+export const claimMatches = (claim: string, option: OfferedSlot, ctx: ChoiceContext): boolean => {
+  const filters = filtersOf(foldForSearch(claim).replace(/\s+/g, " "));
+  return hasFilters(filters) && matches(option, filters, ctx);
 };
 
 type ChatLine = {

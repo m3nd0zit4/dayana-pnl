@@ -381,6 +381,10 @@ export const promiseBreach = (input: PromiseCheck): PromiseVerdict => {
   return null;
 };
 
+/** ¿La respuesta le confirma una llamada o una cita (exista o no)? */
+export const confirmsCall = (text: string): boolean =>
+  promiseBreach({ text, backing: [], hasBooking: false, bookingToday: true })?.breach === "false_booking";
+
 /** Lo que recibe la persona en lugar de la promesa (y el chat pasa a Dayana). */
 export const BREACH_HOLDING: Record<PromiseBreach, string> = {
   invented_slots: "Déjame revisar la agenda de Dayana y te comparto por aquí los horarios disponibles.",

@@ -16,6 +16,7 @@ import {
 import {
   alreadyMessage,
   bookedMessage,
+  claimMatches,
   narrowMessage,
   replyToOffer,
   resolveChoice,
@@ -47,6 +48,12 @@ export type BookingTurnInput = {
   dayanaTz: string;
   /** Mensajes del chat, del más nuevo al más viejo (`conversation.messages`). */
   messages: Parameters<typeof replyToOffer>[0];
+  /**
+   * Lo que el modelo le confirmó sin agendar («tu llamada queda para el viernes…»):
+   * con él, lo que escribió la persona se lee sin la lista corta de palabras, y la
+   * opción tiene que ser la misma que confirmó el modelo. Si no, nada.
+   */
+  claim?: string;
   now?: Date;
 };
 
@@ -89,8 +96,10 @@ export const bookingTurn = async (input: BookingTurnInput): Promise<BrainResult 
   // «hoy» y «mañana» desde cuando lo escribió, no desde cuando se procesa
   // (un «mañana» de las 11:59 p. m. visto pasada la medianoche).
   const wroteAt = input.messages.find((m) => m.direction === "INBOUND")?.sentAt ?? now;
-  const choice = resolveChoice(said, offer.options, { personTz, dayanaTz: input.dayanaTz, now: wroteAt });
+  const ctx = { personTz, dayanaTz: input.dayanaTz, now: wroteAt };
+  const choice = resolveChoice(said, offer.options, ctx, { lenient: input.claim !== undefined });
   if (choice.kind === "none") return null;
+  if (input.claim !== undefined && (choice.kind !== "one" || !claimMatches(input.claim, choice.option, ctx))) return null;
   // Cuadran varias («el viernes»): se pregunta solo entre esas, numeradas otra vez.
   if (choice.kind === "many") {
     return result(narrowMessage(choice.options), [offered(choice.options, `varias opciones para «${said.slice(0, 60)}»`)], {
