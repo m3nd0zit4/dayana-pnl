@@ -143,7 +143,7 @@ export const resendFailedMessage = async (input: {
     return {
       status: "phone",
       url: own ? buildContactWhatsAppUrl(own, body) : null,
-      reason: "Meta no le entrega plantillas a este número por ahora (no es un error nuestro): mándalo desde tu WhatsApp, o cuando ella escriba se le puede contestar desde aquí.",
+      reason: "Meta no le entrega plantillas a este número por ahora (no es un error nuestro): mándalo desde tu WhatsApp, o contéstale desde aquí cuando escriba.",
     };
   }
   // Fuera de las 24 h: solo con plantilla aprobada (y solo texto), la que
