@@ -263,12 +263,15 @@ otro sitio.
 
 - **Cada entrada tiene un `id` estable.** Lo que necesite una entrada concreta
   la busca con `findMenuItem(id)`, nunca por el título del grupo.
-- **Grupos por uso diario:** Ventas, Personas, Clases. Lo que se usa poco va
-  en **Herramientas** (`collapsible: true`), plegado por defecto y abierto solo
-  cuando la página actual es suya.
-- **Barra inferior (móvil):** `CRM_BOTTOM_TABS` — Inicio, Contactos, Pagos — y
-  «Más», que abre el menú completo. Es el único botón que abre el menú en el
-  móvil.
+- **Grupos por uso diario:** Personas, Ventas, Clases. Lo que se configura una
+  vez y casi no se toca va en **Catálogo y textos** (paquetes, códigos, mensajes
+  rápidos, palabras clave, contenido) y **Herramientas** (`collapsible: true`),
+  plegados por defecto y abiertos solo cuando la página actual es suya.
+  **Estadísticas no tiene fila en el menú**: se abre desde Inicio («Ver todas
+  las estadísticas»).
+- **Barra inferior (móvil):** `CRM_BOTTOM_TABS` — Inicio, WhatsApp, Contactos,
+  Pagos — y «Más», que abre el menú completo. Es el único botón que abre el
+  menú en el móvil.
 - **Sin duplicados de chrome:** la web pública se abre desde el icono de la
   barra superior; la cuenta propia, desde Ajustes. Una sola búsqueda por
   pantalla (en Contactos la de la página sustituye a la de la barra).

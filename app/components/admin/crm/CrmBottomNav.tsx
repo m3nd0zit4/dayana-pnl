@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * Tres accesos más «Más», que abre la barra lateral entera.
+ * Cuatro accesos más «Más», que abre la barra lateral entera.
  *
  * Salen de `CRM_BOTTOM_TABS` en la configuración del menú, no de una lista
  * propia: así el icono, la ruta y la regla de «activo» son los mismos que en la

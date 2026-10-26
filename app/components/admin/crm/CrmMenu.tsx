@@ -7,7 +7,6 @@ import { useState } from "react";
 import {
   crmHomeItem,
   crmMenuSections,
-  crmStatsItem,
   crmWhatsAppItem,
   isCrmPathActive,
   type CrmMenuItem,
@@ -154,9 +153,9 @@ const SectionItems = ({
 );
 
 /**
- * Grupo plegado («Herramientas»): lo que casi no se usa, a un toque pero sin
- * ocupar la lista diaria. Se abre solo cuando la página actual es suya, para
- * que la entrada activa nunca quede escondida.
+ * Grupo plegado («Catálogo y textos», «Herramientas»): lo que casi no se usa,
+ * a un toque pero sin ocupar la lista diaria. Se abre solo cuando la página
+ * actual es suya, para que la entrada activa nunca quede escondida.
  */
 const CollapsibleSection = ({
   section,
@@ -222,9 +221,6 @@ const CrmMenu = ({ onNavigate }: Props) => {
           <SidebarMenuRoot>
             <CrmMenuParentItem item={crmHomeItem} pathname={pathname} onNavigate={onNavigate} />
             <CrmMenuParentItem item={crmWhatsAppItem} pathname={pathname} onNavigate={onNavigate} />
-            {canManageTeam ? (
-              <CrmMenuParentItem item={crmStatsItem} pathname={pathname} onNavigate={onNavigate} />
-            ) : null}
           </SidebarMenuRoot>
         </SidebarGroupContent>
       </SidebarGroup>

@@ -116,10 +116,12 @@ export const crmWhatsAppItem: CrmMenuItem = {
 };
 
 /**
- * Estadísticas, junto a Inicio y no dentro de ningún grupo: es la vista de
- * todo el negocio, no una tarea de un área concreta. Solo la ve quien puede
- * administrar el equipo (OWNER) — visible en Ventas, Contactos, etc. sería
- * un enlace que da 403 al resto del staff.
+ * Estadísticas ya NO sale en el menú (oct. 2026): Inicio abre con «Para hoy» y
+ * «Números» y enlaza a «Ver todas las estadísticas» para quien puede entrar.
+ * La ruta y esta entrada siguen existiendo (`findMenuItem("stats")`), solo que
+ * `CrmMenu` no la pinta: era una fila más para algo que se mira de vez en
+ * cuando. Solo la ve quien puede administrar el equipo (OWNER) — un enlace
+ * visible al resto del staff daría 403.
  */
 export const crmStatsItem: CrmMenuItem = {
   id: "stats",
@@ -132,13 +134,15 @@ export const crmStatsItem: CrmMenuItem = {
 /**
  * El menú sigue lo que Dayana hace cada día, en ese orden.
  *
- * - **Ventas** abre con Pagos y Enlaces, que se usan a diario; Paquetes y
- *   Códigos se configuran y casi no se tocan.
- * - **Personas** es quién es quién: contactos, membresías, diagnósticos y los
- *   mensajes rápidos con los que se les escribe.
+ * - **Personas** es quién es quién: contactos, membresías y diagnósticos.
+ * - **Ventas** son los dos que se usan a diario: Pagos y Enlaces de pago.
  * - **Clases** es todo lo que hay que impartir.
- * - **Herramientas** va plegado: la bandeja de Meta y la publicación en TikTok
- *   funcionan igual, pero se usan poco (decisión de Dayana, sep. 2026).
+ * - **Catálogo y textos** va plegado (oct. 2026): lo que se configura una vez y
+ *   casi no se toca — paquetes, códigos, los textos para escribirle a la gente
+ *   (mensajes rápidos, palabras clave) y la publicación en TikTok. Antes
+ *   estaban repartidos entre Ventas, Personas y Herramientas.
+ * - **Herramientas** va plegado y solo conserva la bandeja de Meta (Instagram y
+ *   Messenger) hasta que pase al menú de WhatsApp.
  *
  * Nada de lo que salió se perdió:
  *
@@ -151,16 +155,6 @@ export const crmStatsItem: CrmMenuItem = {
  */
 export const crmMenuSections: CrmMenuSection[] = [
   {
-    id: "ventas",
-    title: "Ventas",
-    items: [
-      { id: "payments", icon: CreditCard, label: "Pagos", href: "/admin/payments" },
-      { id: "payment-links", icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
-      { id: "products", icon: Package, label: "Paquetes", href: "/admin/products" },
-      { id: "promo-codes", icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
-    ],
-  },
-  {
     id: "personas",
     title: "Personas",
     items: [
@@ -169,12 +163,14 @@ export const crmMenuSections: CrmMenuSection[] = [
       // El diagnóstico se mira para saber QUIÉN es quien llega y qué necesita,
       // no para cobrarle. Por eso vive con las personas y no con el dinero.
       { id: "diagnostics", icon: Compass, label: "Diagnósticos", href: "/admin/diagnosticos" },
-      // Plantillas para escribirle a una persona: se usan desde su ficha.
-      { id: "messages", icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
-      // «Comenta ÉXITO y te mando el material»: la palabra de cada video, su
-      // material y la respuesta lista para pegar. Vive con las personas
-      // porque lo que produce son leads, no ventas directas.
-      { id: "magnets", icon: Sparkles, label: "Palabras clave", shortLabel: "Palabras", href: "/admin/palabras-clave" },
+    ],
+  },
+  {
+    id: "ventas",
+    title: "Ventas",
+    items: [
+      { id: "payments", icon: CreditCard, label: "Pagos", href: "/admin/payments" },
+      { id: "payment-links", icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
     ],
   },
   {
@@ -220,6 +216,29 @@ export const crmMenuSections: CrmMenuSection[] = [
     ],
   },
   {
+    // Lo que se configura una vez y casi no se toca. Plegado; se abre solo
+    // cuando la página actual es de uno de ellos.
+    id: "catalogo",
+    title: "Catálogo y textos",
+    collapsible: true,
+    items: [
+      { id: "products", icon: Package, label: "Paquetes", href: "/admin/products" },
+      { id: "promo-codes", icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
+      // Textos para escribirle a una persona: se usan desde su ficha.
+      { id: "messages", icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },
+      // «Comenta ÉXITO y te mando el material»: la palabra de cada video, su
+      // material y la respuesta lista para pegar.
+      { id: "magnets", icon: Sparkles, label: "Palabras clave", shortLabel: "Palabras", href: "/admin/palabras-clave" },
+      {
+        id: "content",
+        icon: Clapperboard,
+        label: "Contenido",
+        href: "/admin/contenido",
+        flag: "socialPublishing",
+      },
+    ],
+  },
+  {
     id: "herramientas",
     title: "Herramientas",
     collapsible: true,
@@ -231,26 +250,21 @@ export const crmMenuSections: CrmMenuSection[] = [
         href: "/admin/inbox",
         flag: "metaInbox",
       },
-      {
-        id: "content",
-        icon: Clapperboard,
-        label: "Contenido",
-        href: "/admin/contenido",
-        flag: "socialPublishing",
-      },
     ],
   },
 ];
 
 /**
- * Los tres accesos de la barra inferior del móvil (el cuarto es siempre «Más»).
- * Inicio lleva «Para hoy», que enlaza a diagnósticos, membresías y enlaces sin
- * pasar por el menú.
+ * Los cuatro accesos de la barra inferior del móvil (el quinto es siempre
+ * «Más»). Inicio lleva «Para hoy», que enlaza a diagnósticos, membresías y
+ * enlaces sin pasar por el menú. WhatsApp está porque es donde se atiende el
+ * día a día, y desde el teléfono hay que llegar en un toque.
  */
-export const CRM_BOTTOM_TABS = ["home", "contacts", "payments"] as const satisfies readonly CrmMenuItemId[];
+export const CRM_BOTTOM_TABS = ["home", "whatsapp", "contacts", "payments"] as const satisfies readonly CrmMenuItemId[];
 
 export const findMenuItem = (id: CrmMenuItemId): CrmMenuItem | undefined => {
   if (crmHomeItem.id === id) return crmHomeItem;
+  if (crmWhatsAppItem.id === id) return crmWhatsAppItem;
   if (crmStatsItem.id === id) return crmStatsItem;
   for (const section of crmMenuSections) {
     for (const item of section.items) {

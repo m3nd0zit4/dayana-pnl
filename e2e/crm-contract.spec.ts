@@ -234,7 +234,7 @@ test.describe("CRM · filtros en hoja", () => {
  * Navegación: sale de `app/config/crm-menu-items.ts` y no se duplica.
  */
 test.describe("CRM · navegación", () => {
-  test("móvil: barra inferior Inicio · Contactos · Pagos · Más, sin segundo botón de menú", async ({
+  test("móvil: barra inferior Inicio · WhatsApp · Contactos · Pagos · Más, sin segundo botón de menú", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -242,11 +242,26 @@ test.describe("CRM · navegación", () => {
 
     const nav = page.getByRole("navigation", { name: "Navegación principal" });
     await expect(nav).toBeVisible();
-    for (const label of ["Inicio", "Contactos", "Pagos"]) {
+    for (const label of ["Inicio", "WhatsApp", "Contactos", "Pagos"]) {
       await expect(nav.getByRole("link", { name: label })).toBeVisible();
     }
     await expect(nav.getByRole("button", { name: "Más opciones" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Abrir menú" })).toHaveCount(0);
+
+    // Cinco celdas en 390 px: ninguna se sale de la pantalla ni se corta.
+    const cells = nav.locator("a, button");
+    await expect(cells).toHaveCount(5);
+    const boxes = await cells.evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { left: r.left, right: r.right, scroll: el.scrollWidth, client: el.clientWidth };
+      })
+    );
+    for (const b of boxes) {
+      expect(b.left).toBeGreaterThanOrEqual(0);
+      expect(b.right).toBeLessThanOrEqual(390);
+      expect(b.scroll).toBeLessThanOrEqual(b.client + 1);
+    }
   });
 
   test("escritorio: el menú no repite «Web pública» ni «Mi cuenta»", async ({ page }) => {
