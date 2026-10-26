@@ -1,3 +1,5 @@
+import { rememberCheckoutOrigin } from "./checkoutOrigin";
+
 /**
  * Arranca el pago sin formulario previo.
  *
@@ -128,6 +130,8 @@ export const startCheckout = async (
         ? `${base}${base.includes("?") ? "&" : "?"}fundingSource=card`
         : base;
 
+    // Para que «cancelado» y «fallido» puedan volver aquí (ver checkoutOrigin).
+    rememberCheckoutOrigin();
     window.location.assign(target);
     return null;
   } catch {

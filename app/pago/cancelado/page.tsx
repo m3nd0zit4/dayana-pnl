@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   BRAND,
   WHATSAPP_NUMBER,
   buildWhatsAppUrl,
 } from "../../../lib/contact";
 import CheckoutAbandonCleanup from "../../components/pago/CheckoutAbandonCleanup";
+import RetryLink from "../../components/pago/RetryLink";
 import { isCheckoutReference } from "@/lib/crm/checkout-reference";
 
 export const metadata: Metadata = {
@@ -49,17 +49,17 @@ const Page = async ({ searchParams }: PageProps) => {
 
         <p className="font-[font1] text-black/70 text-base lg:text-lg leading-relaxed mb-10">
           El pago no se completó. Nada quedó registrado en tu método de pago.
-          Puedes reintentar desde la página de servicios o escribirnos por
-          WhatsApp y lo hacemos contigo paso a paso.
+          Puedes volver a intentarlo o escribirnos por WhatsApp y lo hacemos
+          contigo paso a paso.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Link
-            href="/terapias/empezar"
+          {/* Vuelve a la página donde se estaba pagando; sin ella, al inicio. */}
+          <RetryLink
+            retryLabel="Reintentar el pago"
+            fallbackLabel="Volver al inicio"
             className="w-full sm:flex-1 rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black transition-colors text-center"
-          >
-            Reintentar el pago
-          </Link>
+          />
           <a
             href={buildWhatsAppUrl(
               "Hola Dayana, intenté hacer un pago online pero quedó cancelado. ¿Puedes ayudarme a completarlo?"

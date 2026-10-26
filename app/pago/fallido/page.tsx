@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import {
   BRAND,
   WHATSAPP_NUMBER,
   buildWhatsAppUrl,
 } from "../../../lib/contact";
+import RetryLink from "../../components/pago/RetryLink";
 import { mapMercadoPagoStatus, parsePayPalError } from "@/lib/payments/errors";
 
 export const metadata: Metadata = {
@@ -101,12 +101,12 @@ const Page = async ({ searchParams }: PageProps) => {
 
         <div className="flex flex-col gap-3 sm:flex-row">
           {failure.retryable ? (
-            <Link
-              href="/#servicios"
+            // Vuelve a la página donde se estaba pagando; sin ella, al inicio.
+            <RetryLink
+              retryLabel="Intentar de nuevo"
+              fallbackLabel="Volver al inicio"
               className="font-[font2] w-full rounded-full bg-[#141118] py-3.5 text-center text-xs uppercase tracking-[0.25em] text-linen transition-colors hover:bg-black sm:flex-1"
-            >
-              Intentar de nuevo
-            </Link>
+            />
           ) : null}
           <a
             href={buildWhatsAppUrl(
