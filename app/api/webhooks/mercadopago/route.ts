@@ -37,23 +37,57 @@ export async function POST(req: NextRequest) {
      * MP y se ve en el acto qué remitente falla.
      */
     const rid = req.headers.get("x-request-id");
+    /**
+     * ¿Venía firmado? Es lo que separa los dos casos que se mezclaban:
+     *
+     * - **Con `x-signature` pero que no cuadra**: un remitente que SÍ firma
+     *   con otro secreto. Eso es configuración y merece el aviso.
+     * - **Sin `x-signature`**: la notificación legada (IPN) que Mercado Pago
+     *   manda además del webhook, con otro formato (`topic` + `resource` en
+     *   lugar de `data.id`) y sin firma. Nunca la va a llevar, el pago ya llega
+     *   por el webhook firmado, y avisar al equipo cada vez dejó 13 alertas
+     *   «recurso desconocido» desde el 19-oct. Se rechaza igual (401: es lo que
+     *   comprueba el chequeo rápido del CLAUDE.md) y queda en la auditoría,
+     *   pero sin campana.
+     */
+    const hasSignature = Boolean(req.headers.get("x-signature"));
+    let topic: string | null = null;
     const resourceId =
       req.headers.get("x-data-id") ??
+      req.nextUrl.searchParams.get("data.id") ??
+      req.nextUrl.searchParams.get("id") ??
       (() => {
         try {
-          const j = JSON.parse(rawBody) as { data?: { id?: string } };
-          return j.data?.id != null ? String(j.data.id) : null;
+          const j = JSON.parse(rawBody) as {
+            data?: { id?: string };
+            resource?: string;
+            topic?: string;
+          };
+          topic = j.topic ?? null;
+          if (j.data?.id != null) return String(j.data.id);
+          // IPN legado: `resource` es una URL que acaba en el id.
+          const tail = j.resource?.split("/").pop();
+          return tail || null;
         } catch {
           return null;
         }
       })();
+    topic ??= req.nextUrl.searchParams.get("topic");
 
     fireAuditLog({
       action: "WEBHOOK_REJECTED",
       entityType: "WebhookEvent",
       entityId: "mercadopago",
-      changes: { reason: "invalid_signature", resourceId, requestId: rid },
+      changes: {
+        reason: hasSignature ? "invalid_signature" : "unsigned_delivery",
+        resourceId,
+        requestId: rid,
+        topic,
+      },
     });
+    if (!hasSignature) {
+      return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
+    }
     fireNotification({
       eventType: "PAYMENT_WEBHOOK_FAILED",
       title: "Webhook de Mercado Pago rechazado por firma inválida",

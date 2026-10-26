@@ -1983,7 +1983,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               role: "user" as const,
               content: [
                 { type: "text" as const, text: promptText },
-                ...input.images.map((img) => ({ type: "image" as const, image: img.data, mediaType: img.mediaType })),
+                // Parte `file`, no `image`: el SDK ya convertía la segunda en la
+                // primera (mismo pedido a Gemini) pero avisaba «deprecated» en
+                // cada llamada con foto — 95 veces en el último mes.
+                ...input.images.map((img) => ({ type: "file" as const, data: img.data, mediaType: img.mediaType })),
               ],
             },
           ],

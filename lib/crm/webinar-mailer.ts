@@ -22,6 +22,8 @@ import {
   type WebinarMailRecipient,
 } from "@/lib/crm/webinar-registrations";
 import { dispatchAndRecord } from "@/lib/notifications/dispatch";
+import { isEmailQuotaError } from "@/lib/notifications/email-errors";
+import { emailQuotaBlockedUntil } from "@/lib/notifications/email-quota";
 import { resolveNotificationsEnabled } from "@/lib/notifications/platform/resolve";
 import {
   webinarMeetLinkHtml,
@@ -48,6 +50,11 @@ export type WebinarMailResult = {
   /** `true` cuando no se tocó ninguna fila: notificaciones apagadas o sin datos. */
   skipped: boolean;
   reason?: string;
+  /**
+   * Resend rechazó por cuota agotada y el lote paró. Quien encadena pasadas
+   * NO debe seguir: la siguiente toparía con lo mismo.
+   */
+  quotaExhausted?: boolean;
 };
 
 const noop = (reason: string): WebinarMailResult => ({
@@ -104,14 +111,25 @@ const runPool = async <T>(
   items: T[],
   worker: (item: T) => Promise<DeliverOutcome>,
   deadline?: number
-): Promise<{ sent: number; failed: number; stoppedEarly: boolean }> => {
+): Promise<{
+  sent: number;
+  failed: number;
+  stoppedEarly: boolean;
+  quotaExhausted: boolean;
+}> => {
   let sent = 0;
   let failed = 0;
   let cursor = 0;
   let stoppedEarly = false;
+  let quotaExhausted = false;
 
   const lane = async (): Promise<void> => {
     while (cursor < items.length) {
+      // Con la cuota agotada nadie del lote va a salir: seguir sólo genera un
+      // intento fallido, una fila y un aviso por persona (24-25 oct: 1.026).
+      // Los que ya estaban en vuelo terminan; no se empieza ninguno nuevo y
+      // los que quedaron sin tocar siguen pendientes para la próxima pasada.
+      if (quotaExhausted) return;
       if (deadline !== undefined && Date.now() >= deadline) {
         stoppedEarly = true;
         return;
@@ -120,7 +138,10 @@ const runPool = async <T>(
       cursor += 1;
       await takeSendSlot();
       const { outcome } = await worker(item);
-      if (outcome === "failed") failed += 1;
+      if (outcome === "quota") {
+        quotaExhausted = true;
+        failed += 1;
+      } else if (outcome === "failed") failed += 1;
       else sent += 1;
     }
   };
@@ -128,7 +149,7 @@ const runPool = async <T>(
   await Promise.all(
     Array.from({ length: Math.min(CONCURRENCY, items.length) }, lane)
   );
-  return { sent, failed, stoppedEarly };
+  return { sent, failed, stoppedEarly, quotaExhausted };
 };
 
 const firstName = (r: WebinarMailRecipient): string =>
@@ -144,7 +165,11 @@ type SendOne = {
 };
 
 export type DeliverOutcome = {
-  outcome: "sent" | "failed" | "claimed_elsewhere";
+  /**
+   * `quota`: Resend rechazó por cuota agotada. Es un fallo de TODA la cuenta,
+   * no de esta persona: el que lo ve manda parar al resto del lote.
+   */
+  outcome: "sent" | "failed" | "claimed_elsewhere" | "quota";
   errorMessage?: string | null;
 };
 
@@ -183,7 +208,10 @@ const deliver = async (
   }
 
   await releaseRegistrationFlag(recipient.id, flag, errorMessage);
-  return { outcome: "failed", errorMessage };
+  return {
+    outcome: isEmailQuotaError(errorMessage) ? "quota" : "failed",
+    errorMessage,
+  };
 };
 
 
@@ -245,12 +273,24 @@ export const passFlag = (pass: WebinarMailPass) =>
 const notificationsOff = async (): Promise<boolean> =>
   !(await resolveNotificationsEnabled());
 
+/**
+ * Guarda de cuota para los barridos AUTOMÁTICOS. Con la cuota de Resend
+ * agotada cada pasada de diez minutos reclamaba a toda la cola, fallaba en
+ * cada una y la soltaba, así que 113 personas acumularon 660 intentos en la
+ * hora del recordatorio. Mientras la bandera esté vigente el barrido ni
+ * empieza: nadie queda sellado, y en cuanto vuelva el cupo se retoma la cola
+ * exacta. Los reenvíos a mano no pasan por aquí: ahí el operador decide.
+ */
+const emailQuotaBlocked = async (): Promise<boolean> =>
+  (await emailQuotaBlockedUntil()) !== null;
+
 export const sendPendingWebinarLinkEmails = async (
     deadline?: number,
     /** Sin él, el evento actual. */
     webinarId?: string
   ): Promise<WebinarMailResult> => {
     if (await notificationsOff()) return noop("notifications_disabled");
+    if (await emailQuotaBlocked()) return noop("email_quota");
 
     const webinar = await getFreeWebinar(webinarId);
     if (!webinar) return noop("no_event");
@@ -269,7 +309,7 @@ export const sendPendingWebinarLinkEmails = async (
     // Payload por el constructor compartido: si se construyera aqui aparte,
     // el barrido masivo y el reenvio individual podrian divergir — que es
     // justo como el material se habria quedado fuera de estos correos.
-    const { sent, failed, stoppedEarly } = await runPool(
+    const { sent, failed, stoppedEarly, quotaExhausted } = await runPool(
       recipients,
       (recipient) =>
         deliver(
@@ -280,7 +320,7 @@ export const sendPendingWebinarLinkEmails = async (
       deadline
     );
 
-    return { sent, failed, skipped: false, stoppedEarly };
+    return { sent, failed, skipped: false, stoppedEarly, quotaExhausted };
   };
 
 /**
@@ -324,6 +364,10 @@ export const sendPendingWebinarReminders = async (
   webinarId?: string
 ): Promise<WebinarMailResult> => {
   if (await notificationsOff()) return noop("notifications_disabled");
+  // Un envío disparado a mano (`ignoreWindow`) sí intenta aunque la bandera
+  // esté puesta: el operador decide, y es justo cómo se comprueba que el cupo
+  // volvió. El cron nunca lo usa.
+  if (!ignoreWindow && (await emailQuotaBlocked())) return noop("email_quota");
 
   const webinar = await getFreeWebinar(webinarId);
   if (!webinar) return noop("no_event");
@@ -344,14 +388,14 @@ export const sendPendingWebinarReminders = async (
 
   const flag = reminderFlag(kind);
 
-  const { sent, failed, stoppedEarly } = await runPool(
+  const { sent, failed, stoppedEarly, quotaExhausted } = await runPool(
     recipients,
     (recipient) =>
       deliver(recipient, flag, buildWebinarMailPayload(webinar, recipient, kind)),
     deadline
   );
 
-  return { sent, failed, skipped: false, stoppedEarly };
+  return { sent, failed, skipped: false, stoppedEarly, quotaExhausted };
 };
 
 /**
@@ -424,6 +468,18 @@ export const drainWebinarMail = async (
     }
     sent += r.sent;
     failed += r.failed;
+    // Cuota agotada: encadenar otra pasada toparía con lo mismo. La cola sigue
+    // intacta (nadie quedó sellado) y se retoma cuando la bandera caduque.
+    if (r.quotaExhausted) {
+      return finish({
+        sent,
+        failed,
+        skipped: false,
+        reason: "email_quota",
+        quotaExhausted: true,
+        pending: false,
+      });
+    }
     if (r.stoppedEarly) {
       return finish({ sent, failed, skipped: false, pending: true });
     }
@@ -495,7 +551,11 @@ export const resendWebinarMailToOne = async (
     buildWebinarMailPayload(webinar, registration, pass)
   );
 
-  if (outcome === "failed") return { ok: false, reason: "failed", errorMessage };
+  // Una cuota agotada es un fallo de este envío como cualquier otro: el texto de
+  // `errorMessage` ya dice «daily_quota_exceeded» y es lo que ve el operador.
+  if (outcome === "failed" || outcome === "quota") {
+    return { ok: false, reason: "failed", errorMessage };
+  }
   return { ok: true, outcome };
 };
 

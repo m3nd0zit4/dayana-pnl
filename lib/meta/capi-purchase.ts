@@ -1,8 +1,11 @@
 import { PaymentStatus } from "@prisma/client";
 import { prisma } from "../db";
 import { minorToMajor } from "../crm/money";
+import { getSiteSetting, setSiteSetting } from "../crm/site-settings";
+import { emitPlatformNotification } from "../notifications/platform/emit";
 import { getSiteUrl } from "../site-url";
 import { purchaseEventId, sendCapiEvent } from "./capi";
+import { MetaApiError } from "./client";
 
 /**
  * Envía el Purchase de un enrollment a la Conversions API.
@@ -21,8 +24,47 @@ export type CapiPurchaseOutcome =
         | "already_sent"
         | "no_ad_tracking_consent"
         | "not_configured"
-        | "no_match_keys";
+        | "no_match_keys"
+        | "token_invalid";
     };
+
+/**
+ * El token de la Conversions API lo rechaza Meta (código 190 / HTTP 401: «The
+ * access token could not be decrypted», visto el 23-oct).
+ *
+ * No es un fallo que reintentar mejore: el mismo token vuelve a fallar. Dejar
+ * que el error suba hacía que Inngest reintentara el step varias veces y
+ * marcara fallida la función `payment-approved` entera, y a nadie se le avisaba
+ * de que Meta llevaba días sin recibir compras. Ahora el step termina como
+ * «omitido», `capiSentAt` queda vacío (la compra se podrá reenviar con el
+ * token nuevo) y el equipo recibe UN aviso al día.
+ */
+const isTokenFailure = (e: unknown): boolean =>
+  e instanceof MetaApiError && (e.code === 190 || e.status === 401);
+
+const CAPI_TOKEN_ALERT_SETTING = "meta.capi.token_alert_day" as const;
+
+const alertTokenInvalidOncePerDay = async (): Promise<void> => {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    if ((await getSiteSetting(CAPI_TOKEN_ALERT_SETTING)) === today) return;
+    await setSiteSetting(CAPI_TOKEN_ALERT_SETTING, today);
+    await emitPlatformNotification({
+      eventType: "SYSTEM_ALERT",
+      title: "Meta no está recibiendo tus compras",
+      body:
+        "Meta rechaza el token de la Conversions API (error 190), así que las compras " +
+        "de quien aceptó la publicidad no llegan y los anuncios pierden esa señal. " +
+        "Genera un token nuevo en Events Manager y pégalo en Ajustes → Integraciones.",
+      href: "/admin/ajustes/integraciones",
+      entityType: "MetaCapi",
+      entityId: "token",
+      staff: "ALL",
+    });
+  } catch (e) {
+    console.error("[meta/capi] no se pudo avisar del token inválido", e);
+  }
+};
 
 export const sendPurchaseToMetaCapi = async (
   enrollmentId: string
@@ -58,8 +100,8 @@ export const sendPurchaseToMetaCapi = async (
 
   const eventId = purchaseEventId(payment.id);
 
-  const result = await sendCapiEvent({
-    eventName: "Purchase",
+  const event = {
+    eventName: "Purchase" as const,
     eventId,
     eventTime: payment.paidAt ?? payment.createdAt,
     eventSourceUrl: `${getSiteUrl()}/pago/exito`,
@@ -77,7 +119,18 @@ export const sendPurchaseToMetaCapi = async (
       content_name: enrollment.product.title,
       content_type: "product",
     },
-  });
+  };
+
+  let result: Awaited<ReturnType<typeof sendCapiEvent>>;
+  try {
+    result = await sendCapiEvent(event);
+  } catch (e) {
+    if (isTokenFailure(e)) {
+      await alertTokenInvalidOncePerDay();
+      return { status: "skipped", reason: "token_invalid" };
+    }
+    throw e;
+  }
 
   if (!result.sent) {
     return { status: "skipped", reason: result.reason };

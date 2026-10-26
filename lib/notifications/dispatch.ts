@@ -12,6 +12,8 @@ import {
 } from "./channels/email";
 import { sendSms } from "./channels/sms";
 import { sendWhatsAppTemplateMessage } from "./channels/whatsapp";
+import { classifyEmailError, deliveryFailureKey } from "./email-errors";
+import { markEmailQuotaExhausted } from "./email-quota";
 import {
   campaignEmailHtml,
   campaignEmailSubject,
@@ -216,11 +218,64 @@ export const dispatchToChannel = async (
     };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    if (payload.channel === "EMAIL") {
+      await handleEmailFailure(payload, msg);
+    }
     return {
       status: NotificationDeliveryStatus.FAILED,
       errorMessage: msg,
       recipient,
     };
+  }
+};
+
+/**
+ * Lo que un fallo de correo cambia más allá de esta entrega.
+ *
+ * - Cuota agotada: se deja constancia compartida para que los barridos
+ *   masivos dejen de reintentar a cada persona (ver `email-quota.ts`).
+ * - Dirección que Resend rechaza por formato: se apaga `notifyEmail` de ese
+ *   contacto, igual que hace el webhook de Resend con un rebote. Es permanente
+ *   para esa dirección, y sin esto el mailer la reintenta cada diez minutos
+ *   (20 intentos en una sola persona). No se toca si el destinatario vino
+ *   forzado en el envío: ahí la dirección no es la de la ficha.
+ *
+ * Nunca lanza: es contabilidad del fallo, no puede esconder el fallo original.
+ */
+const handleEmailFailure = async (
+  payload: DispatchPayload,
+  message: string
+): Promise<void> => {
+  try {
+    const kind = classifyEmailError(message);
+    if (kind === "quota") {
+      // Sólo quien ACTIVA el bloqueo avisa: es un aviso por apagón, no uno por
+      // correo (24-25 oct: 1.030 en la campana). Ver `markEmailQuotaExhausted`.
+      if (await markEmailQuotaExhausted()) {
+        fireNotification({
+          eventType: "NOTIFICATION_DELIVERY_FAILED",
+          title: "Resend: se agotó la cuota de correos",
+          body:
+            "Resend rechaza los envíos porque la cuenta llegó a su tope. Lo pendiente del webinar se reintenta solo cuando vuelva a haber cupo; para que no se repita, sube el plan de Resend.",
+          href: "/admin/ajustes/integraciones",
+          entityType: "NotificationDeliveryFailure",
+          entityId: "EMAIL:quota",
+          metadata: { channel: "EMAIL", kind: "quota" },
+          staff: "ALL",
+        });
+      }
+    } else if (kind === "invalid_address" && !payload.recipient) {
+      await prisma.contact.updateMany({
+        where: { id: payload.contactId, notifyEmail: true },
+        data: { notifyEmail: false },
+      });
+      console.warn(
+        "[dispatch] dirección rechazada por Resend; notifyEmail apagado",
+        payload.contactId
+      );
+    }
+  } catch (e) {
+    console.error("[dispatch] no se pudo registrar el fallo de correo", e);
   }
 };
 
@@ -269,10 +324,36 @@ export const recordDelivery = async (input: {
 
   // Solo FAILED: SKIPPED es una decisión nuestra (canal apagado, contacto sin
   // dato), no un fallo del proveedor, y llenaría la campana de ruido.
-  if (input.result.status === NotificationDeliveryStatus.FAILED) {
+  const kind =
+    input.channel === "EMAIL"
+      ? classifyEmailError(input.result.errorMessage)
+      : "other";
+  // La cuota agotada ya avisó UNA vez, al activarse el bloqueo (ver
+  // `handleEmailFailure`): un aviso más por cada correo fallido es justo la
+  // inundación que se quiere evitar.
+  if (
+    input.result.status === NotificationDeliveryStatus.FAILED &&
+    kind !== "quota"
+  ) {
+    /**
+     * Clave de agrupación del aviso. Antes la entidad era el id de ESTA entrega,
+     * único por definición, así que la agrupación del catálogo
+     * (`coalesceWindowSec`) nunca juntaba nada: una caída de la cuota de Resend
+     * dejó 1.030 avisos en la campana en una semana y enterró los de pagos y
+     * escalaciones. Agrupados por canal + causa (o plantilla), todos los fallos
+     * de la misma clase en una hora son UN aviso con su contador.
+     */
+    const failureKey = deliveryFailureKey(
+      input.channel,
+      kind,
+      input.templateKey
+    );
     fireNotification({
       eventType: "NOTIFICATION_DELIVERY_FAILED",
-      title: `No se pudo entregar un ${CHANNEL_LABEL[input.channel]}`,
+      title:
+        kind === "invalid_address"
+          ? "Un correo no se entregó: dirección inválida"
+          : `No se pudo entregar un ${CHANNEL_LABEL[input.channel]}`,
       body: [input.result.recipient, input.result.errorMessage]
         .filter(Boolean)
         .join(" · "),
@@ -281,9 +362,14 @@ export const recordDelivery = async (input: {
       // es solo para OWNER y este aviso también le llega al DEVELOPER, así que
       // se apunta a la ficha del contacto — igual que el webhook de Resend.
       href: `/admin/contacts/${input.contactId}`,
-      entityType: "NotificationDelivery",
-      entityId: delivery.id,
-      metadata: { channel: input.channel, contactId: input.contactId },
+      entityType: "NotificationDeliveryFailure",
+      entityId: failureKey,
+      metadata: {
+        channel: input.channel,
+        contactId: input.contactId,
+        kind,
+        templateKey: input.templateKey ?? null,
+      },
       staff: "ALL",
     });
   }

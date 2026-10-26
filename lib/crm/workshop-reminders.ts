@@ -6,6 +6,8 @@ import {
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { dispatchAndRecord } from "@/lib/notifications/dispatch";
+import { isEmailQuotaError } from "@/lib/notifications/email-errors";
+import { emailQuotaBlockedUntil } from "@/lib/notifications/email-quota";
 import { resolveNotificationsEnabled } from "@/lib/notifications/platform/resolve";
 import {
   workshopReminderHtml,
@@ -262,6 +264,10 @@ export const drainWorkshopReminders = async (
   limit = WORKSHOP_REMINDER_BATCH
 ): Promise<WorkshopReminderResult> => {
   if (!(await resolveNotificationsEnabled())) return noop("notifications_disabled");
+  // Con la cuota de Resend agotada cada barrido reclamaba y soltaba a toda la
+  // cola para nada (mismo fallo que en el webinar, 24-25 oct). Ver
+  // `lib/notifications/email-quota.ts`.
+  if ((await emailQuotaBlockedUntil()) !== null) return noop("email_quota");
 
   const recipients = await findPendingWorkshopReminderRecipients(pass, now, limit);
   if (recipients.length === 0) return noop("no_pending_recipients");
@@ -285,10 +291,13 @@ export const drainWorkshopReminders = async (
     const editionId = recipient.workshopEdition?.id;
 
     try {
-      const { outcome } = await deliverOne(recipient, pass);
+      const { outcome, errorMessage } = await deliverOne(recipient, pass);
       if (outcome === "failed") {
         failed += 1;
         tally(editionId, "failed");
+        // La cuota es de toda la cuenta: nadie más de la cola va a salir.
+        // Quien quedó sin tocar sigue pendiente para la próxima pasada.
+        if (isEmailQuotaError(errorMessage)) break;
       } else {
         sent += 1;
         if (outcome === "sent") tally(editionId, "sent");
