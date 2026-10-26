@@ -120,8 +120,8 @@ export const crmWhatsAppItem: CrmMenuItem = {
  * «Números» y enlaza a «Ver todas las estadísticas» para quien puede entrar.
  * La ruta y esta entrada siguen existiendo (`findMenuItem("stats")`), solo que
  * `CrmMenu` no la pinta: era una fila más para algo que se mira de vez en
- * cuando. Solo la ve quien puede administrar el equipo (OWNER) — un enlace
- * visible al resto del staff daría 403.
+ * cuando. Si algún día se vuelve a pintar, hay que mantener `ownerOnly`: un
+ * enlace visible al resto del staff daría 403.
  */
 export const crmStatsItem: CrmMenuItem = {
   id: "stats",
@@ -141,8 +141,8 @@ export const crmStatsItem: CrmMenuItem = {
  *   casi no se toca — paquetes, códigos, los textos para escribirle a la gente
  *   (mensajes rápidos, palabras clave) y la publicación en TikTok. Antes
  *   estaban repartidos entre Ventas, Personas y Herramientas.
- * - **Herramientas** va plegado y solo conserva la bandeja de Meta (Instagram y
- *   Messenger) hasta que pase al menú de WhatsApp.
+ * - **Herramientas** va plegado y hoy solo tiene la bandeja de Meta (Instagram
+ *   y Messenger), que aparece únicamente si su interruptor está encendido.
  *
  * Nada de lo que salió se perdió:
  *

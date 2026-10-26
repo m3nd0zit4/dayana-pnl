@@ -5,9 +5,10 @@ import { relatedSettingsLinks } from "@/app/config/settings-nav";
 /**
  * Pie «Relacionado» del centro de ajustes.
  *
- * No mueve nada: son páginas operativas que siguen en el menú principal porque
- * se usan a diario. Están aquí solo para que quien abra Ajustes vea de un
- * vistazo todo lo que se puede configurar, aunque no todo viva bajo esta ruta.
+ * No mueve nada: son páginas operativas que siguen en su sitio (el menú
+ * principal o su grupo «Catálogo y textos»). Están aquí solo para que quien
+ * abra Ajustes vea de un vistazo todo lo que se puede configurar, aunque no
+ * todo viva bajo esta ruta.
  */
 const SettingsRelatedLinks = () => (
   <section className="border-t pt-4">

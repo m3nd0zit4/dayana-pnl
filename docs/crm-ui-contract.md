@@ -257,7 +257,7 @@ si ya está en la descripción de la cabecera, no se repite en un aviso debajo.
 
 ## Navegación
 
-El menú, el grupo plegado y la barra inferior del móvil salen de
+El menú, los grupos plegados y la barra inferior del móvil salen de
 `app/config/crm-menu-items.ts`. Nada de listas de enlaces escritas a mano en
 otro sitio.
 

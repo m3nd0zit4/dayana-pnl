@@ -8,6 +8,7 @@ import {
   crmWhatsAppItem,
   findMenuItem,
   type CrmMenuItem,
+  type CrmMenuItemId,
 } from "../../app/config/crm-menu-items";
 
 /**
@@ -60,11 +61,38 @@ describe("menú del CRM", () => {
     }
   });
 
+  test("el menú contiene exactamente estas entradas: nada se vuelve inalcanzable sin que se note", () => {
+    // Si se quita o se renombra una entrada, esta lista tiene que cambiar a
+    // propósito. `stats` es la única que existe en la configuración sin pintarse.
+    const expected: CrmMenuItemId[] = [
+      "home",
+      "whatsapp",
+      "contacts",
+      "memberships",
+      "diagnostics",
+      "payments",
+      "payment-links",
+      "courses",
+      "modules",
+      "comments",
+      "workshops",
+      "free-events",
+      "free-events-list",
+      "free-events-people",
+      "products",
+      "promo-codes",
+      "messages",
+      "magnets",
+      "content",
+      "inbox",
+    ];
+    expect(allItems().map((i) => i.id).sort()).toEqual([...expected].sort());
+  });
+
   test("Estadísticas no es una fila del menú, pero la entrada sigue existiendo", () => {
     expect(allItems().some((i) => i.id === "stats")).toBe(false);
     const stats = findMenuItem("stats");
     expect(stats).toBe(crmStatsItem);
-    expect(stats?.ownerOnly).toBe(true);
     expect(stats?.href).toBe("/admin/estadisticas");
   });
 

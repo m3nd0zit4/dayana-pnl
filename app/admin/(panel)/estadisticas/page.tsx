@@ -51,9 +51,10 @@ const EstadisticasPage = async ({ searchParams }: Props) => {
   const staff = await getStaffSession();
   // Sin sesión: el layout del grupo `(panel)` ya redirige a `/acceso`.
   if (!staff) return null;
-  // Estadísticas es solo para quien administra el equipo (OWNER) — el resto
-  // del staff no la ve en el menú, y si llega a la URL a mano se le rebota
-  // aquí en vez de dejarla cargar a medias.
+  // Estadísticas es solo para quien administra el equipo (OWNER): su enlace
+  // («Ver todas las estadísticas», en Inicio) solo se pinta para ella, y si el
+  // resto del staff llega a la URL a mano se le rebota aquí en vez de dejarla
+  // cargar a medias.
   if (staff.role !== "OWNER") redirect("/admin");
 
   const timeZone = await getOperationalTimezone().catch(() => OPERATIONAL_TZ);

@@ -53,9 +53,9 @@ export const siteSettingsGroups: SettingsNavGroup[] = [
 ];
 
 /**
- * Páginas de uso diario que rozan la configuración pero se quedan donde están:
- * viven en el menú principal porque se usan a diario, no una vez al mes. Aquí
- * solo se enlazan para que desde Ajustes se vea que existen.
+ * Páginas operativas que rozan la configuración pero se quedan donde están
+ * (el menú principal o su grupo «Catálogo y textos»). Aquí solo se enlazan para
+ * que desde Ajustes se vea que existen.
  */
 export const relatedSettingsLinks = [
   {
