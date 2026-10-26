@@ -13,7 +13,7 @@ describe("safeCheckoutOrigin", () => {
       "/taller-virtual",
       "/taller-virtual/tu-sanacion-con-el-dinero",
       "/terapias/resultado/tok_en-1",
-      "/enlaces",
+      "/cuenta/facturacion",
     ]) {
       expect(safeCheckoutOrigin(path)).toBe(path);
     }
@@ -38,6 +38,7 @@ describe("safeCheckoutOrigin", () => {
       "/api/paypal/create-order",
       "/pago/exito",
       "/miembros/curso",
+      "/enlaces",
       "/pagarx",
       "/cursosx",
     ]) {
@@ -71,6 +72,21 @@ describe("safeCheckoutOrigin", () => {
       "/pagar/<script>",
       "/pagar/x\n/admin",
       "/pagar//x",
+    ]) {
+      expect(safeCheckoutOrigin(path)).toBeNull();
+    }
+  });
+
+  test("rechaza los puntos y barras codificados que el navegador resolvería a otra ruta", () => {
+    for (const path of [
+      "/pagar/%2e%2e/admin",
+      "/pagar/.%2e/admin",
+      "/pagar/%2E%2E/admin",
+      "/cursos/%2e%2e/%2e%2e/admin",
+      "/pagar/%2f%2fevil.example",
+      "/pagar/%5cevil.example",
+      "/pagar/x%2fadmin",
+      "/pagar/%252e%252e/admin",
     ]) {
       expect(safeCheckoutOrigin(path)).toBeNull();
     }

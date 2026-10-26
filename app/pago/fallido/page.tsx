@@ -101,10 +101,11 @@ const Page = async ({ searchParams }: PageProps) => {
 
         <div className="flex flex-col gap-3 sm:flex-row">
           {failure.retryable ? (
-            // Vuelve a la página donde se estaba pagando; sin ella, al inicio.
+            // Vuelve a la página donde se estaba pagando; sin ella, a las opciones.
             <RetryLink
               retryLabel="Intentar de nuevo"
-              fallbackLabel="Volver al inicio"
+              fallbackLabel="Ver opciones"
+              fallbackHref="/#servicios"
               className="font-[font2] w-full rounded-full bg-[#141118] py-3.5 text-center text-xs uppercase tracking-[0.25em] text-linen transition-colors hover:bg-black sm:flex-1"
             />
           ) : null}

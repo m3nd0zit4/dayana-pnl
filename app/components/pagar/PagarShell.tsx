@@ -100,8 +100,9 @@ const PagarShell = ({
           ))}
         </div>
 
-        {/* «Coordinamos tu agenda» solo es verdad para una terapia: un curso, un
-            taller o un enlace de monto libre no se agendan. */}
+        {/* «Coordinamos tu agenda» solo se promete para una terapia: en cualquier
+            otro plan (curso, taller, enlace de monto libre) no se sabe si hay
+            algo que agendar, así que no se dice. */}
         <p className="mt-6 text-center font-[font1] text-xs leading-relaxed text-black/45">
           {plans.some((plan) => plan.kind === "therapy")
             ? "Pago seguro. Al terminar recibes la confirmación por correo y coordinamos tu agenda."

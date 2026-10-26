@@ -54,10 +54,11 @@ const Page = async ({ searchParams }: PageProps) => {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Vuelve a la página donde se estaba pagando; sin ella, al inicio. */}
+          {/* Vuelve a la página donde se estaba pagando; sin ella, a las opciones. */}
           <RetryLink
             retryLabel="Reintentar el pago"
-            fallbackLabel="Volver al inicio"
+            fallbackLabel="Ver opciones"
+            fallbackHref="/#servicios"
             className="w-full sm:flex-1 rounded-full bg-[#141118] text-linen font-[font2] uppercase text-xs tracking-[0.25em] py-3.5 hover:bg-black transition-colors text-center"
           />
           <a

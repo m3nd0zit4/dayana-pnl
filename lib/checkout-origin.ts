@@ -15,9 +15,17 @@
 
 export const CHECKOUT_ORIGIN_KEY = "dayana:checkout-origin";
 
-/** Las páginas desde las que se inicia un pago y a las que tiene sentido volver. */
+/**
+ * Las páginas desde las que se inicia un pago y a las que tiene sentido volver:
+ * enlaces de pago (`/pagar`), catálogo y ficha de cursos (`/cursos`), talleres,
+ * el resultado del cuestionario (`/terapias`) y renovar la mensualidad
+ * (`/cuenta/facturacion`).
+ *
+ * Sin `%` en los segmentos: nuestras rutas son ASCII sin codificar, y permitirlo
+ * dejaba pasar `/pagar/%2e%2e/admin`, que el navegador resuelve a `/admin`.
+ */
 const ORIGIN_PATH =
-  /^\/(pagar|cursos|taller-virtual|terapias|enlaces)(\/[A-Za-z0-9._~%-]+)*\/?$/;
+  /^\/(pagar|cursos|taller-virtual|terapias|cuenta)(\/[A-Za-z0-9._~-]+)*\/?$/;
 
 const MAX_LENGTH = 200;
 

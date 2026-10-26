@@ -9,8 +9,10 @@ type Props = {
   className: string;
   /** Texto cuando se sabe a dónde volver: lleva a la página donde se estaba pagando. */
   retryLabel: string;
-  /** Texto cuando no se sabe (otra pestaña, sin almacenamiento): lleva al inicio. */
+  /** Texto cuando no se sabe (otra pestaña, sin almacenamiento). */
   fallbackLabel: string;
+  /** A dónde lleva cuando no se sabe: las opciones, no un punto cualquiera. */
+  fallbackHref: string;
 };
 
 // El origen vive en `sessionStorage`: no hay nada a lo que suscribirse y en el
@@ -26,10 +28,10 @@ const getServerSnapshot = (): string | null => null;
  * es donde estaba quien pagaba un curso, un taller o el enlace que le mandó
  * Dayana. `startCheckout` anota la página de origen al salir; aquí se lee.
  */
-const RetryLink = ({ className, retryLabel, fallbackLabel }: Props) => {
+const RetryLink = ({ className, retryLabel, fallbackLabel, fallbackHref }: Props) => {
   const origin = useSyncExternalStore(subscribe, readCheckoutOrigin, getServerSnapshot);
   return (
-    <Link href={origin ?? "/"} className={className}>
+    <Link href={origin ?? fallbackHref} className={className}>
       {origin ? retryLabel : fallbackLabel}
     </Link>
   );
