@@ -38,6 +38,19 @@ export type MercadoPagoApiPayment = {
     identification?: { type?: string; number?: string };
     address?: { country?: string };
   };
+  /**
+   * Con PSE, `payer.first_name`/`last_name` llegan vacíos y el nombre viene
+   * aquí (Allison, 25-oct: la ficha quedó «Pendiente» con «Ana Milena Loaiza» en
+   * `additional_info.payer`).
+   */
+  additional_info?: { payer?: { first_name?: string; last_name?: string } };
+};
+
+/** Nombre y apellido del pagador: los de `payer` o, si vienen vacíos (PSE), los de `additional_info.payer`. */
+export const mercadoPagoPayerName = (payment: Pick<MercadoPagoApiPayment, "payer" | "additional_info">) => {
+  const first = payment.payer?.first_name?.trim() || payment.additional_info?.payer?.first_name?.trim() || undefined;
+  const last = payment.payer?.last_name?.trim() || payment.additional_info?.payer?.last_name?.trim() || undefined;
+  return { firstName: first, lastName: last };
 };
 
 /**
@@ -163,8 +176,7 @@ export const syncMercadoPagoPayment = async (
         checkout.contactId,
         {
           email: payment.payer?.email,
-          firstName: payment.payer?.first_name,
-          lastName: payment.payer?.last_name,
+          ...mercadoPagoPayerName(payment),
           phone: mercadoPagoPayerPhone(payment.payer),
           countryIso: payment.payer?.address?.country ?? "CO",
         }
@@ -216,8 +228,7 @@ export const syncMercadoPagoPayment = async (
         checkout.contactId,
         {
           email: payment.payer?.email,
-          firstName: payment.payer?.first_name,
-          lastName: payment.payer?.last_name,
+          ...mercadoPagoPayerName(payment),
           phone: mercadoPagoPayerPhone(payment.payer),
           countryIso: payment.payer?.address?.country ?? "CO",
         }
@@ -256,8 +267,7 @@ export const syncMercadoPagoPayment = async (
     // hay que matricular en ESA (y `Contact.email` es @unique).
     const contactId = await reconcilePendingCheckoutContact(checkout.contactId, {
       email: payment.payer?.email,
-      firstName: payment.payer?.first_name,
-      lastName: payment.payer?.last_name,
+      ...mercadoPagoPayerName(payment),
       phone: mercadoPagoPayerPhone(payment.payer),
       // Checkout Pro de Colombia: si MP no reporta país, es COP y es Colombia.
       countryIso: payment.payer?.address?.country ?? "CO",

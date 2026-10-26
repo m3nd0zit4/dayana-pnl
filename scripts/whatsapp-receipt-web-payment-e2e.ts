@@ -13,6 +13,7 @@
  * 3. Otro comprobante con otra referencia: no se reconoce.
  * 4. Sin referencia (Victorino): la misma persona pagó por la página hace 5 min;
  *    la tarjeta avisa, «Es otro pago» no enlaza y «Es ese mismo pago» sí.
+ * 5. Pago en la ficha temporal y chat con ficha real (Allison): la inscripción pasa a la real.
  */
 export {};
 
@@ -124,6 +125,33 @@ const main = async () => {
     const same = await decideReceipt({ receiptId: r2.id, decision: "confirm", staffUserId: null, message: null, sameAsWeb: true });
     const r2After = await prisma.whatsAppPaymentReceipt.findUnique({ where: { id: r2.id }, select: { paymentId: true } });
     check("   «Es ese mismo pago»: enlazado al de PayPal, sin registrar otro", same.alreadyRegistered && r2After?.paymentId === vicPay.id, { same, r2After });
+
+    // 5. Allison (25-oct): pagó por PSE con otro correo (ficha temporal «Pendiente») y ya existía
+    //    con su chat como «Ana Milena Loaiza»: al confirmar, la inscripción pasa a su ficha real.
+    const ana = await prisma.contact.create({ data: { phoneE164: `+57320${run}1`, firstName: "Ana Milena", lastName: "Loaiza", email: `e2e-ana-${run}@example.com` } });
+    extra.contacts.push(ana.id);
+    const temp = await prisma.contact.create({ data: { phoneE164: `+pending:e2e-ana-${run}`, firstName: "Pendiente", email: `e2e-allison-${run}@example.com` } });
+    extra.contacts.push(temp.id);
+    const anaEnr = await prisma.enrollment.create({ data: { contactId: temp.id, productId: product.id, status: "ACTIVE" } });
+    extra.enrollments.push(anaEnr.id);
+    const anaRef = `7${run}471745`;
+    const anaPay = await prisma.payment.create({
+      data: { enrollmentId: anaEnr.id, provider: "MERCADO_PAGO", providerPaymentId: anaRef, status: "APPROVED", currency: "COP", amountMinor: 199475 },
+    });
+    extra.payments.push(anaPay.id);
+    const anaConv = await prisma.conversation.create({
+      data: { channel: "WHATSAPP", externalThreadId: `57320${run}1`, metaAccountId: "test-phone-id", participantName: "Aqua Life Spa", contactId: ana.id },
+    });
+    extra.conversations.push(anaConv.id);
+    const anaReceipt = await prisma.whatsAppPaymentReceipt.create({ data: { conversationId: anaConv.id, status: "pending", reference: anaRef } });
+    const anaResult = await decideReceipt({ receiptId: anaReceipt.id, decision: "confirm", staffUserId: null, message: null });
+    const enrAfter = await prisma.enrollment.findUnique({ where: { id: anaEnr.id }, select: { contactId: true } });
+    const tempLeft = await prisma.contact.findUnique({ where: { id: temp.id }, select: { id: true } });
+    check(
+      "5. pago en la ficha temporal, chat con ficha real: la inscripción pasa a la real y la temporal se borra",
+      anaResult.alreadyRegistered && anaResult.contactId === ana.id && enrAfter?.contactId === ana.id && tempLeft === null,
+      { anaResult, enrAfter, tempLeft }
+    );
   } finally {
     for (const id of extra.conversations) await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversationId: id } });
     for (const id of extra.conversations) await prisma.conversation.delete({ where: { id } }).catch(() => undefined);
@@ -131,7 +159,7 @@ const main = async () => {
     for (const id of extra.enrollments) await prisma.enrollment.delete({ where: { id } }).catch(() => undefined);
     for (const id of extra.contacts) {
       await prisma.contactChannelIdentity.deleteMany({ where: { contactId: id } });
-      await prisma.contact.delete({ where: { id } }).catch(() => undefined);
+      await prisma.contact.deleteMany({ where: { id } });
     }
     await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversationId: conv.id } });
     await prisma.contactChannelIdentity.deleteMany({ where: { contactId: contact.id } });

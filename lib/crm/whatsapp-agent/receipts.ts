@@ -18,6 +18,39 @@ import { webPaymentForReceipt } from "./receipt-web-payment";
 
 export class ReceiptError extends Error {}
 
+/** La ficha temporal del checkout: sin nombre («Pendiente») o con teléfono de mentira (`+pending:`). */
+const isPlaceholderContact = (c: { firstName: string; phoneE164: string }) => c.firstName === "Pendiente" || c.phoneE164.startsWith("+pending");
+
+/**
+ * Pasa la inscripción (y su pago) de la ficha temporal del checkout a la ficha
+ * real de la persona (Allison, 25-oct: pagó el taller por PSE con otro correo,
+ * así que el pago quedó en «Pendiente» —sin nombre ni teléfono— aunque ya
+ * existía como «Ana Milena Loaiza» con su chat; Dayana confirmó la captura y la
+ * inscrita siguió apareciendo como «Pendiente»). Solo si la origen es temporal y
+ * la destino no; se mueven las matrículas antes de borrar la temporal (como
+ * `reconcilePendingCheckoutContact`: borrarla se llevaría sus pagos). Devuelve
+ * si movió algo.
+ */
+export const adoptPlaceholderContact = async (placeholderId: string, realId: string, staffUserId: string | null): Promise<boolean> => {
+  if (placeholderId === realId) return false;
+  const [from, to] = await Promise.all([
+    prisma.contact.findUnique({ where: { id: placeholderId }, select: { id: true, firstName: true, phoneE164: true, email: true } }),
+    prisma.contact.findUnique({ where: { id: realId }, select: { id: true, firstName: true, phoneE164: true } }),
+  ]);
+  if (!from || !to || !isPlaceholderContact(from) || isPlaceholderContact(to)) return false;
+  const moved = await prisma.enrollment.updateMany({ where: { contactId: from.id }, data: { contactId: to.id } });
+  // Si algo más la referencia, queda huérfana sin matrículas y la barre la limpieza nocturna.
+  await prisma.contact.delete({ where: { id: from.id } }).catch(() => undefined);
+  await writeAuditLog({
+    staffUserId: staffUserId ?? undefined,
+    action: "contact.checkout_placeholder.adopt",
+    entityType: "Contact",
+    entityId: to.id,
+    changes: { from: from.id, fromEmail: from.email, enrollments: moved.count },
+  });
+  return moved.count > 0;
+};
+
 /** «Gina Catalina Sánchez Delgado» → nombre «Gina», apellido «Catalina Sánchez Delgado» (como `ensureConversationContact`). */
 const payerNameParts = (payerName: string | null): { firstName: string; lastName?: string } | null => {
   const words = (personFullName(payerName) ?? "").split(/\s+/).filter(Boolean);
@@ -86,7 +119,9 @@ export const decideReceipt = async (input: {
     try {
       if (!conversation.contactId) await linkConversationToContact(conversation.id, web.contactId, input.staffUserId);
       contactId = conversation.contactId ?? web.contactId;
-      // La ficha temporal del checkout («Pendiente») toma el nombre del comprobante.
+      // El chat ya tiene su ficha real y el pago quedó en la temporal: la inscripción pasa a la real (Allison).
+      if (web.placeholder && contactId !== web.contactId) await adoptPlaceholderContact(web.contactId, contactId, input.staffUserId);
+      // Si no, la ficha temporal del checkout («Pendiente») toma el nombre del comprobante.
       const name = web.placeholder ? payerNameParts(receipt.payerName) : null;
       if (name && contactId === web.contactId) await prisma.contact.update({ where: { id: web.contactId }, data: name });
       const contact = await prisma.contact.findUnique({ where: { id: contactId }, select: { firstName: true, lastName: true } });
@@ -229,10 +264,14 @@ export const linkReceiptPayment = async (input: { receiptId: string; paymentId: 
     select: { id: true, status: true, enrollment: { select: { contactId: true } } },
   });
   if (!payment || payment.status !== "APPROVED") throw new ReceiptError("payment_not_found");
-  if (receipt.contactId && payment.enrollment.contactId !== receipt.contactId) throw new ReceiptError("other_contact");
   // Un pago cuenta para un solo comprobante.
   const taken = await prisma.whatsAppPaymentReceipt.count({ where: { paymentId: payment.id, id: { not: receipt.id } } });
   if (taken > 0) throw new ReceiptError("payment_taken");
+  // El pago de la página quedó en la ficha temporal del checkout: pasa a la de este chat («Es ese mismo pago»).
+  if (receipt.contactId && payment.enrollment.contactId !== receipt.contactId) {
+    const adopted = await adoptPlaceholderContact(payment.enrollment.contactId, receipt.contactId, input.staffUserId);
+    if (!adopted) throw new ReceiptError("other_contact");
+  }
   const updated = await prisma.whatsAppPaymentReceipt.updateMany({
     where: { id: receipt.id, paymentId: null },
     data: { paymentId: payment.id },
