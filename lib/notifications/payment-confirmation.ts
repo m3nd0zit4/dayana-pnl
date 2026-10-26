@@ -1,5 +1,6 @@
-import { renderQuickMessage } from "@/lib/crm/render-message";
+import { isPlaceholderContactPhone } from "@/lib/crm/checkout-placeholder";
 import { prisma } from "@/lib/db";
+import { paymentChatMessage } from "./payment-chat-message";
 import type { OutboundChannel } from "./config";
 import { dispatchAndRecord } from "./dispatch";
 import {
@@ -47,15 +48,18 @@ export const sendPaymentConfirmation = async (enrollmentId: string) => {
   }
 
   const vars = paymentVars(contact, enrollment, payment);
-  const template = await prisma.messageTemplate.findUnique({
-    where: { key_locale: { key: "post_payment_therapy", locale: "es" } },
+  // WhatsApp y SMS: según el producto y quién confirmó el pago (`payment-chat-message.ts`).
+  // Antes salía la plantilla «Post-pago terapia» para todo: «Quedan 0 sesiones por
+  // agendar» a quien pagó el taller. Esa plantilla sigue para usarla a mano.
+  const smsBody = paymentChatMessage({
+    firstName: contact.firstName,
+    product: vars.product_title,
+    kind: enrollment.product.kind,
+    provider: payment.provider,
+    sessions: enrollment.sessionsTotal ?? enrollment.product.sessionsCount ?? null,
   });
-
-  const body =
-    template?.body ??
-    "Hola {{first_name}}, recibimos tu pago de {{payment_amount}} por {{product_title}}.";
-
-  const smsBody = renderQuickMessage(body, vars);
+  // La ficha temporal del checkout tiene un teléfono de mentira (`+pending:…`): ni WhatsApp ni SMS.
+  const placeholderPhone = isPlaceholderContactPhone(contact.phoneE164);
 
   /**
    * El recibo, adjunto al correo.
@@ -101,6 +105,10 @@ export const sendPaymentConfirmation = async (enrollmentId: string) => {
     };
 
     if (channel === "EMAIL" && !contact.email && !payment.payerEmail) {
+      results.push({ channel, status: "SKIPPED" });
+      continue;
+    }
+    if (channel !== "EMAIL" && placeholderPhone) {
       results.push({ channel, status: "SKIPPED" });
       continue;
     }

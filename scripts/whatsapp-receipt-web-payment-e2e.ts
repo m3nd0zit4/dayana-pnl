@@ -11,6 +11,8 @@
  *    ficha temporal «Pendiente» toma el nombre del comprobante, el comprobante
  *    queda enlazado al pago y no pide registrarlo.
  * 3. Otro comprobante con otra referencia: no se reconoce.
+ * 4. Sin referencia (Victorino): la misma persona pagó por la página hace 5 min;
+ *    la tarjeta avisa, «Es otro pago» no enlaza y «Es ese mismo pago» sí.
  */
 export {};
 
@@ -52,6 +54,7 @@ const main = async () => {
       summary: "Pago de taller vía PSE",
     },
   });
+  const extra = { contacts: [] as string[], enrollments: [] as string[], payments: [] as string[], conversations: [] as string[] };
   const other = await prisma.whatsAppPaymentReceipt.create({
     data: { conversationId: conv.id, status: "pending", method: "Nequi", amountMinor: 50000, currency: "COP", reference: `8${run}000000` },
   });
@@ -83,7 +86,53 @@ const main = async () => {
     check("   la ficha «Pendiente» toma el nombre del comprobante", named?.firstName === "Gina" && named.lastName === "Catalina Sánchez Delgado", named);
     const card2 = (await listReceipts(conv.id)).find((r) => r.id === receipt.id);
     check("   ya no pide registrar el pago", card2?.needsPayment === false, card2);
+
+    // 4. Victorino (25-oct): pagó por PayPal y 5 min después mandó la captura sin valor ni referencia.
+    const vic = await prisma.contact.create({ data: { phoneE164: `+57300${run}9`, firstName: "Victorino", email: `e2e-vic-${run}@example.com` } });
+    extra.contacts.push(vic.id);
+    const vicEnr = await prisma.enrollment.create({ data: { contactId: vic.id, productId: product.id, status: "ACTIVE" } });
+    extra.enrollments.push(vicEnr.id);
+    const vicPay = await prisma.payment.create({
+      data: {
+        enrollmentId: vicEnr.id,
+        provider: "PAYPAL",
+        providerPaymentId: `E2E${run}VIC`,
+        status: "APPROVED",
+        currency: "USD",
+        amountMinor: 6374,
+        createdAt: new Date(Date.now() - 5 * 60_000),
+      },
+    });
+    extra.payments.push(vicPay.id);
+    const vicConv = await prisma.conversation.create({
+      data: { channel: "WHATSAPP", externalThreadId: `57300${run}9`, metaAccountId: "test-phone-id", participantName: "Victorino", contactId: vic.id },
+    });
+    extra.conversations.push(vicConv.id);
+    const r1 = await prisma.whatsAppPaymentReceipt.create({ data: { conversationId: vicConv.id, status: "pending", payerName: "Victorino" } });
+    const r2 = await prisma.whatsAppPaymentReceipt.create({ data: { conversationId: vicConv.id, status: "pending", payerName: "Victorino" } });
+    const vicCard = (await listReceipts(vicConv.id)).find((r) => r.id === r1.id);
+    check(
+      "4. sin referencia, la misma persona pagó por la página hace 5 min: la tarjeta avisa (a confirmar)",
+      vicCard?.webPayment?.match === "person" && vicCard.webPayment.paymentId === vicPay.id,
+      vicCard?.webPayment
+    );
+    const asOther = await decideReceipt({ receiptId: r1.id, decision: "confirm", staffUserId: null, message: null });
+    const r1After = await prisma.whatsAppPaymentReceipt.findUnique({ where: { id: r1.id }, select: { paymentId: true } });
+    check("   «Es otro pago»: no se enlaza (Dayana lo registra)", !asOther.alreadyRegistered && r1After?.paymentId === null, { asOther, r1After });
+    const r1Card = (await listReceipts(vicConv.id)).find((r) => r.id === r1.id);
+    check("   ya confirmado sin pago: la tarjeta corta también avisa del pago de la página", r1Card?.needsPayment === true && r1Card.webPayment?.match === "person", r1Card);
+    const same = await decideReceipt({ receiptId: r2.id, decision: "confirm", staffUserId: null, message: null, sameAsWeb: true });
+    const r2After = await prisma.whatsAppPaymentReceipt.findUnique({ where: { id: r2.id }, select: { paymentId: true } });
+    check("   «Es ese mismo pago»: enlazado al de PayPal, sin registrar otro", same.alreadyRegistered && r2After?.paymentId === vicPay.id, { same, r2After });
   } finally {
+    for (const id of extra.conversations) await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversationId: id } });
+    for (const id of extra.conversations) await prisma.conversation.delete({ where: { id } }).catch(() => undefined);
+    for (const id of extra.payments) await prisma.payment.delete({ where: { id } }).catch(() => undefined);
+    for (const id of extra.enrollments) await prisma.enrollment.delete({ where: { id } }).catch(() => undefined);
+    for (const id of extra.contacts) {
+      await prisma.contactChannelIdentity.deleteMany({ where: { contactId: id } });
+      await prisma.contact.delete({ where: { id } }).catch(() => undefined);
+    }
     await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversationId: conv.id } });
     await prisma.contactChannelIdentity.deleteMany({ where: { contactId: contact.id } });
     await prisma.conversation.delete({ where: { id: conv.id } }).catch(() => undefined);

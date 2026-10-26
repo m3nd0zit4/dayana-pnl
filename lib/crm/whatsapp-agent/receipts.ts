@@ -44,6 +44,11 @@ export const decideReceipt = async (input: {
   /** Lo que se le envía a la persona (vacío = nada). */
   message?: string | null;
   via?: "button" | "chat";
+  /**
+   * La misma persona pagó por la página poco antes y Dayana dice que la captura
+   * es de ese pago («Es ese mismo pago»): se enlaza a él. false: es otro pago.
+   */
+  sameAsWeb?: boolean;
 }): Promise<{ contactId: string | null; contactName: string | null; sent: boolean; alreadyRegistered: boolean }> => {
   const via = input.via ?? "button";
   const receipt = await prisma.whatsAppPaymentReceipt.findUnique({
@@ -74,7 +79,9 @@ export const decideReceipt = async (input: {
   let contactName: string | null = null;
   // El pago ya entró solo por la página (Gina, 25-oct): el chat se vincula a esa ficha
   // (también sin número) y el comprobante queda enlazado a ese pago: no se registra otra vez.
-  const web = input.decision === "confirm" ? await webPaymentForReceipt(receipt).catch(() => null) : null;
+  // Por la misma persona (sin referencia) solo si Dayana dijo que es ese pago.
+  const found = input.decision === "confirm" ? await webPaymentForReceipt(receipt).catch(() => null) : null;
+  const web = found && (found.match === "reference" || input.sameAsWeb) ? found : null;
   if (web) {
     try {
       if (!conversation.contactId) await linkConversationToContact(conversation.id, web.contactId, input.staffUserId);

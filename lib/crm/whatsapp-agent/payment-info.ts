@@ -186,7 +186,16 @@ export type ReceiptView = {
    * Por confirmar, pero el pago ya entró solo por la página (misma referencia en
    * Mercado Pago o PayPal): confirmar vincula el chat a esa ficha y no pide registrarlo.
    */
-  webPayment: { provider: string; amountMinor: number; currency: string; paidAt: string; product: string | null } | null;
+  webPayment: {
+    paymentId: string;
+    provider: string;
+    amountMinor: number;
+    currency: string;
+    paidAt: string;
+    product: string | null;
+    /** «reference»: es ese pago. «person»: la misma persona pagó poco antes (Dayana dice si es el mismo). */
+    match: "reference" | "person";
+  } | null;
 };
 
 /**
@@ -228,11 +237,12 @@ export const listReceipts = async (conversationId: string): Promise<ReceiptView[
         select: { sentAt: true },
       })
     : null;
-  // Por confirmar: ¿ya entró por la página? (Gina, 25-oct.)
+  // Por confirmar, o confirmado sin pago registrado: ¿ya entró por la página? Por la
+  // referencia (Gina, 25-oct) o la misma persona poco antes (Victorino: sin referencia legible).
   const web = new Map(
     await Promise.all(
       rows
-        .filter((r) => r.status === "pending" && r.reference)
+        .filter((r) => r.status === "pending" || (r.status === "confirmed" && !r.paymentId && !r.paymentDismissedAt))
         .map(async (r) => [r.id, await webPaymentForReceipt(r).catch(() => null)] as const)
     )
   );
@@ -261,7 +271,17 @@ export const listReceipts = async (conversationId: string): Promise<ReceiptView[
       attachment: (r.messageId && attachmentOf.get(r.messageId)) || null,
       webPayment: (() => {
         const w = web.get(r.id);
-        return w ? { provider: providerLabel(w.provider), amountMinor: w.amountMinor, currency: w.currency, paidAt: w.paidAt.toISOString(), product: w.product } : null;
+        return w
+          ? {
+              paymentId: w.paymentId,
+              provider: providerLabel(w.provider),
+              amountMinor: w.amountMinor,
+              currency: w.currency,
+              paidAt: w.paidAt.toISOString(),
+              product: w.product,
+              match: w.match,
+            }
+          : null;
       })(),
     }));
 };

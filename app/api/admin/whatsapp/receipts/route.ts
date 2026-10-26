@@ -20,6 +20,8 @@ const bodySchema = z.discriminatedUnion("action", [
     receiptId: z.string().min(1),
     /** Lo que se le envía a la persona; vacío = nada. */
     message: z.string().trim().max(1000).optional(),
+    /** «Es ese mismo pago»: la captura es del pago que la persona hizo por la página poco antes. */
+    sameAsWeb: z.boolean().optional(),
   }),
   /** El pago que «Registrar pago» acaba de crear (con el código) para este comprobante. */
   z.object({ action: z.literal("link_payment"), receiptId: z.string().min(1), paymentId: z.string().min(1) }),
@@ -50,6 +52,7 @@ export const POST = withStaff("write", async ({ req, staff }) => {
       decision: body.action,
       staffUserId: staff.id,
       message: body.message ?? null,
+      sameAsWeb: body.action === "confirm" ? body.sameAsWeb === true : false,
     });
     return NextResponse.json(result);
   } catch (e) {

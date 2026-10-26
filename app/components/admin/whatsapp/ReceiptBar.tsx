@@ -23,6 +23,13 @@ const ERRORS: Record<string, string> = {
   payment_taken: "Ese pago ya está enlazado a otro comprobante.",
 };
 
+/** «PayPal · US$63,74 · Sana Tu Relación con el Dinero · hace 5 min». */
+const webLabel = (w: NonNullable<PendingReceipt["webPayment"]>): string => {
+  const mins = Math.max(1, Math.round((Date.now() - new Date(w.paidAt).getTime()) / 60_000));
+  const ago = mins < 60 ? `hace ${mins} min` : mins < 48 * 60 ? `hace ${Math.round(mins / 60)} h` : `hace ${Math.round(mins / 1440)} días`;
+  return [w.provider, formatMoneyMinor(w.amountMinor, w.currency), w.product, ago].filter(Boolean).join(" · ");
+};
+
 const prefillOf = (r: PendingReceipt): PaymentPrefill => ({
   amountMinor: r.amountMinor,
   currency: r.currency,
@@ -63,7 +70,7 @@ const ReceiptBar = ({
 
   if (receipts.length === 0 && !register) return null;
 
-  const post = async (body: Record<string, string>) => {
+  const post = async (body: Record<string, string | boolean>) => {
     const res = await fetch("/api/admin/whatsapp/receipts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -75,11 +82,12 @@ const ReceiptBar = ({
     return { ok: false as const };
   };
 
-  const decide = async (r: PendingReceipt, action: "confirm" | "reject") => {
-    setBusy(`${r.id}:${action}`);
+  /** `sameAsWeb`: «Es ese mismo pago» (la persona pagó por la página poco antes); false: «Es otro pago». */
+  const decide = async (r: PendingReceipt, action: "confirm" | "reject", sameAsWeb = false) => {
+    setBusy(`${r.id}:${action}${sameAsWeb ? ":same" : ""}`);
     setError(null);
     const message = writing[r.id] ? (messages[r.id] ?? r.confirmMessage ?? DEFAULT_CONFIRM(firstName)) : "";
-    const result = await post({ action, receiptId: r.id, message });
+    const result = await post({ action, receiptId: r.id, message, ...(sameAsWeb ? { sameAsWeb: true } : {}) });
     setBusy(null);
     if (result.ok && action === "confirm") {
       const contactId = result.data.contactId as string | null;
@@ -116,17 +124,38 @@ const ReceiptBar = ({
               <Check className="size-4 shrink-0 text-(--wa-accent)" />
               <span className="min-w-0 flex-1">
                 {r.confirmedVia === "chat" ? "Confirmaste este pago en el chat" : "Pago confirmado"}: {who} ya es clienta y está en el CRM.
-                {" "}Falta registrarlo en Pagos{amount ? ` (${amount})` : ""} con tu código.
+                {r.webPayment ? (
+                  <>
+                    {" "}Ojo: ya entró un pago suyo por la página ({webLabel(r.webPayment)}). Si es este mismo, no lo registres otra vez.
+                  </>
+                ) : (
+                  <>
+                    {" "}Falta registrarlo en Pagos{amount ? ` (${amount})` : ""} con tu código.
+                  </>
+                )}
               </span>
               {canWrite && r.contactId && (
                 <>
+                  {r.webPayment && (
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void linkPayment(r.id, r.webPayment!.paymentId)}
+                      className={cn("inline-flex h-10 items-center rounded-full px-4 text-sm font-medium disabled:opacity-50 md:h-9", wa.primary)}
+                    >
+                      Es ese mismo pago
+                    </button>
+                  )}
                   <button
                     type="button"
                     disabled={busy !== null}
                     onClick={() => setRegister({ receipt: r, contact: { id: r.contactId!, name: who } })}
-                    className={cn("inline-flex h-10 items-center rounded-full px-4 text-sm font-medium disabled:opacity-50 md:h-9", wa.primary)}
+                    className={cn(
+                      "inline-flex h-10 items-center rounded-full px-4 text-sm font-medium disabled:opacity-50 md:h-9",
+                      r.webPayment ? "border border-(--wa-border) bg-(--wa-surface) text-(--wa-text) hover:bg-(--wa-hover)" : wa.primary
+                    )}
                   >
-                    Registrar el pago
+                    {r.webPayment ? "Es otro pago: registrarlo" : "Registrar el pago"}
                   </button>
                   <button
                     type="button"
@@ -153,7 +182,16 @@ const ReceiptBar = ({
               <Receipt className="mt-0.5 size-5 shrink-0 text-(--wa-attention)" />
               <div className="min-w-0 flex-1 space-y-1">
                 <div className="text-sm font-semibold text-(--wa-text)">Comprobante de pago por confirmar</div>
-                {r.webPayment ? (
+                {r.webPayment?.match === "person" ? (
+                  // La misma persona pagó por la página poco antes y la captura no trae referencia (Victorino, 25-oct).
+                  <div className="flex items-start gap-1.5 rounded-lg bg-(--wa-attention-soft) px-2 py-1.5 text-xs text-(--wa-text)">
+                    <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-(--wa-attention)" />
+                    <span>
+                      Ojo: esta persona ya pagó por la página ({webLabel(r.webPayment)}) y ese pago ya está registrado. Si esta captura es de ese
+                      mismo pago, toca «Es ese mismo pago» y no se registra otra vez.
+                    </span>
+                  </div>
+                ) : r.webPayment ? (
                   // Ya entró solo por la página (Gina, 25-oct): nada que verificar ni registrar.
                   <div className="flex items-start gap-1.5 rounded-lg bg-(--wa-green-soft) px-2 py-1.5 text-xs text-(--wa-text)">
                     <Check className="mt-0.5 size-3.5 shrink-0 text-(--wa-accent)" />
@@ -222,13 +260,27 @@ const ReceiptBar = ({
                   </p>
                 )}
                 <div className="flex flex-wrap gap-2">
+                  {r.webPayment?.match === "person" && (
+                    <button
+                      type="button"
+                      disabled={busy !== null}
+                      onClick={() => void decide(r, "confirm", true)}
+                      className={cn("inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium disabled:opacity-50 md:h-9", wa.primary)}
+                    >
+                      {busy === `${r.id}:confirm:same` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Es ese mismo pago
+                    </button>
+                  )}
                   <button
                     type="button"
                     disabled={busy !== null}
                     onClick={() => void decide(r, "confirm")}
-                    className={cn("inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium disabled:opacity-50 md:h-9", wa.primary)}
+                    className={cn(
+                      "inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium disabled:opacity-50 md:h-9",
+                      r.webPayment?.match === "person" ? "border border-(--wa-border) bg-(--wa-surface) text-(--wa-text) hover:bg-(--wa-hover)" : wa.primary
+                    )}
                   >
-                    {busy === `${r.id}:confirm` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />} Confirmar pago
+                    {busy === `${r.id}:confirm` ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}{" "}
+                    {r.webPayment?.match === "person" ? "Es otro pago" : "Confirmar pago"}
                   </button>
                   <button
                     type="button"
