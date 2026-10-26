@@ -4,6 +4,7 @@ import {
   classifyEmailError,
   deliveryFailureKey,
   isEmailQuotaError,
+  isGatedSweepTemplate,
 } from "./email-errors";
 
 // Textos tal cual los dejó producción el 24-25 oct 2026.
@@ -12,9 +13,38 @@ const QUOTA =
 const INVALID_TO =
   'Resend error: 422 {"message":"Invalid `to` field. The email address needs to follow the `email@example.com` or `Name <email@example.com>` format.","name":"validation_error","statusCode":422}';
 
+describe("isGatedSweepTemplate", () => {
+  test("los barridos automáticos del webinar y de los talleres", () => {
+    for (const key of [
+      "webinar_reminder_1h",
+      "webinar_reminder_24h",
+      "webinar_meet_link",
+      "workshop_reminder_24h",
+      "workshop_reminder_1h",
+    ]) {
+      expect(isGatedSweepTemplate(key)).toBe(true);
+    }
+  });
+
+  test("lo que se manda de una vez NO: si no sale, hay que saberlo", () => {
+    for (const key of ["payment_confirmation", "member_invite", "payment_otp", "WHATSAPP_AI_ESCALATED"]) {
+      expect(isGatedSweepTemplate(key)).toBe(false);
+    }
+    expect(isGatedSweepTemplate(null)).toBe(false);
+    expect(isGatedSweepTemplate(undefined)).toBe(false);
+  });
+});
+
 describe("deliveryFailureKey", () => {
-  test("una causa conocida agrupa por canal y causa, sin mirar la plantilla", () => {
-    expect(deliveryFailureKey("EMAIL", "quota", "webinar_reminder_1h")).toBe("EMAIL:quota");
+  test("la cuota agrupa por plantilla: el apagón general no se traga el fallo de una confirmación de pago", () => {
+    expect(deliveryFailureKey("EMAIL", "quota", "payment_confirmation")).toBe(
+      "EMAIL:quota:payment_confirmation"
+    );
+    expect(deliveryFailureKey("EMAIL", "quota", "member_invite")).toBe("EMAIL:quota:member_invite");
+    expect(deliveryFailureKey("EMAIL", "quota", undefined)).toBe("EMAIL:quota:-");
+  });
+
+  test("una dirección inválida agrupa por causa, sin mirar la plantilla", () => {
     expect(deliveryFailureKey("EMAIL", "invalid_address", "member_invite")).toBe(
       "EMAIL:invalid_address"
     );

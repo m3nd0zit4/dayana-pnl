@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { after } from "next/server";
 import { PaymentProvider } from "@prisma/client";
 import { fireAuditLog } from "@/lib/crm/audit";
+import { getSiteSetting, setSiteSetting } from "@/lib/crm/site-settings";
+import { prisma } from "@/lib/db";
 import {
   registerWebhookEvent,
   releaseWebhookEvent,
@@ -19,6 +21,60 @@ import { verifyMercadoPagoWebhook } from "@/lib/webhooks/verify";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+const UNSIGNED_ALERT_SETTING = "mp.webhook.unsigned_alert_day";
+/** Si en este tiempo entró algún webhook FIRMADO, lo sin firma es el IPN duplicado. */
+const SIGNED_LOOKBACK_MS = 6 * 60 * 60 * 1000;
+/** Margen para que el firmado del mismo pago se registre (`after()`) antes de mirar. */
+const unsignedGraceMs = (): number =>
+  Number(process.env.MP_UNSIGNED_GRACE_MS ?? 45_000);
+
+const runAfter = (fn: () => Promise<void>): void => {
+  try {
+    after(fn);
+  } catch {
+    // Fuera de una petición (scripts, pruebas): se lanza sin esperar.
+    void fn();
+  }
+};
+
+/**
+ * Una entrega sin firma casi siempre es el IPN legado que Mercado Pago manda
+ * junto al webhook firmado del mismo pago: se rechaza y no hace falta avisar a
+ * nadie. Pero si MP dejara de firmar —o el panel apuntara mal— sería la ÚNICA
+ * señal de que los pagos pendientes (PSE, efectivo) ya no se registran. Por eso
+ * se avisa cuando, pasado un margen, en las últimas 6 h no entró NINGÚN
+ * webhook firmado; como mucho una vez al día para no volver al ruido de
+ * 13 alertas «recurso desconocido».
+ */
+const alertIfNoSignedWebhookRecently = async (): Promise<void> => {
+  try {
+    await new Promise((r) => setTimeout(r, unsignedGraceMs()));
+    const signed = await prisma.webhookEvent.count({
+      where: {
+        provider: PaymentProvider.MERCADO_PAGO,
+        processedAt: { gte: new Date(Date.now() - SIGNED_LOOKBACK_MS) },
+      },
+    });
+    if (signed > 0) return;
+    const today = new Date().toISOString().slice(0, 10);
+    if ((await getSiteSetting(UNSIGNED_ALERT_SETTING)) === today) return;
+    await setSiteSetting(UNSIGNED_ALERT_SETTING, today);
+    fireNotification({
+      eventType: "PAYMENT_WEBHOOK_FAILED",
+      title: "Mercado Pago envía avisos sin firma y ninguno firmado",
+      body:
+        "Llegaron notificaciones sin firma y en las últimas 6 horas no entró ningún webhook firmado. " +
+        "Si hubo pagos, revisa en el panel de Mercado Pago (Tus integraciones → Webhooks) que el " +
+        "webhook esté activo y con el secreto correcto: sin él los pagos pendientes no se registran solos.",
+      href: "/admin/payments",
+      metadata: { provider: "MERCADO_PAGO", reason: "no_signed_webhook" },
+      staff: "ALL",
+    });
+  } catch (e) {
+    console.error("[webhook mercadopago] aviso de entregas sin firma", e);
+  }
+};
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
@@ -86,6 +142,7 @@ export async function POST(req: NextRequest) {
       },
     });
     if (!hasSignature) {
+      runAfter(alertIfNoSignedWebhookRecently);
       return NextResponse.json({ error: "invalid_signature" }, { status: 401 });
     }
     fireNotification({

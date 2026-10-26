@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db";
 import { dispatchAndRecord } from "@/lib/notifications/dispatch";
 import { isEmailQuotaError } from "@/lib/notifications/email-errors";
 import { emailQuotaBlockedUntil } from "@/lib/notifications/email-quota";
+import { suppressUndeliverableEmail } from "@/lib/notifications/email-suppress";
 import { resolveNotificationsEnabled } from "@/lib/notifications/platform/resolve";
 import {
   workshopReminderHtml,
@@ -229,6 +230,9 @@ const deliverOne = async (
     `[workshop-reminders] fallo al enviar ${pass} a enrollment ${recipient.id}:`,
     errorMessage
   );
+  // Dirección que Resend rechaza por formato: no se arregla reintentando. Ver
+  // `email-suppress.ts` (sólo los barridos masivos lo hacen).
+  await suppressUndeliverableEmail(recipient.contactId, errorMessage);
   await releaseEnrollmentReminderFlag(recipient.id, flag);
   return { outcome: "failed", errorMessage };
 };

@@ -740,7 +740,9 @@ export const webinarMeetLinkBroadcastFn = inngest.createFunction(
   { event: "webinar/meet-link.changed" },
   async ({ event, step }) =>
     step.run("send-link-emails", () =>
-      drainWebinarMail("link", undefined, false, (event.data.webinarId as string | undefined) ?? undefined)
+      // Lo dispara guardar el enlace de la reunión, no el cron: prueba aunque el
+      // freno de cuota esté puesto (si no, el enlace nuevo esperaría ~1 h).
+      drainWebinarMail("link", undefined, false, (event.data.webinarId as string | undefined) ?? undefined, true)
     )
 );
 

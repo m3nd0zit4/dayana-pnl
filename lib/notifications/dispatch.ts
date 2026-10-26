@@ -12,7 +12,11 @@ import {
 } from "./channels/email";
 import { sendSms } from "./channels/sms";
 import { sendWhatsAppTemplateMessage } from "./channels/whatsapp";
-import { classifyEmailError, deliveryFailureKey } from "./email-errors";
+import {
+  classifyEmailError,
+  deliveryFailureKey,
+  isGatedSweepTemplate,
+} from "./email-errors";
 import { markEmailQuotaExhausted } from "./email-quota";
 import {
   campaignEmailHtml,
@@ -219,7 +223,7 @@ export const dispatchToChannel = async (
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     if (payload.channel === "EMAIL") {
-      await handleEmailFailure(payload, msg);
+      await handleEmailFailure(msg);
     }
     return {
       status: NotificationDeliveryStatus.FAILED,
@@ -230,49 +234,31 @@ export const dispatchToChannel = async (
 };
 
 /**
- * Lo que un fallo de correo cambia más allá de esta entrega.
- *
- * - Cuota agotada: se deja constancia compartida para que los barridos
- *   masivos dejen de reintentar a cada persona (ver `email-quota.ts`).
- * - Dirección que Resend rechaza por formato: se apaga `notifyEmail` de ese
- *   contacto, igual que hace el webhook de Resend con un rebote. Es permanente
- *   para esa dirección, y sin esto el mailer la reintenta cada diez minutos
- *   (20 intentos en una sola persona). No se toca si el destinatario vino
- *   forzado en el envío: ahí la dirección no es la de la ficha.
+ * Lo que un fallo de correo por CUOTA cambia más allá de esta entrega: deja la
+ * bandera compartida para que los barridos masivos dejen de reintentar a cada
+ * persona (ver `email-quota.ts`) y, si esta llamada abre un apagado NUEVO,
+ * avisa UNA vez al equipo — un aviso por apagado, no uno por correo (24-25 oct:
+ * 1.030 en la campana).
  *
  * Nunca lanza: es contabilidad del fallo, no puede esconder el fallo original.
+ * (Apagar `notifyEmail` por una dirección inválida NO se hace aquí sino en los
+ * barridos masivos: ver `email-suppress.ts`.)
  */
-const handleEmailFailure = async (
-  payload: DispatchPayload,
-  message: string
-): Promise<void> => {
+const handleEmailFailure = async (message: string): Promise<void> => {
   try {
-    const kind = classifyEmailError(message);
-    if (kind === "quota") {
-      // Sólo quien ACTIVA el bloqueo avisa: es un aviso por apagón, no uno por
-      // correo (24-25 oct: 1.030 en la campana). Ver `markEmailQuotaExhausted`.
-      if (await markEmailQuotaExhausted()) {
-        fireNotification({
-          eventType: "NOTIFICATION_DELIVERY_FAILED",
-          title: "Resend: se agotó la cuota de correos",
-          body:
-            "Resend rechaza los envíos porque la cuenta llegó a su tope. Lo pendiente del webinar se reintenta solo cuando vuelva a haber cupo; para que no se repita, sube el plan de Resend.",
-          href: "/admin/ajustes/integraciones",
-          entityType: "NotificationDeliveryFailure",
-          entityId: "EMAIL:quota",
-          metadata: { channel: "EMAIL", kind: "quota" },
-          staff: "ALL",
-        });
-      }
-    } else if (kind === "invalid_address" && !payload.recipient) {
-      await prisma.contact.updateMany({
-        where: { id: payload.contactId, notifyEmail: true },
-        data: { notifyEmail: false },
+    if (classifyEmailError(message) !== "quota") return;
+    if (await markEmailQuotaExhausted()) {
+      fireNotification({
+        eventType: "NOTIFICATION_DELIVERY_FAILED",
+        title: "Resend: se agotó la cuota de correos",
+        body:
+          "Resend rechaza los envíos porque la cuenta llegó a su tope. Lo pendiente del webinar se reintenta solo cuando vuelva a haber cupo; para que no se repita, sube el plan de Resend.",
+        href: "/admin/ajustes/integraciones",
+        entityType: "NotificationDeliveryFailure",
+        entityId: "EMAIL:quota",
+        metadata: { channel: "EMAIL", kind: "quota" },
+        staff: "ALL",
       });
-      console.warn(
-        "[dispatch] dirección rechazada por Resend; notifyEmail apagado",
-        payload.contactId
-      );
     }
   } catch (e) {
     console.error("[dispatch] no se pudo registrar el fallo de correo", e);
@@ -328,12 +314,17 @@ export const recordDelivery = async (input: {
     input.channel === "EMAIL"
       ? classifyEmailError(input.result.errorMessage)
       : "other";
-  // La cuota agotada ya avisó UNA vez, al activarse el bloqueo (ver
-  // `handleEmailFailure`): un aviso más por cada correo fallido es justo la
-  // inundación que se quiere evitar.
+  // Los barridos automáticos (webinar, talleres) que fallan por cuota ya
+  // avisaron UNA vez, al activarse el bloqueo (ver `handleEmailFailure`): un
+  // aviso más por cada correo fallido es justo la inundación que se quiere
+  // evitar. Un correo que se manda de una vez (confirmación de pago, invitación
+  // al portal, código de pago) NO se reintenta solo, así que su fallo por cuota
+  // sí avisa — agrupado por plantilla — aunque el bloqueo ya estuviera activo.
+  const coveredByOutageAlert =
+    kind === "quota" && isGatedSweepTemplate(input.templateKey);
   if (
     input.result.status === NotificationDeliveryStatus.FAILED &&
-    kind !== "quota"
+    !coveredByOutageAlert
   ) {
     /**
      * Clave de agrupación del aviso. Antes la entidad era el id de ESTA entrega,
@@ -351,12 +342,17 @@ export const recordDelivery = async (input: {
     fireNotification({
       eventType: "NOTIFICATION_DELIVERY_FAILED",
       title:
-        kind === "invalid_address"
-          ? "Un correo no se entregó: dirección inválida"
-          : `No se pudo entregar un ${CHANNEL_LABEL[input.channel]}`,
-      body: [input.result.recipient, input.result.errorMessage]
-        .filter(Boolean)
-        .join(" · "),
+        kind === "quota"
+          ? "No salió un correo importante: cuota de Resend agotada"
+          : kind === "invalid_address"
+            ? "Un correo no se entregó: dirección inválida"
+            : `No se pudo entregar un ${CHANNEL_LABEL[input.channel]}`,
+      body:
+        kind === "quota"
+          ? `«${input.templateKey ?? "correo"}» para ${input.result.recipient ?? "un contacto"} no salió porque Resend llegó a su tope. Este correo no se reintenta solo: reenvíalo cuando haya cupo.`
+          : [input.result.recipient, input.result.errorMessage]
+              .filter(Boolean)
+              .join(" · "),
       // Apuntaba a /admin/messages, que son los mensajes rápidos para copiar y
       // pegar, no el registro de envíos. El registro (/admin/ajustes/registro)
       // es solo para OWNER y este aviso también le llega al DEVELOPER, así que

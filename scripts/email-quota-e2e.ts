@@ -189,6 +189,99 @@ const main = async () => {
   const r5 = await drainWebinarMail("1h", 60_000, false, webinar.id);
   check("en la siguiente pasada ya no se le reintenta", resendCalls === 0, { resendCalls, r5 });
 
+  console.log("\n— Correo SUELTO (no barrido): una errata NO silencia al comprador");
+  // La confirmación de pago, la invitación al portal y el código de pago no
+  // pasan por el mailer masivo. Apagar `notifyEmail` por una errata en el
+  // checkout dejaría a ese comprador sin ningún correo posterior, en silencio.
+  const { dispatchAndRecord } = await import("@/lib/notifications/dispatch");
+  const buyerId = ids.contacts[5];
+  const buyer = await prisma.contact.findUniqueOrThrow({ where: { id: buyerId }, select: { email: true } });
+  invalidAddress = buyer.email!;
+  mode = "invalid_for";
+  const bad422 = await dispatchAndRecord({
+    contactId: buyerId,
+    channel: "EMAIL",
+    templateKey: "payment_confirmation",
+    subject: "Tu pago",
+    html: "<p>pago</p>",
+    text: "pago",
+    body: "pago",
+  });
+  check("el correo de pago falla por la dirección", bad422.result.status === "FAILED", bad422.result);
+  const buyerAfter = await prisma.contact.findUniqueOrThrow({ where: { id: buyerId }, select: { notifyEmail: true } });
+  check("pero NO se apaga notifyEmail de quien pagó", buyerAfter.notifyEmail === true);
+  mode = "ok";
+  const later = await dispatchAndRecord({
+    contactId: buyerId,
+    channel: "EMAIL",
+    templateKey: "payment_confirmation",
+    subject: "Tu pago",
+    html: "<p>pago</p>",
+    text: "pago",
+    body: "pago",
+  });
+  check("y cuando corrigen la dirección, su siguiente correo SÍ sale", later.result.status === "SENT", later.result);
+
+  console.log("\n— Correo suelto que falla por cuota con el bloqueo ya activo");
+  const { markEmailQuotaExhausted } = await import("@/lib/notifications/email-quota");
+  await deleteSiteSetting(EMAIL_QUOTA_SETTING);
+  await markEmailQuotaExhausted();
+  mode = "quota";
+  const lost = await dispatchAndRecord({
+    contactId: buyerId,
+    channel: "EMAIL",
+    templateKey: "payment_confirmation",
+    subject: "Tu pago",
+    html: "<p>pago</p>",
+    text: "pago",
+    body: "pago",
+  });
+  check("el correo de pago falla (el bloqueo no lo frena: se intenta siempre)", lost.result.status === "FAILED", lost.result);
+  const lostBell = await waitFor(() => bellRows("EMAIL:quota:payment_confirmation"), (r) => r.length >= 1);
+  check("y SÍ avisa, agrupado por plantilla, aunque el apagón ya estuviera avisado", lostBell.length === 1, lostBell.length);
+  check("el aviso dice que no se reintenta solo", /importante/i.test(lostBell[0]?.title ?? ""), lostBell[0]?.title);
+  await dispatchAndRecord({
+    contactId: buyerId,
+    channel: "EMAIL",
+    templateKey: "webinar_reminder_1h",
+    subject: "Recordatorio",
+    html: "<p>r</p>",
+    text: "r",
+    body: "r",
+  });
+  await new Promise((r) => setTimeout(r, 1200));
+  check(
+    "un recordatorio del webinar NO duplica el aviso (ya lo cubre el del apagón)",
+    (await bellRows("EMAIL:quota:webinar_reminder_1h")).length === 0,
+  );
+
+  console.log("\n— La bandera: valor corrupto, concurrencia y ventana de silencio");
+  const { setSiteSetting } = await import("@/lib/crm/site-settings");
+  await setSiteSetting(EMAIL_QUOTA_SETTING, "x");
+  check("con un valor que no es fecha, el freno no se queda ciego: avisa y se repara", (await markEmailQuotaExhausted()) === true && (await emailQuotaBlockedUntil()) !== null);
+  await deleteSiteSetting(EMAIL_QUOTA_SETTING);
+  const racers = await Promise.all(Array.from({ length: 8 }, () => markEmailQuotaExhausted()));
+  check("ocho activaciones a la vez: exactamente UNA avisa", racers.filter(Boolean).length === 1, racers);
+  await setSiteSetting(EMAIL_QUOTA_SETTING, new Date(Date.now() - 2 * 3600_000).toISOString());
+  check("el sondeo horario que vuelve a fallar renueva SIN avisar otra vez (mismo apagón)", (await markEmailQuotaExhausted()) === false && (await emailQuotaBlockedUntil()) !== null);
+  await setSiteSetting(EMAIL_QUOTA_SETTING, new Date(Date.now() - 13 * 3600_000).toISOString());
+  check("pasadas 12 h sin bloqueo, el siguiente SÍ es otro apagón y avisa", (await markEmailQuotaExhausted()) === true);
+
+  console.log("\n— Con el bloqueo puesto: el barrido espera, lo manual prueba");
+  mode = "ok";
+  await deleteSiteSetting(EMAIL_QUOTA_SETTING);
+  await markEmailQuotaExhausted();
+  await prisma.webinarRegistration.updateMany({ where: { webinarId: webinar.id }, data: { reminder1hSentAt: null, linkEmailSentAt: null } });
+  resendCalls = 0;
+  const cronLink = await drainWebinarMail("link", 60_000, false, webinar.id);
+  check("el barrido automático del enlace espera (cero llamadas)", cronLink.skipped === true && cronLink.reason === "email_quota" && resendCalls === 0, { cronLink, resendCalls });
+  const bumpedLink = await drainWebinarMail("link", 60_000, false, webinar.id, true);
+  check("guardar el enlace de la reunión SÍ prueba y envía aunque haya bloqueo", bumpedLink.sent > 0 && resendCalls > 0, { bumpedLink, resendCalls });
+  resendCalls = 0;
+  const manual = await drainWebinarMail("1h", 60_000, true, webinar.id);
+  check("un reenvío manual del recordatorio también prueba", manual.sent > 0 && resendCalls > 0, { manual, resendCalls });
+  await deleteSiteSetting(EMAIL_QUOTA_SETTING);
+
   console.log("\n— Un fallo cualquiera NO frena ni apaga a nadie, y se agrupa en la campana");
   mode = "server_error";
   let anyQuota = false;
@@ -196,6 +289,7 @@ const main = async () => {
   // Una persona por pasada: así los fallos llegan UNO tras otro y se ve la
   // agrupación por plantilla sin la carrera de los envíos en paralelo.
   for (const contactId of [ids.contacts[1], ids.contacts[2], ids.contacts[3]]) {
+    await prisma.webinarRegistration.updateMany({ where: { webinarId: webinar.id }, data: { reminder1hSentAt: new Date() } });
     await prisma.webinarRegistration.updateMany({ where: { webinarId: webinar.id, contactId }, data: { reminder1hSentAt: null } });
     const r6 = await drainWebinarMail("1h", 60_000, false, webinar.id);
     totalFailed += r6.failed;

@@ -24,6 +24,7 @@ import {
 import { dispatchAndRecord } from "@/lib/notifications/dispatch";
 import { isEmailQuotaError } from "@/lib/notifications/email-errors";
 import { emailQuotaBlockedUntil } from "@/lib/notifications/email-quota";
+import { suppressUndeliverableEmail } from "@/lib/notifications/email-suppress";
 import { resolveNotificationsEnabled } from "@/lib/notifications/platform/resolve";
 import {
   webinarMeetLinkHtml,
@@ -137,6 +138,10 @@ const runPool = async <T>(
       const item = items[cursor];
       cursor += 1;
       await takeSendSlot();
+      // Esperar la ranura toma hasta ~0,7 s: otra lane pudo toparse con la cuota
+      // mientras tanto. Sin esta segunda comprobación cada lane en espera
+      // todavía hacía su intento (hasta 5 de más por pasada).
+      if (quotaExhausted) return;
       const { outcome } = await worker(item);
       if (outcome === "quota") {
         quotaExhausted = true;
@@ -207,6 +212,10 @@ const deliver = async (
     console.error("[webinar-mailer] dispatch", errorMessage);
   }
 
+  // Una dirección que Resend rechaza por formato no se arregla reintentando: se
+  // apaga `notifyEmail` (como con un rebote) y deja de estar en la cola. Sólo
+  // aquí, en el barrido masivo: ver `email-suppress.ts`.
+  await suppressUndeliverableEmail(recipient.contactId, errorMessage);
   await releaseRegistrationFlag(recipient.id, flag, errorMessage);
   return {
     outcome: isEmailQuotaError(errorMessage) ? "quota" : "failed",
@@ -287,10 +296,17 @@ const emailQuotaBlocked = async (): Promise<boolean> =>
 export const sendPendingWebinarLinkEmails = async (
     deadline?: number,
     /** Sin él, el evento actual. */
-    webinarId?: string
+    webinarId?: string,
+    /**
+     * Intenta aunque el freno de cuota esté puesto. Para lo que dispara una
+     * persona o un cambio de enlace (guardar el Meet, «reenviar a todas»): ahí el
+     * envío tiene que probar —es justo cómo se comprueba que volvió el cupo— en
+     * vez de esperar al siguiente sondeo horario. El cron nunca lo usa.
+     */
+    bypassQuotaBlock = false
   ): Promise<WebinarMailResult> => {
     if (await notificationsOff()) return noop("notifications_disabled");
-    if (await emailQuotaBlocked()) return noop("email_quota");
+    if (!bypassQuotaBlock && (await emailQuotaBlocked())) return noop("email_quota");
 
     const webinar = await getFreeWebinar(webinarId);
     if (!webinar) return noop("no_event");
@@ -361,13 +377,17 @@ export const sendPendingWebinarReminders = async (
    */
   ignoreWindow = false,
   /** Sin él, el evento actual. */
-  webinarId?: string
+  webinarId?: string,
+  /** Ver `sendPendingWebinarLinkEmails`. */
+  bypassQuotaBlock = false
 ): Promise<WebinarMailResult> => {
   if (await notificationsOff()) return noop("notifications_disabled");
   // Un envío disparado a mano (`ignoreWindow`) sí intenta aunque la bandera
   // esté puesta: el operador decide, y es justo cómo se comprueba que el cupo
   // volvió. El cron nunca lo usa.
-  if (!ignoreWindow && (await emailQuotaBlocked())) return noop("email_quota");
+  if (!ignoreWindow && !bypassQuotaBlock && (await emailQuotaBlocked())) {
+    return noop("email_quota");
+  }
 
   const webinar = await getFreeWebinar(webinarId);
   if (!webinar) return noop("no_event");
@@ -429,8 +449,15 @@ export const drainWebinarMail = async (
   budgetMs = TIME_BUDGET_MS,
   ignoreWindow = false,
   /** Sin él, el evento actual. */
-  webinarId?: string
+  webinarId?: string,
+  /**
+   * Lo dispara una persona o un cambio de enlace, no el cron: intenta aunque el
+   * freno de cuota esté puesto. Un envío con `ignoreWindow` (manual) cuenta
+   * igual.
+   */
+  bypassQuotaBlock = false
 ): Promise<WebinarDrainResult> => {
+  const bypass = bypassQuotaBlock || ignoreWindow;
   const deadline = Date.now() + budgetMs;
   // Se fija el evento al empezar: el actual podría cambiar a mitad de pasada.
   const eventId = webinarId ?? (await findCurrentFreeEventRow())?.id;
@@ -454,13 +481,14 @@ export const drainWebinarMail = async (
   while (Date.now() < deadline) {
     const r =
       pass === "link"
-        ? await sendPendingWebinarLinkEmails(deadline, eventId)
+        ? await sendPendingWebinarLinkEmails(deadline, eventId, bypass)
         : await sendPendingWebinarReminders(
             pass,
             new Date(),
             deadline,
             ignoreWindow,
-            eventId
+            eventId,
+            bypass
           );
 
     if (r.skipped) {

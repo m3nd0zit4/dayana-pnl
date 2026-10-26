@@ -55,7 +55,10 @@ const alertTokenInvalidOncePerDay = async (): Promise<void> => {
       body:
         "Meta rechaza el token de la Conversions API (error 190), así que las compras " +
         "de quien aceptó la publicidad no llegan y los anuncios pierden esa señal. " +
-        "Genera un token nuevo en Events Manager y pégalo en Ajustes → Integraciones.",
+        "Genera un token nuevo en Events Manager y pégalo en Ajustes → Integraciones. " +
+        "Las compras que ya quedaron sin enviar NO se reenvían solas: cambia el token y " +
+        "pide que se reenvíen (`bun scripts/capi-resend-unsent.ts --send`); Meta solo " +
+        "acepta eventos de los últimos 7 días.",
       href: "/admin/ajustes/integraciones",
       entityType: "MetaCapi",
       entityId: "token",

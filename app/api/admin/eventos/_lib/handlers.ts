@@ -145,7 +145,8 @@ export const patchEvent = async ({ req, staff }: Ctx, eventId?: string) => {
       if (!queued) {
         const id = webinar.id;
         after(async () => {
-          await drainWebinarMail("link", undefined, false, id);
+          // Guardar el enlace de la reunión: prueba aunque el freno de cuota esté puesto.
+          await drainWebinarMail("link", undefined, false, id, true);
         });
       }
     }

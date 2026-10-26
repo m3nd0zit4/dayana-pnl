@@ -40,17 +40,28 @@ export const isEmailQuotaError = (message: string | null | undefined): boolean =
   classifyEmailError(message) === "quota";
 
 /**
+ * Plantillas de los barridos AUTOMÁTICOS (recordatorios y enlace del webinar,
+ * recordatorios de talleres). Son las que gobierna el freno de cuota y las que
+ * se reintentan solas: su fallo por cuota se avisa UNA vez, al activarse el
+ * freno. Todo lo demás —confirmación de pago, invitación al portal, código de
+ * pago— se manda de una en una, no se reintenta, y si no sale hay que saberlo.
+ */
+export const isGatedSweepTemplate = (templateKey?: string | null): boolean =>
+  /^(webinar_|workshop_)/.test(templateKey ?? "");
+
+/**
  * Clave con la que el aviso de «no se pudo entregar» se agrupa en la campana
  * (la agrupación del catálogo junta avisos del mismo evento + entidad dentro
- * de su ventana). Canal + causa cuando la causa es conocida; canal + plantilla
- * si no, para que un fallo del recordatorio de 1 h no tape el de una
- * confirmación de pago.
+ * de su ventana). Siempre incluye la plantilla salvo para una dirección
+ * inválida: así un fallo del recordatorio de 1 h no tapa el de una
+ * confirmación de pago, ni un apagón de cuota que afecta a una confirmación se
+ * pierde dentro del aviso general del apagón.
  */
 export const deliveryFailureKey = (
   channel: string,
   kind: EmailErrorKind,
   templateKey?: string | null
 ): string =>
-  kind === "other"
-    ? `${channel}:${templateKey ?? "-"}`
-    : `${channel}:${kind}`;
+  kind === "invalid_address"
+    ? `${channel}:${kind}`
+    : `${channel}:${kind === "quota" ? "quota:" : ""}${templateKey ?? "-"}`;
