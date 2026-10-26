@@ -39,6 +39,9 @@ export const adoptPlaceholderContact = async (placeholderId: string, realId: str
   ]);
   if (!from || !to || !isPlaceholderContact(from) || isPlaceholderContact(to)) return false;
   const moved = await prisma.enrollment.updateMany({ where: { contactId: from.id }, data: { contactId: to.id } });
+  // El historial de lo que se le mandó (confirmación del pago) también, para que no se borre con la temporal.
+  await prisma.notificationDelivery.updateMany({ where: { contactId: from.id }, data: { contactId: to.id } });
+  await prisma.messageLog.updateMany({ where: { contactId: from.id }, data: { contactId: to.id } });
   // Si algo más la referencia, queda huérfana sin matrículas y la barre la limpieza nocturna.
   await prisma.contact.delete({ where: { id: from.id } }).catch(() => undefined);
   await writeAuditLog({
