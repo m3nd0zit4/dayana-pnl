@@ -1,30 +1,19 @@
 "use client";
 
-import {
-  Activity,
-  ArrowLeft,
-  CalendarDays,
-  FileText,
-  Send,
-  MessageCircle,
-  Settings2,
-  Sparkles,
-  Users,
-  UsersRound,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { CrmMenuParentItem } from "@/app/components/admin/crm/CrmMenu";
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/app/components/ui/sidebar";
-import { isCrmPathActive } from "@/app/config/crm-menu-items";
+import { visibleWhatsAppMenu, whatsAppMenuItems } from "@/app/config/whatsapp-menu-items";
 import { useCrm } from "../crm/CrmProvider";
 import { useWhatsAppLive } from "./live";
 
@@ -32,26 +21,25 @@ import { useWhatsAppLive } from "./live";
  * El menú lateral de la sección de WhatsApp. Reemplaza al del CRM mientras se
  * está dentro de `/admin/whatsapp`: aquí todo es WhatsApp y el resto del CRM
  * queda a un clic con «Volver al CRM».
+ *
+ * Las filas salen de `app/config/whatsapp-menu-items.ts` y se pintan con la
+ * misma pieza que el menú del CRM, así que se agrupan y se abren igual.
  */
 
-const ITEMS = [
-  { href: "/admin/whatsapp", label: "Chats", icon: MessageCircle, exact: true },
-  { href: "/admin/whatsapp/estado", label: "Estado de la IA", icon: Activity },
-  { href: "/admin/whatsapp/personas", label: "Personas", icon: Users },
-  { href: "/admin/whatsapp/agenda", label: "Agenda", icon: CalendarDays },
-  { href: "/admin/whatsapp/envios", label: "Envíos", icon: Send },
-  { href: "/admin/whatsapp/comunidades", label: "Comunidades", icon: UsersRound },
-  { href: "/admin/whatsapp/plantillas", label: "Plantillas", icon: FileText },
-  { href: "/admin/whatsapp/asistente", label: "Hablar con la IA", icon: Sparkles, ownerOnly: true },
-  { href: "/admin/whatsapp/ajustes", label: "Ajustes", icon: Settings2, ownerOnly: true },
-] as const;
-
+/**
+ * Rutas en las que el menú del CRM se cambia por el de WhatsApp: toda la
+ * sección y la bandeja de Instagram y Messenger, que viven aquí aunque su ruta
+ * sea `/admin/inbox`.
+ */
 export const isWhatsAppWorkspacePath = (pathname: string) =>
-  pathname === "/admin/whatsapp" || pathname.startsWith("/admin/whatsapp/");
+  pathname === "/admin/whatsapp" ||
+  pathname.startsWith("/admin/whatsapp/") ||
+  pathname === "/admin/inbox" ||
+  pathname.startsWith("/admin/inbox/");
 
 const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
   const pathname = usePathname();
-  const { role } = useCrm();
+  const { role, metaInboxEnabled } = useCrm();
   const [waiting, setWaiting] = useState(0);
 
   // El número de «Te toca» en el menú, al día con el stream de la sección.
@@ -71,6 +59,15 @@ const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
   }, [load]);
   useWhatsAppLive(load);
 
+  const items = useMemo(
+    () =>
+      visibleWhatsAppMenu(whatsAppMenuItems, {
+        isOwner: role === "OWNER" || role === "PREVIEW",
+        metaInboxEnabled,
+      }),
+    [role, metaInboxEnabled]
+  );
+
   return (
     <>
       <SidebarGroup>
@@ -89,32 +86,19 @@ const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
         <SidebarGroupLabel className="text-success">WhatsApp</SidebarGroupLabel>
         <SidebarGroupContent>
           <SidebarMenu>
-            {ITEMS.filter((i) => !("ownerOnly" in i && i.ownerOnly) || role === "OWNER" || role === "PREVIEW").map(
-              (item) => {
-                const Icon = item.icon;
-                const active = isCrmPathActive(pathname, item.href, "exact" in item ? item.exact : false);
-                return (
-                  <SidebarMenuItem key={item.href}>
-                    <SidebarMenuButton
-                      isActive={active}
-                      tooltip={item.label}
-                      render={<Link href={item.href} prefetch={false} onClick={onNavigate} />}
-                    >
-                      <Icon />
-                      <span>{item.label}</span>
-                    </SidebarMenuButton>
-                    {item.href === "/admin/whatsapp" && waiting > 0 && (
-                      <SidebarMenuBadge
-                        className="bg-success text-white"
-                        title={`${waiting} ${waiting === 1 ? "te espera" : "te esperan"}`}
-                      >
-                        {waiting}
-                      </SidebarMenuBadge>
-                    )}
-                  </SidebarMenuItem>
-                );
-              }
-            )}
+            {items.map((item) => (
+              <CrmMenuParentItem
+                key={item.id}
+                item={item}
+                pathname={pathname}
+                onNavigate={onNavigate}
+                badge={
+                  item.id === "chats"
+                    ? { count: waiting, title: `${waiting} ${waiting === 1 ? "te espera" : "te esperan"}` }
+                    : undefined
+                }
+              />
+            ))}
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>

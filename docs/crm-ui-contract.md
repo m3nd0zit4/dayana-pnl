@@ -270,6 +270,13 @@ otro sitio.
   plegados por defecto y abiertos solo cuando la página actual es suya.
   **Estadísticas no tiene fila en el menú**: se abre desde Inicio («Ver todas
   las estadísticas»).
+- **Sección de WhatsApp:** su menú lateral sale de
+  `app/config/whatsapp-menu-items.ts` y se pinta con la misma pieza que el del
+  CRM (`CrmMenuParentItem`). Lo diario (Chats, Personas, Agenda) va a la vista;
+  difusión (Envíos), seguimiento de la IA (Asistente IA) y configuración
+  (Ajustes: Configuración y Plantillas) van en submenús que se abren solos. Una
+  pantalla nueva de `/admin/whatsapp` tiene que tener su entrada ahí: una
+  prueba falla si alguna se queda sin camino desde el menú.
 - **Barra inferior (móvil):** `CRM_BOTTOM_TABS` — Inicio, WhatsApp, Contactos,
   Pagos — y «Más», que abre el menú completo. Es el único botón que abre el
   menú en el móvil.

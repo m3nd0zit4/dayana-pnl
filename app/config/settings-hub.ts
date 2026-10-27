@@ -113,6 +113,13 @@ export const settingsHubGroups: SettingsHubGroup[] = [
         keywords: ["whatsapp", "ia", "asistente", "inteligencia artificial", "respuesta automática", "citas", "agenda", "plantillas"],
       },
       {
+        id: "plantillas-whatsapp",
+        label: "Plantillas de WhatsApp",
+        hint: "Las que aprueba Meta para escribir cuando pasaron las 24 horas",
+        href: "/admin/whatsapp/plantillas",
+        keywords: ["plantillas", "meta", "aprobación", "aprobadas", "24 horas", "fuera de ventana", "mensajes aprobados"],
+      },
+      {
         id: "canales",
         label: "Canales del agente",
         hint: "Por dónde se puede hablar con el asistente",

@@ -153,14 +153,16 @@ describe("centro de ajustes: buscador", () => {
     expect(hits.some((h) => h.id === WHATSAPP_SETTINGS[0].id)).toBe(true);
   });
 
-  test("«citas», «horarios» y «plantillas» llevan a un ajuste concreto de WhatsApp, no a la página general", () => {
+  test("«citas» y «horarios» llevan a un ajuste concreto de WhatsApp, no a la página general", () => {
     // Enter abre el primer resultado: tiene que ser el ajuste, no «Asistente de WhatsApp».
     expect(find("citas")[0]?.href.startsWith("/admin/whatsapp/ajustes?tab=citas&ajuste=")).toBe(true);
-    for (const query of ["horarios", "plantillas"]) {
-      const first = find(query)[0];
-      expect(first?.href.startsWith("/admin/whatsapp/ajustes?tab=")).toBe(true);
-      expect(first?.href).toContain("&ajuste=");
-    }
+    const horarios = find("horarios")[0];
+    expect(horarios?.href.startsWith("/admin/whatsapp/ajustes?tab=")).toBe(true);
+    expect(horarios?.href).toContain("&ajuste=");
+  });
+
+  test("«plantillas» lleva a la página de plantillas de WhatsApp", () => {
+    expect(find("plantillas")[0]?.href).toBe("/admin/whatsapp/plantillas");
   });
 
   test("encuentra los ajustes sueltos de WhatsApp, con su pestaña y su id", () => {

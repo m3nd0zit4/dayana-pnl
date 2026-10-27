@@ -21,6 +21,7 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
+  SidebarMenuBadge,
   SidebarMenu as SidebarMenuRoot,
   SidebarMenuItem,
   SidebarMenuButton,
@@ -52,14 +53,34 @@ const useOpenWhenActive = (pathname: string, active: boolean) => {
   return [open, setOpen] as const;
 };
 
-const CrmMenuParentItem = ({
+/**
+ * Lo que necesita una fila del menú, sea del CRM o de la sección de WhatsApp.
+ * `CrmMenuItem` encaja aquí; el menú de WhatsApp usa sus propios ids.
+ */
+export type MenuNode = {
+  id: string;
+  icon: CrmMenuItem["icon"];
+  label: string;
+  href: string;
+  external?: boolean;
+  exact?: CrmMenuItem["exact"];
+  /** Un nivel de submenú, como en el resto del panel. */
+  items?: Omit<MenuNode, "items">[];
+};
+
+/** Contador al borde de la fila, p. ej. quién espera respuesta en WhatsApp. */
+export type MenuBadge = { count: number; title: string };
+
+export const CrmMenuParentItem = ({
   item,
   pathname,
   onNavigate,
+  badge,
 }: {
-  item: CrmMenuItem;
+  item: MenuNode;
   pathname: string;
   onNavigate?: () => void;
+  badge?: MenuBadge;
 }) => {
   const Icon = item.icon;
   const external = item.external === true;
@@ -86,6 +107,11 @@ const CrmMenuParentItem = ({
           <Icon />
           <span>{item.label}</span>
         </SidebarMenuButton>
+        {badge && badge.count > 0 ? (
+          <SidebarMenuBadge className="bg-success text-white" title={badge.title}>
+            {badge.count}
+          </SidebarMenuBadge>
+        ) : null}
       </SidebarMenuItem>
     );
   }
