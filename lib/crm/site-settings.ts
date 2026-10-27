@@ -10,6 +10,17 @@ export const getSiteSetting = async (key: string): Promise<string | null> => {
   return row?.value ?? null;
 };
 
+/** Cuándo se guardó por última vez; `null` si no hay fila. */
+export const getSiteSettingUpdatedAt = async (
+  key: string
+): Promise<Date | null> => {
+  const row = await prisma.siteSetting.findUnique({
+    where: { key },
+    select: { updatedAt: true },
+  });
+  return row?.updatedAt ?? null;
+};
+
 export const getSiteSettingNumber = async (
   key: string
 ): Promise<number | null> => {

@@ -1,9 +1,10 @@
 import {
   deleteSiteSetting,
   getSiteSetting,
+  getSiteSettingUpdatedAt,
   setSiteSetting,
 } from "../crm/site-settings";
-import { openSecret, sealSecret } from "../crypto/secret-box";
+import { openSecret, sealSecret, secretFingerprint } from "../crypto/secret-box";
 
 /**
  * Credenciales de la Conversions API.
@@ -84,3 +85,60 @@ export const setCapiToken = async (token: string | null): Promise<void> => {
 /** Para la UI: saber si hay token sin exponerlo. */
 export const hasStoredCapiToken = async (): Promise<boolean> =>
   (await getSiteSetting(CAPI_TOKEN_SETTING_KEY)) != null;
+
+export type CapiTokenStatus = {
+  /** Sin el id del píxel (`NEXT_PUBLIC_META_PIXEL_ID`) no se envía nada. */
+  pixelConfigured: boolean;
+  /** De dónde sale el token que se usaría ahora; `null` = ninguno. */
+  source: "db" | "env" | null;
+  /** 8 caracteres del hash del token, para saber cuál está puesto. Nunca el token. */
+  fingerprint: string | null;
+  /** Solo cuando `source` es "db". */
+  savedAt: string | null;
+  /** Hay un token en el servidor aunque el de la base de datos lo tape. */
+  envTokenPresent: boolean;
+  /**
+   * Hay una fila guardada que no se puede descifrar (casi siempre porque
+   * cambió `AUTH_SECRET`). El envío la ignora; la pantalla tiene que decirlo
+   * en vez de parecer que no hay nada.
+   */
+  storedUnreadable: boolean;
+};
+
+/** Para la pantalla de Ajustes: qué hay puesto, sin revelar el token. */
+export const describeCapiToken = async (): Promise<CapiTokenStatus> => {
+  const envToken = process.env.META_CAPI_ACCESS_TOKEN?.trim() || null;
+  const base = {
+    pixelConfigured: getPixelId() !== null,
+    envTokenPresent: envToken !== null,
+  };
+
+  const fromDb = await readSealedSetting(CAPI_TOKEN_SETTING_KEY);
+  const storedUnreadable = !fromDb && (await hasStoredCapiToken());
+  if (fromDb) {
+    const savedAt = await getSiteSettingUpdatedAt(CAPI_TOKEN_SETTING_KEY);
+    return {
+      ...base,
+      source: "db",
+      fingerprint: secretFingerprint(fromDb),
+      savedAt: savedAt ? savedAt.toISOString() : null,
+      storedUnreadable: false,
+    };
+  }
+  if (envToken) {
+    return {
+      ...base,
+      source: "env",
+      fingerprint: secretFingerprint(envToken),
+      savedAt: null,
+      storedUnreadable,
+    };
+  }
+  return {
+    ...base,
+    source: null,
+    fingerprint: null,
+    savedAt: null,
+    storedUnreadable,
+  };
+};

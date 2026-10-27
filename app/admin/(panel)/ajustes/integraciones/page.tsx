@@ -4,11 +4,13 @@ import PaymentsHealthCard from "@/app/components/admin/crm/settings/PaymentsHeal
 import SocialConnectionsClient from "@/app/components/admin/crm/settings/SocialConnectionsClient";
 import SocialPublishingTogglesClient from "@/app/components/admin/crm/settings/SocialPublishingTogglesClient";
 import GoogleAccountsClient from "@/app/components/admin/crm/settings/GoogleAccountsClient";
+import MetaCapiTokenCard from "@/app/components/admin/crm/settings/MetaCapiTokenCard";
 import {
   getIntegrationHealth,
   getNotificationsRuntimeStatus,
 } from "@/lib/notifications/health";
 import { getSocialConnections } from "@/lib/crm/social-accounts";
+import { describeCapiToken } from "@/lib/meta/capi-credentials";
 import { listGoogleAccounts } from "@/lib/crm/google-accounts";
 import { isGoogleEnabled } from "@/lib/google/connect";
 import { getIntegrationsOverview } from "@/lib/crm/integrations";
@@ -47,6 +49,7 @@ const Page = async ({
     publishingOverride,
     audited,
     auditedOverride,
+    capiToken,
   ] = await Promise.all([
     searchParams,
     getStaffSession(),
@@ -57,6 +60,7 @@ const Page = async ({
     getSocialPublishingOverride(),
     resolveTiktokAudited(),
     getTiktokAuditedOverride(),
+    describeCapiToken(),
   ]);
 
   // Google ya tiene su propia sección detallada más abajo; repetirlo aquí
@@ -89,6 +93,9 @@ const Page = async ({
           audited={audited}
           auditedOverride={auditedOverride}
         />
+        <div id="meta-compras" className="scroll-mt-20">
+          <MetaCapiTokenCard initial={capiToken} />
+        </div>
       </section>
 
       <section id="google" className="scroll-mt-20 space-y-4">

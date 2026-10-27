@@ -151,6 +151,14 @@ export const settingsHubGroups: SettingsHubGroup[] = [
         hidden: "nav",
       },
       {
+        id: "meta-compras",
+        label: "Token de Meta (compras)",
+        hint: "Pegar el token para que las compras se cuenten en los anuncios",
+        href: "/admin/ajustes/integraciones#meta-compras",
+        keywords: ["token", "meta", "compras", "anuncios", "conversiones", "api de conversiones", "capi", "píxel", "pixel", "facebook ads", "llave"],
+        hidden: "nav",
+      },
+      {
         id: "tiktok",
         label: "TikTok",
         hint: "Conectar la cuenta para programar videos",

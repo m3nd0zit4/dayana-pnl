@@ -103,6 +103,12 @@ describe("centro de ajustes: buscador", () => {
     expect(find("tiktok")[0]?.href).toBe("/admin/ajustes/integraciones#redes-sociales");
   });
 
+  test("el token de Meta para las compras se encuentra por token, píxel y anuncios", () => {
+    for (const query of ["token", "pixel", "píxel", "anuncios", "api de conversiones"]) {
+      expect(find(query)[0]?.href).toBe("/admin/ajustes/integraciones#meta-compras");
+    }
+  });
+
   test("no distingue tildes, mayúsculas ni signos", () => {
     expect(find("CONTRASEÑA")[0]?.href).toBe("/admin/ajustes/seguridad");
     expect(find("contrasena")[0]?.href).toBe("/admin/ajustes/seguridad");
