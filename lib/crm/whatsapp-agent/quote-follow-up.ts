@@ -87,6 +87,16 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
   // Un comprobante sin revisar: Dayana lo tiene que ver, no se le pide el pago otra vez.
   if (await prisma.whatsAppPaymentReceipt.count({ where: { conversationId, status: "pending" } })) return "blocked";
 
+  // Uno de esta cotización no le llegó: no se insiste. `quoteLinesFor` no ve los
+  // fallidos, así que la cuenta seguía en 0 y cada pasada lo mandaba otra vez
+  // (Cristina, 26-oct: 15 intentos en 6 h, y Meta pasó a rechazarlos «to maintain
+  // healthy ecosystem engagement», lo que daña la calidad del número).
+  const failed = await prisma.conversationMessage.findFirst({
+    where: { conversationId, direction: "OUTBOUND", status: "FAILED", source: { startsWith: `${QUOTE_FOLLOW_UP_SOURCE}${s.quoteAt.getTime()}:` } },
+    select: { id: true },
+  });
+  if (failed) return "blocked";
+
   const name = sureFirstName(await chatNameInfo(conversationId));
   const n = s.sent + 1;
   const source = `${QUOTE_FOLLOW_UP_SOURCE}${s.quoteAt.getTime()}:${n}`;

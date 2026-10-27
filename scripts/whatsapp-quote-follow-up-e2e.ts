@@ -14,6 +14,8 @@
  * 6. Solo los datos de Bancolombia (sin enlace): cuenta igual, el 1º.
  * 7. Dijo «la primera semana del próximo mes» y la asistente le reenvió el
  *    enlace: sigue esperando esa fecha (lo de la asistente no reinicia nada).
+ * 8. El 1º no le llegó y Dayana lo borró o lo reenvió: no sale otra vez.
+ * 9. El 1º no le llegó y sigue en el chat: no se reintenta en cada pasada.
  */
 export {};
 
@@ -54,7 +56,7 @@ const main = async () => {
   }) as never;
 
   const ids: string[] = [];
-  const chat = async (suffix: string, lines: { dir: "IN" | "OUT"; body: string; at: Date; source?: string; ai?: boolean }[], extra: { priorityAt?: Date } = {}) => {
+  const chat = async (suffix: string, lines: { dir: "IN" | "OUT"; body: string; at: Date; source?: string; ai?: boolean; failed?: boolean }[], extra: { priorityAt?: Date } = {}) => {
     const conv = await prisma.conversation.create({
       data: {
         channel: "WHATSAPP",
@@ -75,7 +77,7 @@ const main = async () => {
           sentAt: l.at,
           isAutoReply: Boolean(l.ai),
           source: l.source ?? null,
-          status: l.dir === "IN" ? "RECEIVED" : "SENT",
+          status: l.dir === "IN" ? "RECEIVED" : l.failed ? "FAILED" : "SENT",
         },
       });
     }
@@ -171,6 +173,16 @@ const main = async () => {
     });
     const r9 = await sweep(c9);
     check("reenviado (bitácora con `source`): no sale", sent.length === 0, { r9, sent });
+
+    console.log("\n9. Cristina (26-oct): el 1º no le llegó y sigue en el chat: no se reintenta en cada pasada");
+    const quoteAt10 = ago(3);
+    const c10 = await chat("10", [
+      { dir: "OUT", body: QUOTE, at: quoteAt10 },
+      { dir: "IN", body: "Gracias", at: ago(3) },
+      { dir: "OUT", body: "Hola, te escribo de parte de Dayana…", at: ago(0.2), source: `${QUOTE_FOLLOW_UP_SOURCE}${quoteAt10.getTime()}:1`, ai: true, failed: true },
+    ]);
+    const r10 = await sweep(c10);
+    check("fallido en el chat: no sale otra vez", sent.length === 0 && "blocked" in r10, { r10, sent });
   } finally {
     await prisma.auditLog.deleteMany({ where: { entityType: "WhatsAppChat", entityId: { in: ids } } });
     await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversationId: { in: ids } } });
