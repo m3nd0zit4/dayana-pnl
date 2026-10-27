@@ -69,6 +69,8 @@ const ASKS_FOR_PROCESS = new RegExp(
     "\\bhablar (con (dayana|usted|ella)|contigo)\\b",
     "\\b(tratarme|atenderme|me atienda|me atiendas|me (puedes|puede|podrias|podria) atender|trabajar contigo|trabajar con (dayana|usted|ella))\\b",
     "\\bcuanto (cobra|cobras|cobran)\\b",
+    // Una evaluación o valoración para ella o alguien suyo (Gueiby, 24-oct: «me gustaria una evalucion» para su hijo); no la autoevaluación.
+    "\\b(quiero|quisiera|necesito|me gustaria|deseo|busco|pedir|agendar) (una |la )?(evaluacion|evalucion|valoracion)\\b",
     "\\bcuanto (cuesta|vale|sale|es|cobras por) (una|la|el|cada|tu|su|tus|sus) (sesion|consulta|terapia|proceso|paquete)",
     "\\b(precio|costo|valor|tarifa)s? de (la|las|tu|tus|su|sus|una|el|los|un) (sesion|proceso|consulta|paquete|servicio)",
     "\\b(tus|sus) servicios\\b",
@@ -93,7 +95,8 @@ const TECH_HELP = /\b(enlace|link|meet|zoom|inscri\w*|registr\w*|entrar|conectar
  * - Lo que quiere sanar o soltar ella («quiero quitarme…», «necesito sanar»).
  */
 const PRICE = /\b(precio|precios|costo|costos|valor|valores|tarifa|tarifas|inversion|cuanto (cuesta|cuestan|vale|valen|sale|salen|cobra|cobras|cobran))\b/;
-const SERVICE = /\b(consulta|consultas|sesion|sesiones|terapia|terapias|proceso|procesos|paquete|paquetes|servicio|servicios|cita|citas|tratamiento|tratamientos|atencion|acompanamiento)\b/;
+// «secion»: escrito así (Gueiby, 24-oct: «Cual es el costo de una secion»).
+const SERVICE = /\b(consulta|consultas|sesion|sesiones|secion|seciones|terapia|terapias|proceso|procesos|paquete|paquetes|servicio|servicios|cita|citas|tratamiento|tratamientos|atencion|acompanamiento)\b/;
 /**
  * Lo del evento: nuestros mensajes le dicen «la sesión» al webinar («¿la sesión
  * del sábado tiene costo?», «¿tiene algún costo la sesión?», «¿cuánto dura la

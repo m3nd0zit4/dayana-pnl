@@ -84,6 +84,67 @@ export const flowState = (
   return state;
 };
 
+/** Un «sí» a la invitación: también «Excelente», «si porfavor», «me interesa», «perfecto». */
+const SAYS_YES =
+  /^(si|sii+|claro|dale|de una|ok|okay|okey|vale|bueno|listo|perfecto|excelente|exelente|genial|me parece|de acuerdo|por supuesto|con gusto|me encantaria|esta bien|obvio)\b|\b(si (quiero|deseo|me gustaria|por favor|porfavor|claro|me interesa)|(quiero|deseo|me gustaria|me encantaria) (la llamada|agendar|que me llame|hablar con)|me interesa)\b/;
+/** Lo que le pregunta la asistente camino a las horas: el país, la ciudad, el nombre, qué día o franja prefiere. */
+const FLOW_QUESTION = /\b(pais|ciudad|con quien tengo el gusto|(que|cual(es)?) (dia|dias|horario|horarios|hora|franja)|prefieres|te queda mejor|te sirve mejor)\b/;
+/** Ya tiene horas (la lista del código, «en tu hora / en Colombia») o la cita. */
+const HOURS_GIVEN = /\b(tu hora|en colombia|hora de colombia|cual de estas|quedo para|queda para|ya esta agendada)\b|\b[ap]\. ?m\./;
+
+/**
+ * Dijo que sí a la llamada gratis y todavía no le llegaron horas (Moi, Belén,
+ * Ana, 21–26 oct): a «Exelente» la asistente le preguntó «¿qué días o en qué
+ * horario prefieres?», a «si porfavor» el país y la ciudad tres veces, y nunca
+ * usó offer_free_call_slots. Desde la última invitación: un sí suyo sin un «no»
+ * después, ninguna hora nuestra, y lo último nuestro es la invitación o una
+ * pregunta del camino (país, ciudad, qué día). Lo que escribió ahora no es un «no».
+ */
+export const acceptedCallWithoutHours = (lines: FlowLine[]): boolean => {
+  let end = lines.length;
+  while (end > 0 && lines[end - 1].direction === "INBOUND") end--;
+  const burst = lines.slice(end).map((l) => foldForSearch(l.body ?? "")).filter(Boolean);
+  if (!burst.length || end === 0) return false;
+  if (burst.some((t) => DECLINE.test(t))) return false;
+  // Hacia atrás por nuestros mensajes del camino (invitación, país, ciudad, qué día):
+  // la primera invitación de ese tramo. Las preguntas también dicen «llamada gratis».
+  let invite = -1;
+  for (let i = end - 1; i >= 0; i--) {
+    if (lines[i].direction === "INBOUND") continue;
+    const text = foldForSearch(lines[i].body ?? "");
+    if (!text) continue;
+    if (HOURS_GIVEN.test(text)) return false;
+    if (INVITE.test(text)) invite = i;
+    else if (!FLOW_QUESTION.test(text)) break;
+  }
+  if (invite < 0) return false;
+  let yes = false;
+  for (const line of lines.slice(invite + 1)) {
+    const text = foldForSearch(line.body ?? "");
+    if (!text || line.direction === "OUTBOUND") continue;
+    if (DECLINE.test(text)) {
+      yes = false;
+    } else if (SAYS_YES.test(text.replace(/[,.!¡¿?]+/g, " ").trim())) {
+      yes = true;
+    }
+  }
+  return yes;
+};
+
+/**
+ * Lo que va encima de las horas que buscó el código cuando el modelo no las
+ * buscó: su frase sin lo que pregunta (qué día, qué franja, el país: la lista ya
+ * responde) y nada si queda casi vacía (Ana, 26-oct: «Ciudad de México», solo).
+ */
+export const leadBeforeHours = (text: string): string => {
+  const kept = text
+    .split(/(?<=[.!?])\s+|\n+/)
+    .filter((s) => !/[?¿]/.test(s) && !/\b(dime|cuentame|indicame|escribeme)\b/.test(foldForSearch(s)) && !FLOW_QUESTION.test(foldForSearch(s)))
+    .join(" ")
+    .trim();
+  return kept.split(/\s+/).filter(Boolean).length >= 3 ? kept : "";
+};
+
 /** El siguiente paso del flujo según lo que ya se hizo. */
 export const nextStep = (s: FlowState): string => {
   if (s.declined) return "dijo que no o que después: no insistas; despídete con calidez y deja la puerta abierta";

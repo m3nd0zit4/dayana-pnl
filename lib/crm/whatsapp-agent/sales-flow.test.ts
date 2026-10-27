@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { defaultWhatsAppAiConfig } from "../whatsapp-ai-config";
-import { flowState, flowStateText, nextStep, salesFlowRules, type FlowLine } from "./sales-flow";
+import { acceptedCallWithoutHours, flowState, flowStateText, nextStep, salesFlowRules, type FlowLine } from "./sales-flow";
 
 const inb = (body: string): FlowLine => ({ direction: "INBOUND", body });
 const out = (body: string): FlowLine => ({ direction: "OUTBOUND", body });
@@ -83,5 +83,52 @@ describe("salesFlowRules", () => {
 
   test("sin agendar sola: queda para que Dayana confirme", () => {
     expect(salesFlowRules(defaultWhatsAppAiConfig(), { autoBook: false })).toContain("le confirmamos la hora");
+  });
+});
+
+describe("acceptedCallWithoutHours (Moi, Belén, Ana, 21–26 oct: dijeron que sí y nunca les llegaron horas)", () => {
+  const INVITE = "Si quieres, te agendo una llamada gratis de 15 minutos con Dayana, sin costo ni compromiso. Ella te escucha y te dice cómo te puede ayudar.";
+
+  test("Moi: «Exelente» + «Gracias» a la invitación", () => {
+    expect(acceptedCallWithoutHours([out("¿Cuánto tiempo más quieres seguir así?"), inb("Ya no lo quiero"), out(INVITE), inb("Exelente"), inb("Gracias")])).toBe(true);
+  });
+
+  test("Belén: «Si, pero si podria ser privada, no en un live»", () => {
+    expect(acceptedCallWithoutHours([out(`${INVITE} ¿Qué te parece?`), inb("Si, pero si podria ser privada, no en un live")])).toBe(true);
+  });
+
+  test("Ana: «si porfavor» y la asistente le pregunta el país y la ciudad", () => {
+    const lines = [
+      out("Para darte toda la información, si gustas agendamos una llamada gratis de 15 minutos con Dayana sin costo ni compromiso. ¿Desde qué país nos escribes?"),
+      inb("si porfavor"),
+      out("Qué alegría. Cuéntame, ¿desde qué país y ciudad nos escribes para agendar tu llamada?"),
+      inb("soy colombiana mi nombre es Ana botello"),
+    ];
+    expect(acceptedCallWithoutHours(lines)).toBe(true);
+    expect(
+      acceptedCallWithoutHours([...lines, out("Gracias, Ana. ¿En qué ciudad de México te encuentras para agendar tu llamada gratis con Dayana?"), inb("cuidad de México")])
+    ).toBe(true);
+  });
+
+  test("ya le llegaron horas o ya quedó agendada: no", () => {
+    const offer = "Con gusto, estas son las horas libres de Dayana:\n\n1. jueves 29 de octubre, 3:00 p. m. (tu hora)\n2. viernes 30, 9:00 a. m.\n\n¿Cuál de estas te queda mejor?";
+    expect(acceptedCallWithoutHours([out(INVITE), inb("Sí"), out(offer), inb("Gracias")])).toBe(false);
+    expect(acceptedCallWithoutHours([out(INVITE), inb("Sí"), out("Listo. Tu llamada gratis con Dayana quedó para el jueves 29 de octubre, 3:00 p. m."), inb("Gracias")])).toBe(false);
+  });
+
+  test("dijo que no, o todavía no contestó la invitación: no", () => {
+    expect(acceptedCallWithoutHours([out(INVITE), inb("No por ahora, gracias")])).toBe(false);
+    expect(acceptedCallWithoutHours([out(INVITE), inb("Sí"), out("¿Desde qué país me escribes?"), inb("Mejor más adelante")])).toBe(false);
+    expect(acceptedCallWithoutHours([out(INVITE), inb("¿Y eso cuánto cuesta?")])).toBe(false);
+  });
+
+  test("la conversación siguió en otra cosa (lo último nuestro no es del camino a las horas): no", () => {
+    expect(
+      acceptedCallWithoutHours([out(INVITE), inb("Sí"), out("Claro, el taller es el 15 de noviembre y lo da Dayana en vivo."), inb("Gracias")])
+    ).toBe(false);
+  });
+
+  test("sin invitación: no", () => {
+    expect(acceptedCallWithoutHours([out("Hola, te bendigo. Soy la asistente de Dayana. ¿Cómo estás?"), inb("Sí, bien")])).toBe(false);
   });
 });

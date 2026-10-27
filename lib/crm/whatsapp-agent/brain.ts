@@ -23,7 +23,7 @@ import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
-import { flowState, flowStateText, salesFlowRules } from "./sales-flow";
+import { acceptedCallWithoutHours, flowState, flowStateText, leadBeforeHours, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, asksToJoinCommunity, COMMUNITY_REPLY, communityLink, communityRules } from "./community";
 import { spendLimits } from "./spend";
 import {
@@ -1298,6 +1298,74 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       : {}),
   };
 
+  // Las horas de la llamada gratis: la herramienta y, si el modelo no la usó después de un
+  // «sí» a la llamada, el código (`acceptedCallWithoutHours`, Moi / Belén / Ana, 21–26 oct).
+  type OfferArgs = { dias?: string[]; noPuede?: string[]; franja?: "mañana" | "tarde" | "noche"; desde?: string };
+  const offerSlots = async (args: OfferArgs) => {
+    if (guestEvent) return log("offer_free_call_slots", args, { error: GUEST_NO_FREE_CALL });
+    // Sin zona guardada: la que se deduce del chat y del número (Sophie y
+    // «💙💙💜🩷», 16-oct: dijeron «Desde colombia» / «De la CDMX», la IA no
+    // guardó el país, la agenda falló y ella inventó horas).
+    const inferred = personTz() ? null : inferPersonZone(input.phone, input.transcript);
+    if (inferred) {
+      state.country = { iso: inferred.iso, city: inferred.city, timezone: inferred.timezone, needsCity: false };
+      // En la ficha, como save_country: la próxima vuelta (y el freno de
+      // promesas) ya sabe su hora (Raquel, 19-oct, «España» sin guardar).
+      if (input.mode === "live" && input.conversationId) {
+        await prisma.whatsAppDossier
+          .upsert({
+            where: { conversationId: input.conversationId },
+            create: { conversationId: input.conversationId, countryIso: inferred.iso, timezone: inferred.timezone },
+            update: { countryIso: inferred.iso, timezone: inferred.timezone },
+          })
+          .catch(() => undefined);
+      }
+    }
+    const tz = personTz();
+    if (!tz) {
+      return log("offer_free_call_slots", {}, {
+        error:
+          "Aún no tienes su zona horaria. Si ya dijo su país o su ciudad en la conversación («De la CDMX», «soy de Medellín»), usa save_country con eso y vuelve a llamar esta herramienta; si no lo dijo, pregúntaselo («¿Desde qué país me escribes?»). Mientras esta herramienta no te dé horas, NO escribas ningún horario.",
+      });
+    }
+    // México, Estados Unidos, Brasil…: sin la ciudad la hora puede
+    // estar mal. Primero la ciudad (un mensaje solo con esa pregunta).
+    if (state.country?.needsCity) {
+      return log("offer_free_call_slots", {}, {
+        error: "Ese país tiene varias horas: tu mensaje ahora es SOLO preguntarle en qué ciudad está (sin horarios). Cuando la diga, save_country con la ciudad y después offer_free_call_slots.",
+      });
+    }
+    try {
+      // Una franja que la persona nunca dijo no limita las horas.
+      const said = saidPartOfDay(input.transcript.filter((l) => l.direction === "INBOUND").map((l) => l.body));
+      const wish = wishFromWords(said ? args : { ...args, franja: undefined }, tz, now);
+      const { options, matchedWish, closest } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
+      if (options.length === 0) {
+        return log("offer_free_call_slots", args, {
+          error: "No hay horas libres en los próximos días. Dile con calidez que Dayana le escribe para buscar un espacio y escala con category=other.",
+        });
+      }
+      options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
+      // La lista la pega el código (numerada, en este orden): «la 2» es esta 2.
+      state.slotOffer = { options, matchedWish: matchedWish ?? null };
+      // No se pudo mover y le ofrece otras: esas sí van.
+      if (state.keepsCall === "moveFailed") state.keepsCall = null;
+      return log("offer_free_call_slots", args, {
+        ok: true,
+        options,
+        note:
+          matchedWish === false
+            ? `En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Estas horas (${CLOSEST_NOTE[closest ?? "any"]}) las pega el código debajo de tu mensaje, numeradas, con la pregunta: tú escribe solo una frase corta y cálida diciéndole que en lo que pidió no hay espacio, SIN horas, días ni pregunta. Si después ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other.`
+            : "Estas horas las pega el código debajo de tu mensaje, numeradas, con la pregunta. Tú escribe solo una frase corta antes (p. ej. «Con gusto, estas son las horas libres de Dayana:»), SIN horas, días ni pregunta. Cuando elija, usa book_free_call con el startIso de esa hora (o option = su número en la lista).",
+      });
+    } catch (e) {
+      return log("offer_free_call_slots", args, {
+        error: "No pude leer la agenda de Dayana. Escala con category=unknown.",
+        detail: e instanceof Error ? e.message : String(e),
+      });
+    }
+  };
+
   const tools = {
     confirm_appointment: tool({
       description:
@@ -1477,70 +1545,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               franja: z.enum(["mañana", "tarde", "noche"]).optional().describe("Si dijo en la mañana, en la tarde o en la noche."),
               desde: z.string().optional().describe("AAAA-MM-DD si dijo «desde el…», «la otra semana» (el lunes que viene)."),
             }),
-            execute: async (args) => {
-              if (guestEvent) return log("offer_free_call_slots", args, { error: GUEST_NO_FREE_CALL });
-              // Sin zona guardada: la que se deduce del chat y del número (Sophie y
-              // «💙💙💜🩷», 16-oct: dijeron «Desde colombia» / «De la CDMX», la IA no
-              // guardó el país, la agenda falló y ella inventó horas).
-              const inferred = personTz() ? null : inferPersonZone(input.phone, input.transcript);
-              if (inferred) {
-                state.country = { iso: inferred.iso, city: inferred.city, timezone: inferred.timezone, needsCity: false };
-                // En la ficha, como save_country: la próxima vuelta (y el freno de
-                // promesas) ya sabe su hora (Raquel, 19-oct, «España» sin guardar).
-                if (input.mode === "live" && input.conversationId) {
-                  await prisma.whatsAppDossier
-                    .upsert({
-                      where: { conversationId: input.conversationId },
-                      create: { conversationId: input.conversationId, countryIso: inferred.iso, timezone: inferred.timezone },
-                      update: { countryIso: inferred.iso, timezone: inferred.timezone },
-                    })
-                    .catch(() => undefined);
-                }
-              }
-              const tz = personTz();
-              if (!tz) {
-                return log("offer_free_call_slots", {}, {
-                  error:
-                    "Aún no tienes su zona horaria. Si ya dijo su país o su ciudad en la conversación («De la CDMX», «soy de Medellín»), usa save_country con eso y vuelve a llamar esta herramienta; si no lo dijo, pregúntaselo («¿Desde qué país me escribes?»). Mientras esta herramienta no te dé horas, NO escribas ningún horario.",
-                });
-              }
-              // México, Estados Unidos, Brasil…: sin la ciudad la hora puede
-              // estar mal. Primero la ciudad (un mensaje solo con esa pregunta).
-              if (state.country?.needsCity) {
-                return log("offer_free_call_slots", {}, {
-                  error: "Ese país tiene varias horas: tu mensaje ahora es SOLO preguntarle en qué ciudad está (sin horarios). Cuando la diga, save_country con la ciudad y después offer_free_call_slots.",
-                });
-              }
-              try {
-                // Una franja que la persona nunca dijo no limita las horas.
-                const said = saidPartOfDay(input.transcript.filter((l) => l.direction === "INBOUND").map((l) => l.body));
-                const wish = wishFromWords(said ? args : { ...args, franja: undefined }, tz, now);
-                const { options, matchedWish, closest } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
-                if (options.length === 0) {
-                  return log("offer_free_call_slots", args, {
-                    error: "No hay horas libres en los próximos días. Dile con calidez que Dayana le escribe para buscar un espacio y escala con category=other.",
-                  });
-                }
-                options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
-                // La lista la pega el código (numerada, en este orden): «la 2» es esta 2.
-                state.slotOffer = { options, matchedWish: matchedWish ?? null };
-                // No se pudo mover y le ofrece otras: esas sí van.
-                if (state.keepsCall === "moveFailed") state.keepsCall = null;
-                return log("offer_free_call_slots", args, {
-                  ok: true,
-                  options,
-                  note:
-                    matchedWish === false
-                      ? `En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Estas horas (${CLOSEST_NOTE[closest ?? "any"]}) las pega el código debajo de tu mensaje, numeradas, con la pregunta: tú escribe solo una frase corta y cálida diciéndole que en lo que pidió no hay espacio, SIN horas, días ni pregunta. Si después ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other.`
-                      : "Estas horas las pega el código debajo de tu mensaje, numeradas, con la pregunta. Tú escribe solo una frase corta antes (p. ej. «Con gusto, estas son las horas libres de Dayana:»), SIN horas, días ni pregunta. Cuando elija, usa book_free_call con el startIso de esa hora (o option = su número en la lista).",
-                });
-              } catch (e) {
-                return log("offer_free_call_slots", args, {
-                  error: "No pude leer la agenda de Dayana. Escala con category=unknown.",
-                  detail: e instanceof Error ? e.message : String(e),
-                });
-              }
-            },
+            execute: offerSlots,
           }),
           book_free_call: tool({
             description:
@@ -2513,6 +2518,41 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     const pack = attached ? (/\/therapy-\d+/i.test(attached.url) ? attached.label : null) : state.paymentLink ? null : quotePack;
     return withQuoteReminder(text, pack);
   };
+  // Dijo que sí a la llamada gratis y el modelo le preguntó qué día prefiere, o el país
+  // otra vez, sin buscar horas (Moi, Belén, Ana, 21–26 oct: nunca les llegaron). Las
+  // busca el código, como la herramienta (con los días o la franja que dijo ahora), y
+  // la lista va debajo de su frase. Si la agenda no da horas (sin zona, falta la
+  // ciudad), queda la respuesta del modelo.
+  let autoOffered = false;
+  if (
+    outcome === modelOutcome &&
+    outcome.kind === "reply" &&
+    salesOn &&
+    !guestEvent &&
+    !upcomingCall &&
+    !serious &&
+    !workshopSpot &&
+    !state.slotOffer &&
+    !state.booking &&
+    !state.pendingBooking &&
+    !state.bookingNotice &&
+    !state.bookingRequest &&
+    !state.keepsCall &&
+    !state.urgentSession &&
+    !state.receipt &&
+    !toolCalls.some((c) => c.tool === "offer_free_call_slots" || c.tool === "book_free_call") &&
+    acceptedCallWithoutHours(input.transcript)
+  ) {
+    const said = foldForSearch(lastInbound.join(" "));
+    const dias = /\bno\b/.test(said) ? [] : (said.match(/\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo|hoy)\b/g) ?? []);
+    const part = said.match(/\b(?:en|por|de|a) la (manana|tarde|noche)\b/)?.[1];
+    const franja = part === "manana" ? "mañana" : part === "tarde" || part === "noche" ? part : undefined;
+    await offerSlots({ ...(dias.length ? { dias } : {}), ...(franja ? { franja } : {}) });
+    autoOffered = Boolean(state.slotOffer);
+    // En el rastro, como la herramienta (con sus horas: «2» se agenda igual), marcada como del código.
+    const entry = toolCalls.at(-1);
+    if (entry?.tool === "offer_free_call_slots") entry.input = { ...(entry.input as object), auto: true };
+  }
   // Agendada o movida: la confirmación del código, con la hora de la reserva.
   // Horas ofrecidas: la frase del modelo y debajo la lista numerada del código.
   // (No se vuelve a listar horas si en esta vuelta agendar dijo que ya tiene
@@ -2521,7 +2561,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     state.bookingNotice
       ? state.bookingNotice.text
       : state.slotOffer && !state.booking && !state.pendingBooking && !state.keepsCall
-        ? offerMessage(text, state.slotOffer.options, state.slotOffer.matchedWish)
+        ? offerMessage(autoOffered ? leadBeforeHours(text) : text, state.slotOffer.options, state.slotOffer.matchedWish)
         : text;
   // Preguntó por el taller y contesta el modelo: siempre «abierto» y la llamada
   // para inscribirse (dueña, 24-oct; el modelo daba la información y se las saltaba);

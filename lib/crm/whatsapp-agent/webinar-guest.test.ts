@@ -53,6 +53,9 @@ describe("asksForProcess", () => {
     "¿Cómo trabaja Dayana?",
     "¿En qué consiste tu método?",
     "Necesito sanar la relación con mi madre",
+    // Gueiby, 24-oct: el código le cambió la llamada por «Te esperamos el domingo».
+    "Cual es el costo de una secion",
+    "me gustaria una evalucion para mi hijo",
   ])("pide algo personal: %s", (text) => {
     expect(asksForProcess(text)).toBe(true);
   });
@@ -93,6 +96,8 @@ describe("asksForProcess", () => {
     "¿En qué consiste la sesión?",
     "Gracias por el valor de esta sesión tan linda",
     "Quiero salir de la duda, ¿a qué hora es?",
+    "Ya hice la autoevaluación",
+    "¿La secion del domingo tiene costo?",
   ])("no pide nada personal: %s", (text) => {
     expect(asksForProcess(text)).toBe(false);
   });
