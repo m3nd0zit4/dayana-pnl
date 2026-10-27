@@ -1,13 +1,21 @@
 import { describe, expect, test } from "bun:test";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { settingsHubGroups, settingsNavGroups } from "../../app/config/settings-hub";
 import { WHATSAPP_SETTINGS } from "./whatsapp-settings-registry";
-import { searchSettingsHub } from "./settings-hub";
+import { hubCardGroups, searchSettingsHub, type SettingsHubGroup } from "./settings-hub";
 
 const owner = { isOwner: true } as const;
 const staff = { isOwner: false } as const;
 const find = (query: string, who: { isOwner: boolean } = owner) =>
   searchSettingsHub(settingsHubGroups, query, who);
+
+/** El archivo de la página a la que lleva un enlace de `/admin/...`. */
+const pageFileFor = (href: string): string => {
+  const path = href.split("#")[0].split("?")[0].replace(/^\/admin\//, "");
+  return join(process.cwd(), "app", "admin", "(panel)", ...path.split("/"), "page.tsx");
+};
 
 describe("centro de ajustes: estructura", () => {
   test("ids de grupo y de entrada únicos", () => {
@@ -17,15 +25,32 @@ describe("centro de ajustes: estructura", () => {
     expect(new Set(itemIds).size).toBe(itemIds.length);
   });
 
-  test("todo lleva a una página del CRM", () => {
+  test("cada enlace lleva a una página que existe, y cada ancla existe en ella", () => {
     for (const item of settingsHubGroups.flatMap((g) => g.items)) {
       expect(item.href.startsWith("/admin/")).toBe(true);
+      const file = pageFileFor(item.href);
+      expect(existsSync(file)).toBe(true);
+      const anchor = item.href.split("#")[1];
+      if (anchor) {
+        expect(readFileSync(file, "utf8")).toContain(`id="${anchor}"`);
+      }
     }
   });
 
-  test("cualquier rol ve «Mi cuenta»; el resto es del dueño", () => {
+  test("cualquier rol ve «Mi cuenta» y lo que solo se busca; el resto es del dueño", () => {
     const visibleToStaff = settingsHubGroups.filter((g) => !g.ownerOnly).map((g) => g.id);
-    expect(visibleToStaff).toEqual(["cuenta"]);
+    expect(visibleToStaff).toEqual(["cuenta", "en-su-pantalla"]);
+  });
+
+  test("los grupos «solo búsqueda» no tienen tarjeta ni salen en el menú lateral", () => {
+    const searchOnly = settingsHubGroups.filter((g) => g.searchOnly);
+    expect(searchOnly.length).toBeGreaterThan(0);
+    const cardIds = hubCardGroups(settingsHubGroups).map((g) => g.id);
+    const navLabels = settingsNavGroups(true).map((g) => g.label);
+    for (const group of searchOnly) {
+      expect(cardIds).not.toContain(group.id);
+      expect(navLabels).not.toContain(group.title);
+    }
   });
 
   test("el menú lateral no repite los atajos a secciones de otra página", () => {
@@ -62,9 +87,11 @@ describe("centro de ajustes: estructura", () => {
 });
 
 describe("centro de ajustes: buscador", () => {
-  test("vacío o solo espacios no devuelve nada", () => {
+  test("vacío, solo espacios o una sola letra no devuelven nada", () => {
     expect(find("")).toEqual([]);
     expect(find("   ")).toEqual([]);
+    expect(find("a")).toEqual([]);
+    expect(find("?")).toEqual([]);
   });
 
   test("encuentra la página por lo que se cambia ahí", () => {
@@ -76,18 +103,67 @@ describe("centro de ajustes: buscador", () => {
     expect(find("tiktok")[0]?.href).toBe("/admin/ajustes/integraciones#redes-sociales");
   });
 
-  test("no distingue tildes ni mayúsculas", () => {
+  test("no distingue tildes, mayúsculas ni signos", () => {
     expect(find("CONTRASEÑA")[0]?.href).toBe("/admin/ajustes/seguridad");
     expect(find("contrasena")[0]?.href).toBe("/admin/ajustes/seguridad");
     expect(find("Buzon")[0]?.href).toBe("/admin/ajustes/notificaciones");
+    expect(find("contraseña?")[0]?.href).toBe("/admin/ajustes/seguridad");
+    expect(find("¿zona horaria?")[0]?.href).toBe("/admin/ajustes/general");
   });
 
-  test("lo que coincide en la etiqueta va primero", () => {
-    const hits = find("google");
-    expect(hits[0]?.label).toContain("Google");
+  test("encuentra lo que se cambia en su propia pantalla", () => {
+    expect(find("mensajes rápidos")[0]?.href).toBe("/admin/messages");
+    expect(find("precios")[0]?.href).toBe("/admin/products");
+    expect(find("descuento")[0]?.href).toBe("/admin/promo-codes");
   });
 
-  test("encuentra también los ajustes sueltos de WhatsApp, con su pestaña y su id", () => {
+  test("lo que coincide en la etiqueta va antes que lo que solo coincide en la pista", () => {
+    const groups: SettingsHubGroup[] = [
+      {
+        id: "a",
+        title: "A",
+        purpose: "",
+        items: [
+          { id: "solo-pista", label: "Otra cosa", hint: "aquí se cambian los horarios", href: "/admin/a", keywords: [] },
+        ],
+      },
+      {
+        id: "b",
+        title: "B",
+        purpose: "",
+        items: [{ id: "en-etiqueta", label: "Horarios", href: "/admin/b", keywords: [] }],
+      },
+    ];
+    // Sin ser dueño no entran los ajustes de WhatsApp: la comparación es exacta.
+    const hits = searchSettingsHub(groups, "horarios", { isOwner: false });
+    expect(hits.map((h) => h.id)).toEqual(["en-etiqueta", "solo-pista"]);
+  });
+
+  test("a igualdad de etiqueta, la página va antes que el ajuste suelto de WhatsApp", () => {
+    const groups: SettingsHubGroup[] = [
+      {
+        id: "a",
+        title: "A",
+        purpose: "",
+        items: [{ id: "pagina", label: WHATSAPP_SETTINGS[0].label, href: "/admin/a", keywords: [] }],
+      },
+    ];
+    const hits = searchSettingsHub(groups, WHATSAPP_SETTINGS[0].label, { isOwner: true });
+    expect(hits[0]?.id).toBe("pagina");
+    expect(hits.some((h) => h.id === WHATSAPP_SETTINGS[0].id)).toBe(true);
+  });
+
+  test("«citas», «horarios» y «plantillas» llevan a un ajuste concreto de WhatsApp, no a la página general", () => {
+    // Enter abre el primer resultado: tiene que ser el ajuste, no «Asistente de WhatsApp».
+    expect(find("citas")[0]?.href.startsWith("/admin/whatsapp/ajustes?tab=citas&ajuste=")).toBe(true);
+    for (const query of ["horarios", "plantillas"]) {
+      const first = find(query)[0];
+      expect(first?.href.startsWith("/admin/whatsapp/ajustes?tab=")).toBe(true);
+      expect(first?.href).toContain("&ajuste=");
+    }
+  });
+
+  test("encuentra los ajustes sueltos de WhatsApp, con su pestaña y su id", () => {
     const entry = WHATSAPP_SETTINGS.find((e) => e.tab === "citas");
     expect(entry).toBeDefined();
     const hits = find(entry!.label);
@@ -103,8 +179,9 @@ describe("centro de ajustes: buscador", () => {
     expect(find("roles", staff)).toEqual([]);
     const entry = WHATSAPP_SETTINGS[0];
     expect(find(entry.label, staff).some((h) => h.href.startsWith("/admin/whatsapp"))).toBe(false);
-    // Pero sí lo suyo.
+    // Pero sí lo suyo y lo que se cambia en su pantalla.
     expect(find("contraseña", staff)[0]?.href).toBe("/admin/ajustes/seguridad");
+    expect(find("mensajes rápidos", staff)[0]?.href).toBe("/admin/messages");
   });
 
   test("palabra sin coincidencias: nada", () => {
@@ -112,7 +189,7 @@ describe("centro de ajustes: buscador", () => {
   });
 
   test("respeta el límite", () => {
-    expect(searchSettingsHub(settingsHubGroups, "a", { isOwner: true, limit: 3 }).length).toBeLessThanOrEqual(3);
+    expect(searchSettingsHub(settingsHubGroups, "en", { isOwner: true, limit: 3 })).toHaveLength(3);
   });
 
   test("todas las palabras tienen que coincidir", () => {

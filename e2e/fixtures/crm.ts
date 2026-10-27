@@ -15,7 +15,7 @@ const IGNORED_CONSOLE = [
   "Source map error",
   // El canal HMR del dev server. Chromium bajo Playwright no completa el
   // handshake y reintenta en bucle. Es andamiaje de desarrollo: no existe en
-  // producción y no dice nada de la página. Sin esto las 16 rutas fallan por
+  // producción y no dice nada de la página. Sin esto las rutas de preview fallan por
   // el mismo motivo y el smoke no informa de nada.
   "_next/webpack-hmr",
   "_next/turbopack-hmr",

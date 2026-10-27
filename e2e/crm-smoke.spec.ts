@@ -3,7 +3,7 @@ import { previewRoutes } from "./routes";
 
 /**
  * Smoke: la ruta carga y no explota. Nada de esto depende del contrato de UX,
- * así que corre desde el primer día sobre las 16 rutas de preview.
+ * así que corre desde el primer día sobre las rutas de preview.
  */
 test.describe("CRM · smoke", () => {
   for (const route of previewRoutes) {

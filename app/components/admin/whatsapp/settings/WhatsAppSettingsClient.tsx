@@ -83,6 +83,9 @@ const WhatsAppSettingsClient = ({
     setTabState(next);
     const url = new URL(window.location.href);
     url.searchParams.set("tab", next);
+    // Si venía de un enlace a un ajuste, al cambiar de pestaña ya no es esa:
+    // recargar con `ajuste=` devolvería a la pestaña de origen.
+    url.searchParams.delete("ajuste");
     window.history.replaceState(window.history.state, "", url);
   }, []);
 

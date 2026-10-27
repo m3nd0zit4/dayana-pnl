@@ -3,11 +3,15 @@
 import { ChevronRight, Search, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useId, useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
-import { searchSettingsHub, type SettingsHubGroup } from "@/lib/crm/settings-hub";
+import { hubCardGroups, searchSettingsHub, type SettingsHubGroup } from "@/lib/crm/settings-hub";
+import { cn } from "@/lib/utils";
+
+/** Con menos letras no se busca: una sola coincide con casi todo. */
+const MIN_QUERY = 2;
 
 /**
  * Índice de `/admin/ajustes`: todo lo que se configura, agrupado por para qué
@@ -15,13 +19,15 @@ import { searchSettingsHub, type SettingsHubGroup } from "@/lib/crm/settings-hub
  * WhatsApp, uno por uno).
  *
  * No guarda nada: cada entrada lleva a la página donde ya vive el ajuste. Quien
- * no sabe en qué grupo está lo que busca, lo escribe.
+ * no sabe en qué grupo está lo que busca, lo escribe; Enter abre el primer
+ * resultado, que va marcado.
  */
 const SettingsHub = ({ groups, isOwner }: { groups: SettingsHubGroup[]; isOwner: boolean }) => {
   const router = useRouter();
   const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
-  const searching = query.trim().length > 0;
+  const searching = query.trim().length >= MIN_QUERY;
   const results = useMemo(
     () => searchSettingsHub(groups, query, { isOwner, limit: 12 }),
     [groups, query, isOwner]
@@ -39,14 +45,20 @@ const SettingsHub = ({ groups, isOwner }: { groups: SettingsHubGroup[]; isOwner:
         />
         <Input
           id={inputId}
+          ref={inputRef}
           type="search"
           autoComplete="off"
-          placeholder="Buscar un ajuste: zona horaria, correo, citas, contraseña…"
+          placeholder={
+            isOwner
+              ? "Buscar un ajuste: zona horaria, correo, citas, contraseña…"
+              : "Buscar un ajuste: contraseña, foto, avisos…"
+          }
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Escape") setQuery("");
-            else if (e.key === "Enter" && results[0]) {
+            // Con un acento o un teclado IME a medias, Enter confirma la letra: no navega.
+            else if (e.key === "Enter" && !e.nativeEvent.isComposing && searching && results[0]) {
               e.preventDefault();
               router.push(results[0].href);
             }
@@ -57,7 +69,10 @@ const SettingsHub = ({ groups, isOwner }: { groups: SettingsHubGroup[]; isOwner:
           <button
             type="button"
             aria-label="Borrar búsqueda"
-            onClick={() => setQuery("")}
+            onClick={() => {
+              setQuery("");
+              inputRef.current?.focus();
+            }}
             className="absolute top-1/2 right-3 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:text-foreground"
           >
             <X className="size-4" />
@@ -66,7 +81,7 @@ const SettingsHub = ({ groups, isOwner }: { groups: SettingsHubGroup[]; isOwner:
       </div>
 
       <p className="sr-only" role="status">
-        {searching ? `${results.length} resultados` : ""}
+        {searching ? `${results.length} ${results.length === 1 ? "resultado" : "resultados"}` : ""}
       </p>
 
       {searching ? (
@@ -78,11 +93,15 @@ const SettingsHub = ({ groups, isOwner }: { groups: SettingsHubGroup[]; isOwner:
           <Card>
             <CardContent className="p-0">
               <ul className="divide-y">
-                {results.map((hit) => (
+                {results.map((hit, index) => (
                   <li key={`${hit.where}-${hit.id}`}>
                     <Link
                       href={hit.href}
-                      className="flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+                      className={cn(
+                        "flex items-center justify-between gap-3 px-4 py-3 text-sm transition-colors hover:bg-accent hover:text-accent-foreground",
+                        // El que abre Enter.
+                        index === 0 && "bg-accent/50"
+                      )}
                     >
                       <span className="min-w-0 truncate font-medium">{hit.label}</span>
                       <span className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
@@ -98,7 +117,7 @@ const SettingsHub = ({ groups, isOwner }: { groups: SettingsHubGroup[]; isOwner:
         )
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {groups.map((group) => (
+          {hubCardGroups(groups).map((group) => (
             <Card key={group.id}>
               <CardHeader>
                 <CardTitle>{group.title}</CardTitle>

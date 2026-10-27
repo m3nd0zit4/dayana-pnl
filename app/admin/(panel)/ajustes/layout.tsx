@@ -33,7 +33,7 @@ const AjustesLayout = async ({ children }: { children: React.ReactNode }) => {
         title="Ajustes"
         description={
           isOwner
-            ? "Todo lo que se configura, agrupado por para qué sirve. Si buscas algo, escríbelo."
+            ? "Tu cuenta y la configuración global de la plataforma."
             : "Tu perfil, tu seguridad y tus notificaciones."
         }
       />

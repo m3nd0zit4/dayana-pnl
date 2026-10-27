@@ -8,7 +8,8 @@ import type { SettingsHubGroup } from "@/lib/crm/settings-hub";
  *
  * Una entrada no mueve nada: lleva a la página donde ya vive el ajuste. Lo que
  * se usa a diario (mensajes rápidos, precios, enlaces de pago) se queda junto a
- * su función y no está aquí.
+ * su función: no tiene tarjeta aquí (`searchOnly`), solo se encuentra con el
+ * buscador.
  *
  * Los grupos con `ownerOnly` no se pintan a quien no administra el equipo. Es
  * cosmético: cada página y cada endpoint vuelve a exigir el rol por su cuenta.
@@ -190,6 +191,51 @@ export const settingsHubGroups: SettingsHubGroup[] = [
       },
     ],
   },
+  {
+    // Lo que se usa a diario vive junto a su función y no tiene tarjeta aquí,
+    // pero quien lo busca en Ajustes lo encuentra escribiéndolo.
+    id: "en-su-pantalla",
+    title: "En su propia pantalla",
+    purpose: "Lo que se usa a diario vive junto a su función.",
+    searchOnly: true,
+    items: [
+      {
+        id: "mensajes-rapidos",
+        label: "Mensajes rápidos",
+        hint: "Textos para escribirle a la gente, por WhatsApp o correo",
+        href: "/admin/messages",
+        keywords: ["plantillas", "textos", "respuestas", "copiar", "pegar", "mensajes"],
+      },
+      {
+        id: "paquetes",
+        label: "Paquetes y precios",
+        hint: "Qué se vende y cuánto cuesta",
+        href: "/admin/products",
+        keywords: ["precio", "precios", "paquete", "terapia", "taller", "curso", "tarifa", "valor", "cuánto cuesta"],
+      },
+      {
+        id: "codigos",
+        label: "Códigos promocionales",
+        hint: "Descuentos",
+        href: "/admin/promo-codes",
+        keywords: ["descuento", "cupón", "promo", "código"],
+      },
+      {
+        id: "palabras-clave",
+        label: "Palabras clave",
+        hint: "«Comenta ÉXITO» y el material que se manda",
+        href: "/admin/palabras-clave",
+        keywords: ["comenta", "material", "video", "respuesta lista"],
+      },
+      {
+        id: "enlaces-pago",
+        label: "Enlaces de pago",
+        hint: "Cobrar a una persona con un monto libre o un paquete",
+        href: "/admin/enlaces-pago",
+        keywords: ["cobrar", "link", "monto libre", "pago"],
+      },
+    ],
+  },
 ];
 
 /**
@@ -199,7 +245,7 @@ export const settingsHubGroups: SettingsHubGroup[] = [
  */
 export const settingsNavGroups = (isOwner: boolean): SettingsNavGroup[] =>
   settingsHubGroups
-    .filter((group) => !group.ownerOnly || isOwner)
+    .filter((group) => !group.searchOnly && (!group.ownerOnly || isOwner))
     .map((group) => ({
       label: group.title,
       items: group.items
