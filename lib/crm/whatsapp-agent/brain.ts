@@ -23,7 +23,7 @@ import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
 import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
-import { acceptedCallWithoutHours, flowState, flowStateText, leadBeforeHours, salesFlowRules } from "./sales-flow";
+import { acceptedCallWithoutHours, availabilityArgs, flowState, flowStateText, leadBeforeHours, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, asksToJoinCommunity, COMMUNITY_REPLY, communityLink, communityRules } from "./community";
 import { spendLimits } from "./spend";
 import {
@@ -858,6 +858,12 @@ export type BrainInput = {
   /** Mensajes viejos del mismo chat que tocan lo que acaba de escribir (`context.ts`). */
   olderSnippets?: TranscriptLine[];
   /**
+   * Google bloqueó el pedido (PROHIBITED_CONTENT, solo desde producción): la
+   * segunda vuelta va sin los ejemplos de otros chats (lo que más cambia entre
+   * pedidos; hay respuestas de Dayana sobre abusos), sin ficha ni mensajes viejos.
+   */
+  slim?: boolean;
+  /**
    * La llamada gratis (`salesFlow`): si la asistente puede agendar sola y la
    * zona horaria de la persona, si ya se sabe.
    */
@@ -1020,7 +1026,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     upcomingCall ??
     (workshopAskNow && input.conversationId ? await upcomingFreeCall(input.conversationId, config, now).catch(() => null) : null);
   const upcomingLabelText = workshopCall ? dualZoneLabel(workshopCall.startsAt.toISOString(), personTz() ?? timezone, timezone) : null;
-  const examples = config.learning.enabled
+  const examples = config.learning.enabled && !input.slim
     ? await findSimilarExamples(lastInbound.join("\n"), spendLimits(config).examples).catch(
         (e) => {
           console.error("[whatsapp-agent] sin ejemplos", e);
@@ -2008,6 +2014,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Google bloqueó el pedido, también con el modelo completo (`lib/ai/gemini.ts`):
   // el modelo ni lo leyó. Pasa a Dayana con ese motivo (Andrea y Sil, 23/24-oct).
   const blockedBy = (result.providerMetadata?.google?.promptFeedback as { blockReason?: unknown } | null | undefined)?.blockReason;
+  // Otra vez sin lo que cambia entre pedidos (Adrienne, Nayeli, 26-oct: «Bien gracias», «Si x fa»
+  // y «Vaya está bien» bloqueados; el mismo chat un mensaje antes pasaba). Si también se bloquea,
+  // sigue el camino de abajo (horas por código si iba a agendar; si no, a Dayana).
+  if (blockedBy && !input.slim && toolCalls.length === 0) {
+    console.warn(`[whatsapp-agent] Google bloqueó el pedido (${String(blockedBy)}): otra vez sin ejemplos, ficha ni mensajes viejos`);
+    const again = await think({ ...input, slim: true, dossier: null, olderSnippets: [] });
+    return { ...again, toolCalls: [{ tool: "gemini_blocked", input: { reason: String(blockedBy) }, output: { retried: "sin ejemplos, ficha ni mensajes viejos" } }, ...again.toolCalls] };
+  }
   const askedSomething = lastInbound.some((t) => /[?¿]/.test(t));
   if (toDayana && !blockedBy && !askedSomething && !input.clientMode && !state.outcome && !state.noReply && !result.text.trim() && toolCalls.length === 0) {
     state.noReply = "Le estaba respondiendo a Dayana; no hacía falta que la asistente escribiera.";
@@ -2523,10 +2537,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // busca el código, como la herramienta (con los días o la franja que dijo ahora), y
   // la lista va debajo de su frase. Si la agenda no da horas (sin zona, falta la
   // ciudad), queda la respuesta del modelo.
+  // También si Google bloqueó el pedido dos veces (Adrienne, 26-oct: dijo «solo de noche a
+  // las 20:00» y cada mensaje suyo terminaba en «Déjame consultarlo con Dayana»).
   let autoOffered = false;
   if (
     outcome === modelOutcome &&
-    outcome.kind === "reply" &&
+    (outcome.kind === "reply" || Boolean(blockedBy)) &&
     salesOn &&
     !guestEvent &&
     !upcomingCall &&
@@ -2543,11 +2559,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !toolCalls.some((c) => c.tool === "offer_free_call_slots" || c.tool === "book_free_call") &&
     acceptedCallWithoutHours(input.transcript)
   ) {
-    const said = foldForSearch(lastInbound.join(" "));
-    const dias = /\bno\b/.test(said) ? [] : (said.match(/\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo|hoy)\b/g) ?? []);
-    const part = said.match(/\b(?:en|por|de|a) la (manana|tarde|noche)\b/)?.[1];
-    const franja = part === "manana" ? "mañana" : part === "tarde" || part === "noche" ? part : undefined;
-    await offerSlots({ ...(dias.length ? { dias } : {}), ...(franja ? { franja } : {}) });
+    // Cuándo dijo que puede en sus últimos mensajes (lo último manda; no lo de las sesiones).
+    await offerSlots(availabilityArgs(input.transcript.filter((l) => l.direction === "INBOUND").slice(-6).map((l) => l.body ?? "")));
     autoOffered = Boolean(state.slotOffer);
     // En el rastro, como la herramienta (con sus horas: «2» se agenda igual), marcada como del código.
     const entry = toolCalls.at(-1);
@@ -2576,10 +2589,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       ? withWorkshopStep(text, workshop, { upcomingLabel: upcomingLabelText, linkSent: Boolean(workshopPay && state.links.includes(workshopPay)) })
       : text;
   // Lo delicado sale tal cual (apoyo o el paso del pago), sin la lista de horas.
+  // Bloqueado y con horas del código: sale la lista (con la frase de siempre), no «Déjame consultarlo».
+  const answered: BrainOutcome = autoOffered && outcome.kind === "escalate" ? { kind: "reply", message: "" } : outcome;
   const shaped: BrainOutcome =
-    outcome.kind === "reply"
-      ? { ...outcome, message: serious ? outcome.message : withAgenda(withWorkshop(reminded(named(replyText(outcome.message))!))) }
-      : outcome;
+    answered.kind === "reply"
+      ? { ...answered, message: serious ? answered.message : withAgenda(withWorkshop(reminded(named(replyText(answered.message))!))) }
+      : answered;
   // Dayana le escribió hace un momento y la persona le contesta a ella: esa
   // conversación es de Dayana (Raquel, 22-oct: a su respuesta al audio de
   // Dayana la IA metió «Quedamos listas…» encima). La IA no se mete, salvo con

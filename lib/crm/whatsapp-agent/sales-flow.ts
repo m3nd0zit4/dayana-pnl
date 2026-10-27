@@ -91,6 +91,13 @@ const SAYS_YES =
 const FLOW_QUESTION = /\b(pais|ciudad|con quien tengo el gusto|(que|cual(es)?) (dia|dias|horario|horarios|hora|franja)|prefieres|te queda mejor|te sirve mejor)\b/;
 /** Ya tiene horas (la lista del código, «en tu hora / en Colombia») o la cita. */
 const HOURS_GIVEN = /\b(tu hora|en colombia|hora de colombia|cual de estas|quedo para|queda para|ya esta agendada)\b|\b[ap]\. ?m\./;
+/** Nuestro aviso de espera («Déjame consultarlo con Dayana…»): no corta el camino a las horas. */
+const HOLDING = /\b(dejame (consultarlo|confirmarlo|revisarlo|verificarlo)|(le|se lo) (paso|aviso|comento|consulto)\b[^.]*\bdayana|te confirmo por aqui)\b/;
+const WEEKDAY = "(lunes|martes|miercoles|jueves|viernes|sabado|domingo)s?";
+/** Le contesta cuándo puede: días, «fines de semana», «de noche», «a las 20:00», «todos los días», «puedo». */
+const AVAILABILITY = new RegExp(
+  `\\b(${WEEKDAY}|fin(es)? de semana|entre semana|todos los dias|(de|en la|por la|en las|por las) (noche|tarde|manana)s?|(a|de|desde) las? \\d{1,2}|\\d{1,2}(:\\d{2})? ?(hs|am|pm|a\\.? ?m|p\\.? ?m)|puedo|me queda|me sirve|disponible)\\b`
+);
 
 /**
  * Dijo que sí a la llamada gratis y todavía no le llegaron horas (Moi, Belén,
@@ -115,20 +122,54 @@ export const acceptedCallWithoutHours = (lines: FlowLine[]): boolean => {
     if (!text) continue;
     if (HOURS_GIVEN.test(text)) return false;
     if (INVITE.test(text)) invite = i;
-    else if (!FLOW_QUESTION.test(text)) break;
+    else if (!FLOW_QUESTION.test(text) && !HOLDING.test(text)) break;
   }
   if (invite < 0) return false;
+  // Un sí, o decirle cuándo puede a la invitación o a «¿qué días puedes?» (Adrienne,
+  // 26-oct: «Horario de Argentina solo de noche a las 20:00»).
   let yes = false;
   for (const line of lines.slice(invite + 1)) {
     const text = foldForSearch(line.body ?? "");
     if (!text || line.direction === "OUTBOUND") continue;
     if (DECLINE.test(text)) {
       yes = false;
-    } else if (SAYS_YES.test(text.replace(/[,.!¡¿?]+/g, " ").trim())) {
+    } else if (SAYS_YES.test(text.replace(/[,.!¡¿?]+/g, " ").trim()) || AVAILABILITY.test(text)) {
       yes = true;
     }
   }
   return yes;
+};
+
+/**
+ * Cuándo dijo que puede, para buscar las horas como lo haría la herramienta
+ * (`dias` / `franja`): lo último que dijo manda; «todos los días» quita los días;
+ * «fines de semana» = sábado y domingo; «entre semana» = lunes a viernes; una hora
+ * («a las 20:00», «8 pm») da la franja. Lo que habla de las sesiones pagas
+ * («para sesión puedo los sábados», Adrienne) no cuenta: es para la llamada.
+ */
+export const availabilityArgs = (texts: string[]): { dias?: string[]; franja?: "mañana" | "tarde" | "noche" } => {
+  let dias: string[] = [];
+  let franja: "mañana" | "tarde" | "noche" | undefined;
+  for (const raw of texts) {
+    const t = foldForSearch(raw);
+    if (!t || /\bsesion(es)?\b/.test(t) || /\bno (puedo|me queda|me sirve)\b/.test(t)) continue;
+    if (/\btodos los dias\b/.test(t)) dias = [];
+    else if (/\bfin(es)? de semana\b/.test(t)) dias = ["sabado", "domingo"];
+    else if (/\bentre semana\b/.test(t)) dias = ["lunes", "martes", "miercoles", "jueves", "viernes"];
+    else {
+      const named = [...t.matchAll(new RegExp(`\\b${WEEKDAY}\\b`, "g"))].map((m) => m[1]);
+      if (named.length) dias = [...new Set(named)];
+    }
+    const part = t.match(/\b(?:de|en la|por la|en las|por las|a la) (noche|tarde|manana)s?\b/)?.[1];
+    const hour =
+      t.match(/\b(?:a|de|desde) las? (\d{1,2})(?::\d{2})?(?: ?(hs|am|pm|a\.? ?m|p\.? ?m)\b)?/) ?? t.match(/\b(\d{1,2})(?::\d{2})? ?(hs|am|pm|a\.? ?m|p\.? ?m)\b/);
+    if (part) franja = part === "manana" ? "mañana" : part === "tarde" ? "tarde" : "noche";
+    else if (hour) {
+      const h = Number(hour[1]) + (/^p/.test(hour[2] ?? "") && Number(hour[1]) < 12 ? 12 : 0);
+      franja = h >= 18 ? "noche" : h >= 12 ? "tarde" : h >= 6 ? "mañana" : franja;
+    }
+  }
+  return { ...(dias.length ? { dias } : {}), ...(franja ? { franja } : {}) };
 };
 
 /**

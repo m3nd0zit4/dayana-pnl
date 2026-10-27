@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import { defaultWhatsAppAiConfig } from "../whatsapp-ai-config";
-import { acceptedCallWithoutHours, flowState, flowStateText, nextStep, salesFlowRules, type FlowLine } from "./sales-flow";
+import { acceptedCallWithoutHours, availabilityArgs, flowState, flowStateText, nextStep, salesFlowRules, type FlowLine } from "./sales-flow";
 
 const inb = (body: string): FlowLine => ({ direction: "INBOUND", body });
 const out = (body: string): FlowLine => ({ direction: "OUTBOUND", body });
@@ -130,5 +130,52 @@ describe("acceptedCallWithoutHours (Moi, Belén, Ana, 21–26 oct: dijeron que s
 
   test("sin invitación: no", () => {
     expect(acceptedCallWithoutHours([out("Hola, te bendigo. Soy la asistente de Dayana. ¿Cómo estás?"), inb("Sí, bien")])).toBe(false);
+  });
+});
+
+describe("Adrienne (26-oct): dijo cuándo puede y cada mensaje terminaba en «Déjame consultarlo con Dayana»", () => {
+  const lines: FlowLine[] = [
+    out("Cada proceso se adapta a lo que necesitas, y Dayana te explica las opciones y los valores en una llamada gratis de 15 minutos.\n\nSi quieres, te agendo la llamada con ella sin costo ni compromiso para que te oriente."),
+    inb("Sanar relacion con Padre ...con madre ... y con niña interior.\n\nInicialmente."),
+    out("Sanar la relación con papá, mamá y la niña interior es un paso muy valioso. Si quieres que Dayana te oriente, dime qué días puedes y en qué horario (mañana o tarde) para agendarte la llamada gratis de 15 minutos."),
+    inb("Horario de Argentina solo de noche a las 20:00:hs .... no se que hora es esta en Colombia."),
+  ];
+
+  test("decir cuándo puede a «¿qué días puedes?» es aceptar", () => {
+    expect(acceptedCallWithoutHours(lines)).toBe(true);
+  });
+
+  test("el aviso «Déjame consultarlo con Dayana» no corta el camino", () => {
+    const after = [...lines, out("Déjame consultarlo con Dayana y te confirmo por aquí."), inb("Todos los dias a esa hora puedo."), inb("Para llamada de 15 min.")];
+    expect(acceptedCallWithoutHours(after)).toBe(true);
+  });
+
+  test("sin invitación antes, decir un horario no es aceptar nada", () => {
+    expect(acceptedCallWithoutHours([out("Hola, te bendigo. ¿Cómo estás?"), inb("Bien, trabajo de noche")])).toBe(false);
+  });
+});
+
+describe("availabilityArgs", () => {
+  test("Adrienne: de noche a las 20:00, todos los días; lo de las sesiones no cuenta", () => {
+    expect(
+      availabilityArgs([
+        "Horario de Argentina solo de noche a las 20:00:hs .... no se que hora es esta en Colombia.",
+        "Todos los dias a esa hora puedo.",
+        "Para llamada de 15 min.",
+        "Luego para sesion puedo todos los sabados en transcurso de la mañana desde 09:00.a.m.hs hasta 12:00.a.m.hs",
+      ])
+    ).toEqual({ franja: "noche" });
+  });
+
+  test("fines de semana, entre semana, días con plural, y la hora da la franja", () => {
+    expect(availabilityArgs(["Prefiero los fines de semana en la tarde"])).toEqual({ dias: ["sabado", "domingo"], franja: "tarde" });
+    expect(availabilityArgs(["Entre semana después del trabajo, a las 7 pm"])).toEqual({ dias: ["lunes", "martes", "miercoles", "jueves", "viernes"], franja: "noche" });
+    expect(availabilityArgs(["Los sábados en la mañana"])).toEqual({ dias: ["sabado"], franja: "mañana" });
+    expect(availabilityArgs(["Martes o jueves a las 10"])).toEqual({ dias: ["martes", "jueves"], franja: "mañana" });
+  });
+
+  test("lo que no puede no se toma como lo que puede; nada dicho = nada", () => {
+    expect(availabilityArgs(["El lunes no puedo"])).toEqual({});
+    expect(availabilityArgs(["Sí, me interesa"])).toEqual({});
   });
 });
