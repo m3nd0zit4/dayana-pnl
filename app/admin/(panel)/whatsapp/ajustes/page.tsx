@@ -8,6 +8,7 @@ import { isWhatsAppAutoReplyEnabled } from "@/lib/crm/whatsapp-autoreply";
 import { getLearningSummary } from "@/lib/crm/whatsapp-learning";
 import {
   DEFAULT_WHATSAPP_SETTINGS_TAB,
+  WHATSAPP_SETTINGS,
   isWhatsAppSettingsTab,
 } from "@/lib/crm/whatsapp-settings-registry";
 import { listWhatsAppTemplates } from "@/lib/crm/whatsapp-templates";
@@ -35,10 +36,18 @@ const countTemplates = (statuses: (string | null)[]) => {
  * Todo lo que se configura de WhatsApp, en un solo sitio y por pestañas:
  * conexión, IA, citas, avisos, plantillas y avanzado. `?tab=` abre una.
  */
-const Page = async ({ searchParams }: { searchParams: Promise<{ tab?: string | string[] }> }) => {
+const Page = async ({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[]; ajuste?: string | string[] }>;
+}) => {
   await requireOwnerSettings();
-  const { tab: rawTab } = await searchParams;
-  const tab = isWhatsAppSettingsTab(rawTab) ? rawTab : DEFAULT_WHATSAPP_SETTINGS_TAB;
+  const { tab: rawTab, ajuste: rawAjuste } = await searchParams;
+  // `?ajuste=<id>` (del buscador de Ajustes) abre la pestaña de ese ajuste y lo
+  // resalta; un id que no existe se ignora y manda `?tab=`.
+  const target = typeof rawAjuste === "string" ? WHATSAPP_SETTINGS.find((e) => e.id === rawAjuste) : undefined;
+  const tab = target?.tab ?? (isWhatsAppSettingsTab(rawTab) ? rawTab : DEFAULT_WHATSAPP_SETTINGS_TAB);
+  const initialTarget = target?.id ?? null;
 
   if (isCrmUiPreview()) {
     return (
@@ -46,6 +55,7 @@ const Page = async ({ searchParams }: { searchParams: Promise<{ tab?: string | s
         <WhatsAppSettingsClient
           preview
           initialTab={tab}
+          initialTarget={initialTarget}
           initialConfig={defaultWhatsAppAiConfig()}
           initialEnabled={false}
           initialSummary={{
@@ -81,6 +91,7 @@ const Page = async ({ searchParams }: { searchParams: Promise<{ tab?: string | s
     <CrmPageShell width="narrow">
       <WhatsAppSettingsClient
         initialTab={tab}
+        initialTarget={initialTarget}
         initialConfig={config}
         initialEnabled={enabled}
         initialSummary={summary}

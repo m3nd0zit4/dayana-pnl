@@ -48,6 +48,7 @@ const TABS: SettingsTabItem<WhatsAppSettingsTab>[] = WHATSAPP_SETTINGS_TABS.map(
  */
 const WhatsAppSettingsClient = ({
   initialTab,
+  initialTarget = null,
   initialConfig,
   initialEnabled,
   initialSummary,
@@ -59,6 +60,8 @@ const WhatsAppSettingsClient = ({
   preview = false,
 }: {
   initialTab: WhatsAppSettingsTab;
+  /** Ajuste al que bajar y resaltar al abrir (`?ajuste=<id>`, del buscador de Ajustes). */
+  initialTarget?: string | null;
   initialConfig: WhatsAppAiConfig;
   initialEnabled: boolean;
   initialSummary: LearningSummaryDto;
@@ -92,7 +95,7 @@ const WhatsAppSettingsClient = ({
   );
 
   // Del buscador: cambiar de pestaña, bajar hasta el ajuste y resaltarlo.
-  const [target, setTarget] = useState<string | null>(null);
+  const [target, setTarget] = useState<string | null>(initialTarget);
   const pick = useCallback(
     (entry: WhatsAppSettingEntry) => {
       setTab(entry.tab);

@@ -36,6 +36,9 @@ export const CRM_ROUTES: CrmRoute[] = [
   // ---------------------------------------------------------------- Tier A
   { path: "/admin", name: "Dashboard", tier: "preview" },
   { path: "/admin/estadisticas", name: "Estadísticas", tier: "preview" },
+  // El índice de ajustes es estático (no lee la base de datos), así que es la
+  // única ruta de Ajustes que se prueba sin sesión.
+  { path: "/admin/ajustes", name: "Ajustes", tier: "preview" },
   {
     path: "/admin/contacts",
     name: "Contactos",

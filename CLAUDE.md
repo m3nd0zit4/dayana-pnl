@@ -39,7 +39,7 @@ Two documents, and they are not interchangeable:
 - **`DESIGN.md`** — the visual language: type scale, the colour tokens, spacing, radii, what not to do. Applies everywhere.
 - **`docs/crm-ui-contract.md`** — the ten layout rules for `/admin`: where the primary action goes, how lists and empty states are built, what a public-page link looks like, modal footer order. **Read it before touching anything under `app/components/admin/crm/`.**
 
-The contract is not advisory. `e2e/crm-contract.spec.ts` asserts it on the 15 CRM routes that render under `CRM_UI_PREVIEW`, and `bun run check:tokens` catches hardcoded colours that render fine and so slip past typecheck, lint and the browser alike. The primitives that implement the rules live in `app/components/admin/crm/ui/` — use them rather than re-deriving the markup, which is exactly how the panel ended up with five different "see the public page" buttons.
+The contract is not advisory. `e2e/crm-contract.spec.ts` asserts it on the CRM routes that render under `CRM_UI_PREVIEW`, and `bun run check:tokens` catches hardcoded colours that render fine and so slip past typecheck, lint and the browser alike. The primitives that implement the rules live in `app/components/admin/crm/ui/` — use them rather than re-deriving the markup, which is exactly how the panel ended up with five different "see the public page" buttons.
 
 Dark mode is live on `/admin` and `/miembros`. Anything pinned to a light value will look broken when someone toggles it.
 

@@ -6,7 +6,7 @@ página pública, cuatro de colocar el botón Guardar, cinco de decir «esto fal
 y veinte de decir «no hay nada aquí».
 
 **Estas reglas son verificables.** `e2e/crm-contract.spec.ts` las comprueba en
-las 17 rutas del CRM que funcionan en modo vista previa, y `bun run
+las rutas del CRM que funcionan en modo vista previa, y `bun run
 check:tokens` caza la deriva de color que un navegador no puede detectar. Si
 cambias una regla, cambia también su test.
 
@@ -324,11 +324,13 @@ basta con que falle.
 
 ## Cobertura
 
-- **Tier A (17 rutas)** — funcionan con `CRM_UI_PREVIEW=true` sin base de
-  datos. El contrato se comprueba en cada PR.
-- **Tier B (12 rutas)** — detalle de contacto e inscripción, bandeja de
-  entrada, contenido y todo `ajustes`. Necesitan sesión real, así que hoy no
-  tienen cobertura automática: **revísalas a mano** al tocarlas.
+- **Tier A** — las rutas de `tier: "preview"` en `e2e/routes.ts`: funcionan con
+  `CRM_UI_PREVIEW=true` sin base de datos. El contrato se comprueba en cada PR.
+  Incluye el índice de `/admin/ajustes`, que es estático.
+- **Tier B** — las de `tier: "auth"`: detalle de contacto e inscripción, bandeja
+  de entrada, contenido y las páginas de `ajustes` (menos su índice). Necesitan
+  sesión real, así que hoy no tienen cobertura automática: **revísalas a mano**
+  al tocarlas.
 - **Vista previa = solo lectura.** En preview nadie tiene rol de escritura, así
   que los botones de crear y registrar no se pintan. Lo que depende de permisos
   (Registrar pago, Editar, Nuevo miembro) hay que revisarlo con sesión real.

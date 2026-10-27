@@ -12,6 +12,19 @@ import { canManageTeam } from "@/lib/crm/staff-permissions";
  * cada endpoint de debajo vuelve a exigir OWNER por su cuenta
  * (`requireOwnerStaff`). Esto solo evita enseñar la pantalla.
  */
+/**
+ * Quién mira los ajustes, para decidir qué grupos se pintan (el índice y el
+ * menú lateral). No cierra la puerta a nadie: «Mi cuenta» es de cualquier rol.
+ * Sin sesión manda a entrar.
+ */
+export const getSettingsAudience = async (): Promise<{ isOwner: boolean }> => {
+  if (isCrmUiPreview()) return { isOwner: true };
+
+  const staff = await getStaffSession();
+  if (!staff) redirect("/acceso");
+  return { isOwner: canManageTeam(staff.role) };
+};
+
 export const requireOwnerSettings = async () => {
   if (isCrmUiPreview()) return;
 
