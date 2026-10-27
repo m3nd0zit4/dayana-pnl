@@ -276,7 +276,10 @@ otro sitio.
   difusión (Envíos), seguimiento de la IA (Asistente IA) y configuración
   (Ajustes: Configuración y Plantillas) van en submenús que se abren solos. Una
   pantalla nueva de `/admin/whatsapp` tiene que tener su entrada ahí: una
-  prueba falla si alguna se queda sin camino desde el menú.
+  prueba falla si alguna se queda sin camino desde el menú. Dentro de la
+  sección no se pinta el «Ajustes» del pie del CRM (`CrmShell`): el menú ya
+  trae el suyo y dos «Ajustes» a la vez se confunden; los de todo el CRM, con
+  «Volver al CRM».
 - **Barra inferior (móvil):** `CRM_BOTTOM_TABS` — Inicio, WhatsApp, Contactos,
   Pagos — y «Más», que abre el menú completo. Es el único botón que abre el
   menú en el móvil.

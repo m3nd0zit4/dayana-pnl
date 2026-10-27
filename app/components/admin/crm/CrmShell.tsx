@@ -82,19 +82,24 @@ const CrmShell = ({
                   <CrmMenuWithAutoClose />
                   {agentEnabled && !inWhatsApp && <AgentThreadsMenuSection />}
                 </SidebarContent>
-                <SidebarFooter>
-                  <SidebarMenu>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        tooltip="Ajustes"
-                        render={<Link href="/admin/ajustes" />}
-                      >
-                        <Settings />
-                        <span>Ajustes</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </SidebarMenu>
-                </SidebarFooter>
+                {/* Dentro de WhatsApp no se pinta: ahí el menú ya tiene su propio
+                    «Ajustes» (Configuración y Plantillas) y dos «Ajustes» a la vez
+                    se confunden. Los de todo el CRM, con «Volver al CRM». */}
+                {!inWhatsApp && (
+                  <SidebarFooter>
+                    <SidebarMenu>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton
+                          tooltip="Ajustes"
+                          render={<Link href="/admin/ajustes" />}
+                        >
+                          <Settings />
+                          <span>Ajustes</span>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    </SidebarMenu>
+                  </SidebarFooter>
+                )}
               </Sidebar>
 
               <SidebarInset
