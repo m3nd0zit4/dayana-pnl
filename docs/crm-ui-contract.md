@@ -263,9 +263,10 @@ otro sitio.
 
 - **Cada entrada tiene un `id` estable.** Lo que necesite una entrada concreta
   la busca con `findMenuItem(id)`, nunca por el título del grupo.
-- **Grupos por uso diario:** Personas, Ventas, Clases. Lo que se configura una
-  vez y casi no se toca va en **Catálogo y textos** (paquetes, códigos, mensajes
-  rápidos, palabras clave, contenido) y **Herramientas** (`collapsible: true`),
+- **Grupos por uso diario:** Personas, Ventas (Pagos, Enlaces de pago y
+  Paquetes), Clases. Lo que se configura una vez y casi no se toca va en
+  **Catálogo y textos** (códigos, mensajes rápidos, palabras clave, contenido)
+  y **Herramientas** (`collapsible: true`),
   plegados por defecto y abiertos solo cuando la página actual es suya.
   **Estadísticas no tiene fila en el menú**: se abre desde Inicio («Ver todas
   las estadísticas»).

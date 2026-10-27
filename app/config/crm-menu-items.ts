@@ -135,12 +135,14 @@ export const crmStatsItem: CrmMenuItem = {
  * El menú sigue lo que Dayana hace cada día, en ese orden.
  *
  * - **Personas** es quién es quién: contactos, membresías y diagnósticos.
- * - **Ventas** son los dos que se usan a diario: Pagos y Enlaces de pago.
+ * - **Ventas** son los que se usan a diario: Pagos, Enlaces de pago y Paquetes
+ *   (Dayana pidió dejar Paquetes aquí, debajo de Enlaces: es de los que más se
+ *   usan).
  * - **Clases** es todo lo que hay que impartir.
  * - **Catálogo y textos** va plegado (oct. 2026): lo que se configura una vez y
- *   casi no se toca — paquetes, códigos, los textos para escribirle a la gente
- *   (mensajes rápidos, palabras clave) y la publicación en TikTok. Antes
- *   estaban repartidos entre Ventas, Personas y Herramientas.
+ *   casi no se toca — códigos, los textos para escribirle a la gente (mensajes
+ *   rápidos, palabras clave) y la publicación en TikTok. Antes estaba repartido
+ *   entre Ventas, Personas y Herramientas.
  * - **Herramientas** va plegado y hoy solo tiene la bandeja de Meta (Instagram
  *   y Messenger), que aparece únicamente si su interruptor está encendido.
  *
@@ -171,6 +173,8 @@ export const crmMenuSections: CrmMenuSection[] = [
     items: [
       { id: "payments", icon: CreditCard, label: "Pagos", href: "/admin/payments" },
       { id: "payment-links", icon: Link2, label: "Enlaces de pago", href: "/admin/enlaces-pago" },
+      // De los que más se usan: se mira y se toca a menudo, no se configura una vez.
+      { id: "products", icon: Package, label: "Paquetes", href: "/admin/products" },
     ],
   },
   {
@@ -222,7 +226,6 @@ export const crmMenuSections: CrmMenuSection[] = [
     title: "Catálogo y textos",
     collapsible: true,
     items: [
-      { id: "products", icon: Package, label: "Paquetes", href: "/admin/products" },
       { id: "promo-codes", icon: Tag, label: "Códigos promocionales", href: "/admin/promo-codes" },
       // Textos para escribirle a una persona: se usan desde su ficha.
       { id: "messages", icon: MessageSquare, label: "Mensajes rápidos", href: "/admin/messages" },

@@ -45,7 +45,7 @@ describe("menú del CRM", () => {
   });
 
   test("lo que se configura una vez vive en un grupo plegado", () => {
-    const rarely = ["products", "promo-codes", "messages", "magnets", "content", "inbox"];
+    const rarely = ["promo-codes", "messages", "magnets", "content", "inbox"];
     for (const id of rarely) {
       const section = crmMenuSections.find((s) => s.items.some((i) => i.id === id));
       expect(section?.collapsible).toBe(true);
@@ -53,7 +53,7 @@ describe("menú del CRM", () => {
   });
 
   test("lo de cada día queda a la vista", () => {
-    const daily = ["contacts", "memberships", "diagnostics", "payments", "payment-links"];
+    const daily = ["contacts", "memberships", "diagnostics", "payments", "payment-links", "products"];
     for (const id of daily) {
       const section = crmMenuSections.find((s) => s.items.some((i) => i.id === id));
       expect(section).toBeDefined();
