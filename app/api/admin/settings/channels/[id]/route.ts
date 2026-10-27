@@ -15,9 +15,11 @@ export const PATCH = withStaff<Params>("owner", async ({ req, staff, params }) =
   }
 
   // «whatsapp» no es un canal del asistente del panel: es la respuesta
-  // automática a clientas y tiene UN solo interruptor, en los ajustes de
-  // WhatsApp (`PATCH /api/admin/settings/whatsapp-ai`). Esta ruta ya no lo
-  // escribe: dos caminos a la misma clave es como se contradecían.
+  // automática a clientas y tiene UN solo interruptor en la interfaz, en los
+  // ajustes de WhatsApp (`PATCH /api/admin/settings/whatsapp-ai`). Esta ruta ya
+  // no lo escribe: dos interruptores a la misma clave es como se contradecían.
+  // (La clave también la escriben `PATCH /api/admin/whatsapp/config` y la
+  // herramienta del agente, pero sin interruptor propio en pantalla.)
   if (id === "whatsapp") {
     return apiError("use_whatsapp_ai_settings", 400);
   }

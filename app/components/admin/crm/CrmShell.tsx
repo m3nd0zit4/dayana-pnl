@@ -32,9 +32,10 @@ import {
 /** Lives inside SidebarProvider so it can close the mobile drawer on nav. */
 const CrmMenuWithAutoClose = () => {
   const { setOpenMobile } = useSidebar();
+  const { metaInboxEnabled } = useCrm();
   const pathname = usePathname();
   // Dentro de WhatsApp el menú del CRM se cambia por el de WhatsApp.
-  if (isWhatsAppWorkspacePath(pathname)) {
+  if (isWhatsAppWorkspacePath(pathname, metaInboxEnabled)) {
     return <WhatsAppSidebarMenu onNavigate={() => setOpenMobile(false)} />;
   }
   return <CrmMenu onNavigate={() => setOpenMobile(false)} />;
@@ -53,9 +54,9 @@ const CrmShell = ({
   avatarUrl: string | null;
   preview: boolean;
 }) => {
-  const { agentEnabled, agentPanelOpen, agentPanelExpanded } = useCrm();
+  const { agentEnabled, agentPanelOpen, agentPanelExpanded, metaInboxEnabled } = useCrm();
   const panelTakingOver = agentEnabled && agentPanelOpen && agentPanelExpanded;
-  const inWhatsApp = isWhatsAppWorkspacePath(usePathname());
+  const inWhatsApp = isWhatsAppWorkspacePath(usePathname(), metaInboxEnabled);
 
   return (
     <SidebarProvider

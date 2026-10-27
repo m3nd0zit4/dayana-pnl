@@ -48,7 +48,8 @@ export const whatsAppMenuItems: WhatsAppMenuItem[] = [
   { id: "people", icon: Users, label: "Personas", href: "/admin/whatsapp/personas" },
   { id: "agenda", icon: CalendarDays, label: "Agenda", href: "/admin/whatsapp/agenda" },
   // Instagram y Messenger llegan por el mismo webhook de Meta y se atienden
-  // igual que WhatsApp: viven aquí, no en «Herramientas».
+  // igual que WhatsApp, así que también están aquí. Siguen además en
+  // «Herramientas» del menú del CRM, por si WhatsApp no está disponible.
   {
     id: "social-inbox",
     icon: Inbox,
@@ -95,6 +96,17 @@ export const whatsAppMenuItems: WhatsAppMenuItem[] = [
     ],
   },
 ];
+
+/**
+ * Rutas en las que el menú del CRM se cambia por el de WhatsApp: toda la
+ * sección y, si su interruptor está encendido, la bandeja de Instagram y
+ * Messenger (ruta `/admin/inbox`). Apagada, esa ruta da 404 y no tiene sentido
+ * enseñar el menú de WhatsApp sobre un error.
+ */
+export const isWhatsAppWorkspacePath = (pathname: string, metaInboxEnabled: boolean): boolean =>
+  pathname === "/admin/whatsapp" ||
+  pathname.startsWith("/admin/whatsapp/") ||
+  (metaInboxEnabled && (pathname === "/admin/inbox" || pathname.startsWith("/admin/inbox/")));
 
 /**
  * Lo que ve cada quien: se quita lo de OWNER y lo que depende de un interruptor

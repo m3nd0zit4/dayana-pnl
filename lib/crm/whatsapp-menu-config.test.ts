@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { readdirSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import {
+  isWhatsAppWorkspacePath,
   visibleWhatsAppMenu,
   whatsAppMenuItems,
   type WhatsAppMenuItem,
@@ -52,8 +53,19 @@ describe("menú de WhatsApp: estructura", () => {
 
   test("ninguna pantalla de WhatsApp se queda sin camino desde el menú", () => {
     const hrefs = new Set(flatten(whatsAppMenuItems).map((i) => i.href));
-    for (const route of whatsAppPageRoutes()) {
+    const routes = whatsAppPageRoutes();
+    // Si el recorrido del disco no encuentra nada, el test no demuestra nada.
+    expect(routes.length).toBeGreaterThan(0);
+    for (const route of routes) {
       expect(hrefs.has(route)).toBe(true);
+    }
+  });
+
+  test("y al revés: cada enlace del menú lleva a una página que existe", () => {
+    for (const item of flatten(whatsAppMenuItems)) {
+      const path = item.href.replace(/^\/admin\//, "");
+      const file = join(process.cwd(), "app", "admin", "(panel)", ...path.split("/"), "page.tsx");
+      expect(existsSync(file)).toBe(true);
     }
   });
 
@@ -67,6 +79,29 @@ describe("menú de WhatsApp: estructura", () => {
     expect(children("sends")).toEqual(["sends-history", "communities"]);
     expect(children("assistant")).toEqual(["status", "talk"]);
     expect(children("settings")).toEqual(["settings-general", "templates"]);
+  });
+});
+
+describe("menú de WhatsApp: en qué rutas sustituye al del CRM", () => {
+  test("toda la sección de WhatsApp, haya o no bandeja de Meta", () => {
+    for (const flag of [true, false]) {
+      expect(isWhatsAppWorkspacePath("/admin/whatsapp", flag)).toBe(true);
+      expect(isWhatsAppWorkspacePath("/admin/whatsapp/agenda", flag)).toBe(true);
+      expect(isWhatsAppWorkspacePath("/admin/whatsapp/comunidades/abc", flag)).toBe(true);
+    }
+  });
+
+  test("la bandeja de Instagram y Messenger solo con su interruptor encendido", () => {
+    expect(isWhatsAppWorkspacePath("/admin/inbox", true)).toBe(true);
+    expect(isWhatsAppWorkspacePath("/admin/inbox/123", true)).toBe(true);
+    expect(isWhatsAppWorkspacePath("/admin/inbox", false)).toBe(false);
+    expect(isWhatsAppWorkspacePath("/admin/inbox/123", false)).toBe(false);
+  });
+
+  test("el resto del CRM conserva su menú", () => {
+    for (const path of ["/admin", "/admin/payments", "/admin/ajustes", "/admin/whatsappx", "/admin/inboxes"]) {
+      expect(isWhatsAppWorkspacePath(path, true)).toBe(false);
+    }
   });
 });
 
@@ -89,10 +124,6 @@ describe("menú de WhatsApp: qué ve cada quien", () => {
       "assistant",
       "settings",
     ]);
-  });
-
-  test("antes eran nueve filas sueltas: ahora hay menos filas a la vista", () => {
-    expect(visibleWhatsAppMenu(whatsAppMenuItems, owner).length).toBeLessThan(9);
   });
 
   test("Instagram y Messenger solo aparece con su interruptor encendido", () => {

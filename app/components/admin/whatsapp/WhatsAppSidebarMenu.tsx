@@ -13,29 +13,27 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/app/components/ui/sidebar";
-import { visibleWhatsAppMenu, whatsAppMenuItems } from "@/app/config/whatsapp-menu-items";
+import {
+  isWhatsAppWorkspacePath,
+  visibleWhatsAppMenu,
+  whatsAppMenuItems,
+} from "@/app/config/whatsapp-menu-items";
 import { useCrm } from "../crm/CrmProvider";
 import { useWhatsAppLive } from "./live";
 
 /**
  * El menú lateral de la sección de WhatsApp. Reemplaza al del CRM mientras se
- * está dentro de `/admin/whatsapp`: aquí todo es WhatsApp y el resto del CRM
- * queda a un clic con «Volver al CRM».
+ * está dentro de `/admin/whatsapp` (y de la bandeja de Instagram y Messenger,
+ * si está encendida): aquí todo es WhatsApp y el resto del CRM queda a un clic
+ * con «Volver al CRM».
  *
  * Las filas salen de `app/config/whatsapp-menu-items.ts` y se pintan con la
  * misma pieza que el menú del CRM, así que se agrupan y se abren igual.
  */
 
-/**
- * Rutas en las que el menú del CRM se cambia por el de WhatsApp: toda la
- * sección y la bandeja de Instagram y Messenger, que viven aquí aunque su ruta
- * sea `/admin/inbox`.
- */
-export const isWhatsAppWorkspacePath = (pathname: string) =>
-  pathname === "/admin/whatsapp" ||
-  pathname.startsWith("/admin/whatsapp/") ||
-  pathname === "/admin/inbox" ||
-  pathname.startsWith("/admin/inbox/");
+// La regla de en qué rutas se cambia el menú del CRM por este vive junto a la
+// lista de filas (es pura y se prueba allí); se reexporta para `CrmShell`.
+export { isWhatsAppWorkspacePath };
 
 const WhatsAppSidebarMenu = ({ onNavigate }: { onNavigate?: () => void }) => {
   const pathname = usePathname();
