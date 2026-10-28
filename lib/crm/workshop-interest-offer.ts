@@ -5,17 +5,14 @@ import { sureFirstName } from "@/lib/sure-name";
 import { getDateKeyInTz } from "@/lib/datetime/zoned-time";
 import { getOperationalTimezone } from "./operational-timezone";
 import { getWhatsAppAiConfig } from "./whatsapp-ai-config";
-import { isWhatsAppAutoReplyEnabled } from "./whatsapp-autoreply";
 import { fillVars, templateParams } from "./whatsapp-outbound-plan";
 import { approvedTemplateFor } from "./whatsapp-templates";
 import { sanitizeMensaje } from "./event-template-vars";
 import { chatNameInfo } from "./whatsapp-agent/chat-name";
-import { upcomingFreeCall } from "./whatsapp-agent/free-call";
 import { computeSegment } from "./whatsapp-agent/segment-store";
-import { NO_FREE_CALL_STAGES } from "./whatsapp-agent/stage";
-import { GUARD_SELECT, waitingRoomBlocked } from "./whatsapp-agent/waiting-room";
 import { workshopOfferTemplateMessage, workshopOfferText, workshopOutreachSource } from "./whatsapp-agent/workshop-interest";
-import { enrolledInWorkshop, workshopPayUrl } from "./workshop-interests";
+import { loadOutreachConversation, outreachAiOff, outreachRefusal } from "./workshop-outreach-guard";
+import { workshopPayUrl } from "./workshop-interests";
 
 /**
  * «Que la IA le escriba» en la lista de interesadas (dueña, 24-oct: «para que
@@ -45,18 +42,6 @@ export type OfferResult =
   | { status: "failed"; error: string };
 
 type Deps = { send?: typeof sendMetaMessage; now?: Date };
-
-const loadConversation = (id: string) =>
-  prisma.conversation.findUnique({
-    where: { id },
-    select: {
-      ...GUARD_SELECT,
-      channel: true,
-      assignedStaffId: true,
-      contact: { select: { firstName: true, timezone: true, countryIso: true, phoneCountryIso: true } },
-      dossier: { select: { segment: true, timezone: true } },
-    },
-  });
 
 export const offerWorkshopCall = async (
   input: { editionId: string; interestId: string; staffId?: string | null },
@@ -92,35 +77,19 @@ export const offerWorkshopCall = async (
 
   // El estado al día (como el seguimiento del cierre): por revisar, clienta o personal no.
   const seg = await computeSegment(interest.conversation_id).catch(() => null);
-  const conv = await loadConversation(interest.conversation_id);
+  const conv = await loadOutreachConversation(interest.conversation_id);
   if (!conv || conv.channel !== "WHATSAPP") return { status: "skipped", reason: "not_found" };
-  if (conv.contactId && (await enrolledInWorkshop(conv.contactId, edition.id))) return { status: "skipped", reason: "paid" };
 
-  // La IA tiene que poder contestarle y agendarle cuando responda (lo mismo que mira `run.ts`).
+  // Las mismas reglas que la invitación a inscritas de eventos gratuitos
+  // (`workshop-outreach-guard.ts`), en el orden de siempre: pagó, la IA
+  // apagada, y luego lo de su chat. Aquí sí a quien ya fue clienta y preguntó.
   const config = await getWhatsAppAiConfig();
-  if (!(await isWhatsAppAutoReplyEnabled())) return { status: "skipped", reason: "ai_off", detail: "La IA está apagada en WhatsApp." };
-  if (!config.salesFlow.enabled || !config.booking.enabled) {
-    return { status: "skipped", reason: "ai_off", detail: "La agenda de la IA está apagada (Ajustes → IA)." };
-  }
-  if (seg && (seg.review || (NO_FREE_CALL_STAGES.has(seg.stage) && seg.stage !== "tuvo_llamada" && seg.stage !== "clienta_pasada"))) {
-    return { status: "skipped", reason: "ai_off", detail: "Está por revisar, es clienta o es un chat personal: escríbele tú." };
-  }
-  if (conv.assignedStaffId && !conv.aiAlwaysAt) {
-    return { status: "skipped", reason: "ai_off", detail: "El chat está asignado a alguien del equipo: escríbele tú." };
-  }
-  if (await waitingRoomBlocked(conv, config)) {
-    return { status: "skipped", reason: "ai_off", detail: "La IA no atiende este chat (favorito, tomado, Manual, pausa o clienta)." };
-  }
-
-  // Con la llamada ya agendada, en ella Dayana le explica y la inscribe.
-  const call = await upcomingFreeCall(conv.id, config, now).catch(() => null);
-  const appt =
-    call ??
-    (await prisma.calendarAppointment.findFirst({
-      where: { conversationId: conv.id, status: "active", startsAt: { gte: now } },
-      select: { startsAt: true },
-    }));
-  if (appt) return { status: "skipped", reason: "has_call" };
+  const refusal = await outreachRefusal(conv, { editionId: edition.id, config, now, seg, pastClientsOk: true });
+  if (refusal?.reason === "paid") return { status: "skipped", reason: "paid" };
+  const aiOff = await outreachAiOff(config);
+  if (aiOff) return { status: "skipped", reason: "ai_off", detail: aiOff };
+  if (refusal?.reason === "has_call") return { status: "skipped", reason: "has_call" };
+  if (refusal) return { status: "skipped", reason: "ai_off", detail: refusal.detail };
 
   const firstName = sureFirstName(await chatNameInfo(conv.id));
   const workshop = { ...edition, payUrl: workshopPayUrl(edition.product) };
@@ -134,6 +103,15 @@ export const offerWorkshopCall = async (
     select: { id: true },
   });
   if (sentToday) return { status: "skipped", reason: "already" };
+  // Tampoco si hoy ya le llegó la invitación a inscritas de eventos gratuitos (misma `source`).
+  const lastOutreach = await prisma.conversationMessage.findFirst({
+    where: { conversationId: conv.id, direction: "OUTBOUND", source, status: { not: "FAILED" } },
+    orderBy: { sentAt: "desc" },
+    select: { sentAt: true },
+  });
+  if (lastOutreach && getDateKeyInTz(lastOutreach.sentAt, dayanaTz) === getDateKeyInTz(now, dayanaTz)) {
+    return { status: "skipped", reason: "already" };
+  }
   const windowOpen = resolveWindow("WHATSAPP", conv.lastInboundAt, now).isOpen;
 
   let via: "text" | "template";

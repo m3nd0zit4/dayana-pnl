@@ -16,6 +16,7 @@ import {
 import { scheduleVars } from "./event-schedule";
 import { EVENT_ACCESS_BODY, EVENT_INVITATION_BODY } from "./event-template-vars";
 import { toMetaBody } from "./whatsapp-template-rules";
+import { INVITE_TEMPLATE_BODY, INVITE_TEMPLATE_EXAMPLE, INVITE_TEMPLATE_KEY } from "./workshop-invite-rules";
 
 /**
  * Plantillas de WhatsApp (las que Meta aprueba) conectadas con el CRM.
@@ -253,6 +254,16 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     category: "MARKETING",
     body: "Hola {{nombre}}, te escribo de parte de Dayana. Ella queda muy atenta para iniciar tu proceso personalizado. ¿Cuándo te gustaría empezar? Si tienes alguna duda o dificultad con el pago, me cuentas por aquí.",
     example: { nombre: "Ana" },
+  },
+  // La invitación al taller abierto a quien se inscribió en un evento gratuito
+  // y aceptó recibir información de talleres (`workshop-invite.ts`, 28-oct).
+  // Dice por qué le escribimos y que es de pago: es de Marketing.
+  {
+    key: INVITE_TEMPLATE_KEY,
+    title: "Taller: invitación a inscritas de eventos gratuitos",
+    category: "MARKETING",
+    body: INVITE_TEMPLATE_BODY,
+    example: INVITE_TEMPLATE_EXAMPLE,
   },
   {
     key: "cita_reprogramar",

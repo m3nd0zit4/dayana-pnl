@@ -15,6 +15,8 @@ const STATUS_LABEL: Record<string, string> = {
   PENDING: "Pendiente",
   SENDING: "Enviando",
   CANCELLED: "Cancelado",
+  // La invitación a inscritas de eventos gratuitos: no pasó las reglas al enviar (el motivo, en `error`).
+  SKIPPED: "No se envió",
 };
 
 const fmt = (d: Date) =>

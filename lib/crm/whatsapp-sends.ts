@@ -22,6 +22,7 @@ import {
   type SendSummary,
 } from "./whatsapp-outbound-plan";
 import { estimateTemplateCost, type CostEstimate } from "./whatsapp-rates";
+import { INVITE_SEND_KIND } from "./workshop-invite-rules";
 import {
   approvedTemplateFor,
   remoteTemplateHeaderFormat,
@@ -341,6 +342,12 @@ export const processNextBatch = async (
 ): Promise<SendProgress> => {
   const send = await prisma.whatsAppSend.findUnique({ where: { id: sendId } });
   if (!send) throw new Error("El envío no existe.");
+  // La invitación a inscritas de eventos gratuitos tiene sus propias reglas por
+  // persona y escribe como la asistente (`workshop-invite.ts`): por aquí saldría
+  // como un envío masivo, sin ellas.
+  if (send.kind === INVITE_SEND_KIND) {
+    throw new WhatsAppSendSetupError("Esta invitación se continúa desde el taller, pestaña «Interesadas».");
+  }
   if (send.status === "CANCELLED" || send.status === "DONE") return progressOf(sendId);
 
   const { vars, headerImage } = splitSendVars(send.vars as Record<string, string> | null);

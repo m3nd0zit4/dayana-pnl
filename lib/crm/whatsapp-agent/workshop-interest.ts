@@ -310,7 +310,7 @@ export const workshopFacts = (w: OpenWorkshop): string => {
 };
 
 /** «domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual»; sin el horario con `withSchedule: false`. */
-const workshopWhen = (w: OpenWorkshop, withSchedule = true): string => {
+export const workshopWhen =(w: OpenWorkshop, withSchedule = true): string => {
   const date = w.startsAt
     ? new Intl.DateTimeFormat("es-CO", { timeZone: w.timezone, weekday: "long", day: "numeric", month: "long" }).format(w.startsAt).replace(",", "")
     : (w.dateLabel ?? "").trim();

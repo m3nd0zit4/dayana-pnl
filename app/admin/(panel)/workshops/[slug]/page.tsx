@@ -12,6 +12,7 @@ import WorkshopDetailActions from "@/app/components/admin/crm/workshops/Workshop
 import WorkshopDocumentsPanel from "@/app/components/admin/crm/workshops/WorkshopDocumentsPanel";
 import WorkshopEmailNotifyButton from "@/app/components/admin/crm/workshops/WorkshopEmailNotifyButton";
 import WorkshopEnrollmentsPanel from "@/app/components/admin/crm/workshops/WorkshopEnrollmentsPanel";
+import WorkshopFreeEventInvite from "@/app/components/admin/crm/workshops/WorkshopFreeEventInvite";
 import WorkshopHistory from "@/app/components/admin/crm/workshops/WorkshopHistory";
 import WorkshopInterestsPanel from "@/app/components/admin/crm/workshops/WorkshopInterestsPanel";
 import WorkshopPageEditor from "@/app/components/admin/crm/workshops/WorkshopPageEditor";
@@ -25,6 +26,7 @@ import { getOperationalTimezone } from "@/lib/crm/operational-timezone";
 import { canManageTeam } from "@/lib/crm/staff-permissions";
 import { currentSlugForPrevious, listWorkshopDocuments } from "@/lib/crm/workshop-editions";
 import { countWorkshopInterests, listWorkshopInterests, syncWorkshopInterests } from "@/lib/crm/workshop-interests";
+import { listWorkshopInvitations, syncInviteReplies } from "@/lib/crm/workshop-invite";
 import { resolveWindow } from "@/lib/meta/window";
 import { getWorkshopPublishBlockers } from "@/lib/crm/workshop-lifecycle";
 import {
@@ -97,6 +99,8 @@ const syncedInterestCount = async (edition: WorkshopForPanel): Promise<number> =
   if (edition.status === "OPEN" && !isWorkshopEnded(edition)) {
     await syncWorkshopInterests(edition).catch((e: unknown) => console.warn("[talleres] no se pudieron leer las interesadas", e));
   }
+  // Quien contestó a la invitación a inscritas de eventos gratuitos (28-oct) también es interesada.
+  await syncInviteReplies(edition).catch((e: unknown) => console.warn("[talleres] no se pudieron leer las respuestas a la invitación", e));
   return countWorkshopInterests(edition.id).catch(() => 0);
 };
 
@@ -106,10 +110,16 @@ const syncedInterestCount = async (edition: WorkshopForPanel): Promise<number> =
  * cuáles son y llamarles o agendarles por el modelo»). La página ya las puso al día.
  */
 const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz: string }) => {
-  const rows = await listWorkshopInterests(edition.id).catch((e: unknown) => {
-    console.error("[talleres] no se pudo cargar la lista de interesadas", e);
-    return null;
-  });
+  const [rows, invitations] = await Promise.all([
+    listWorkshopInterests(edition.id).catch((e: unknown) => {
+      console.error("[talleres] no se pudo cargar la lista de interesadas", e);
+      return null;
+    }),
+    listWorkshopInvitations(edition.id).catch((e: unknown) => {
+      console.error("[talleres] no se pudo cargar a quién se invitó", e);
+      return [];
+    }),
+  ]);
   if (!rows) {
     return (
       <CrmErrorState
@@ -118,29 +128,52 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
       />
     );
   }
+  const open = edition.status === "OPEN" && !isWorkshopEnded(edition);
   return (
-    <WorkshopInterestsPanel
-      key={edition.id}
-      slug={edition.slug}
-      timeZone={tz}
-      open={edition.status === "OPEN" && !isWorkshopEnded(edition)}
-      payable={Boolean(edition.productId) && (edition.prices.cop != null || edition.prices.usd != null)}
-      rows={rows.map((r) => ({
-        id: r.id,
-        conversationId: r.conversationId,
-        name: r.name,
-        phone: r.phone,
-        firstMessage: r.firstMessage,
-        lastAskedAtIso: r.lastAskedAt.toISOString(),
-        asks: r.asks,
-        status: r.status,
-        nextCallAtIso: r.nextCallAt?.toISOString() ?? null,
-        paid: r.paid,
-        offeredAtIso: r.offeredAt?.toISOString() ?? null,
-        offeredVia: r.offeredVia,
-        windowOpen: resolveWindow("WHATSAPP", r.lastInboundAt).isOpen,
-      }))}
-    />
+    <div className="flex flex-col gap-4">
+      {/* La invitación a inscritas de eventos gratuitos (dueña, 28-oct): mientras está abierto o si ya se invitó a alguien. */}
+      {open || invitations.length > 0 ? (
+        <WorkshopFreeEventInvite
+          key={`${edition.id}:invitar`}
+          slug={edition.slug}
+          timeZone={tz}
+          open={open}
+          invitations={invitations.map((i) => ({
+            contactId: i.contactId,
+            name: i.name,
+            phone: i.phone,
+            conversationId: i.conversationId,
+            status: i.status,
+            mode: i.mode,
+            atIso: i.at?.toISOString() ?? null,
+            error: i.error,
+            answeredAtIso: i.answeredAt?.toISOString() ?? null,
+          }))}
+        />
+      ) : null}
+      <WorkshopInterestsPanel
+        key={edition.id}
+        slug={edition.slug}
+        timeZone={tz}
+        open={open}
+        payable={Boolean(edition.productId) && (edition.prices.cop != null || edition.prices.usd != null)}
+        rows={rows.map((r) => ({
+          id: r.id,
+          conversationId: r.conversationId,
+          name: r.name,
+          phone: r.phone,
+          firstMessage: r.firstMessage,
+          lastAskedAtIso: r.lastAskedAt.toISOString(),
+          asks: r.asks,
+          status: r.status,
+          nextCallAtIso: r.nextCallAt?.toISOString() ?? null,
+          paid: r.paid,
+          offeredAtIso: r.offeredAt?.toISOString() ?? null,
+          offeredVia: r.offeredVia,
+          windowOpen: resolveWindow("WHATSAPP", r.lastInboundAt).isOpen,
+        }))}
+      />
+    </div>
   );
 };
 
