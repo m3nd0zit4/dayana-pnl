@@ -65,6 +65,13 @@ const LeadCaptureForm = ({
     fixedInterest ?? INTERESTS[0]
   );
   const [consent, setConsent] = useState(false);
+  /**
+   * Eventos gratuitos: el permiso aparte, sin marcar, para recibir información
+   * de talleres y eventos (dueña, 28-oct: «ellos aceptaron recibir información
+   * de talleres y eventos grupales, tanto de paga o no»). El de arriba solo
+   * cubre contactarla y el tratamiento de datos; este es `consentMarketingAt`.
+   */
+  const [consentNews, setConsentNews] = useState(false);
   /** Trampa para bots (ver el campo oculto del formulario). */
   const [hp, setHp] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -117,6 +124,7 @@ const LeadCaptureForm = ({
           interest: interestValue,
           notify: true,
           consentData: true,
+          ...(fixedInterest === WEBINAR_INTEREST_LABEL && consentNews ? { consentMarketing: true } : {}),
           ...(fixedInterest === WEBINAR_INTEREST_LABEL
             ? { tag: "webinar-gratuito", ...(freeEventId ? { freeEventId } : {}) }
             : {}),
@@ -370,6 +378,22 @@ const LeadCaptureForm = ({
           )}
         </span>
       </label>
+
+      {fixedInterest === WEBINAR_INTEREST_LABEL && (
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={consentNews}
+            onChange={(e) => setConsentNews(e.target.checked)}
+            className="mt-1 accent-terracotta"
+          />
+          <span className="font-[font1] text-xs leading-relaxed text-black/55">
+            Quiero recibir por WhatsApp y correo información de los talleres y
+            eventos grupales de Dayana, gratuitos o de pago. Puedo pedir que no
+            me escriban más cuando quiera.
+          </span>
+        </label>
+      )}
 
       {serverError && (
         <p className="font-[font1] text-sm text-[#b4543a]">{serverError}</p>

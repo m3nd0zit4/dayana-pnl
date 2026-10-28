@@ -50,6 +50,12 @@ type Body = {
   planId?: string;
   enrollmentId?: string;
   consentData?: boolean;
+  /**
+   * Eventos gratuitos: aceptó recibir información de talleres y eventos
+   * (gratuitos o de pago), una casilla aparte y sin marcar (28-oct). Es
+   * `consentMarketingAt`: lo que mira la invitación a talleres.
+   */
+  consentMarketing?: boolean;
   source?: string;
   sourceDetail?: string;
   /** Web contact form extras — used only for the notification email. */
@@ -259,6 +265,7 @@ export async function POST(req: NextRequest) {
         ? WEBINAR_INTEREST_LABEL
         : sourceDetailValue,
       consentData: true,
+      consentMarketing: body.consentMarketing === true,
       consentAdTracking: body.consentAdTracking === true,
     });
 
