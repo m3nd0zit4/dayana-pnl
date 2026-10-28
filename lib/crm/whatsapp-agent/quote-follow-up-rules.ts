@@ -241,9 +241,14 @@ const PAID =
 /** «No me interesa», «ya no quiero», «prefiero no». */
 const NO =
   /\b(no me interesa|ya no (quiero|me interesa|voy a (seguir|tomar|hacer))|no (voy|puedo) a? ?(tomar|hacer|seguir|continuar) (el|con el|la|las|los) (proceso|terapia|sesion)|no gracias|prefiero no|lo dejo (asi|por ahora|para despues)|no estoy interesad[oa])\b/;
-/** «No me alcanza», «no tengo el dinero», «estoy ahorrando». */
+/**
+ * «No me alcanza», «no tengo el dinero», «estoy ahorrando». También (28-oct)
+ * «no he tenido el dinero» y «por el factor económico» (Andrea, 23/24-oct),
+ * «no tengo para pagarle» (Divianys), «está muy caro», «estoy juntando la
+ * plata»; no «cuenta de ahorros» ni «ya tengo ahorrado» (eso es pagar).
+ */
 const MONEY =
-  /\b(no me alcanza|no tengo (el |la |los |con que |como |para )?(dinero|plata|recursos|pagar|platica)|no cuento con (el )?(dinero|plata|recursos)|estoy (corta|corto|apretad[oa]|sin (dinero|plata|trabajo))|ahorr\w+|no (puedo|podre|voy a poder) pagar|mal de (plata|dinero)|economicamente)\b/;
+  /\b(no me alcanza|no (tengo|tenemos) (el |la |los |con que |como |para (el |la )?)?(dinero|plata|recursos|pagar\w*|platica|iniciar|empezar|comenzar|arrancar)|no (he|hemos) (tenido|conseguido|reunido|podido reunir) (el |la )?(dinero|plata|recursos)|no cuento con (el )?(dinero|plata|recursos)|estoy (corta|corto|apretad[oa]|sin (dinero|plata|trabajo|empleo))|sin (dinero|plata)|(mis|sin|pocos|corta de|corto de) ahorros|(?<!\bde )ahorr(o|ar|are|ando|aria|amos|aremos)|(tratando de|intentando) (reunir|juntar)|(reuniendo|juntando) (el |la |suficiente )?(dinero|plata)|no (puedo|podre|voy a poder) pagar|mal de (plata|dinero)|economicamente|(factor|situacion|tema|parte|problema|asunto|lo) economic[oa]s?|(?<!\bno )(esta|es|son|me parece|me queda) (muy |un poco |algo |demasiado )?(caro|cara|caros|carisim[oa]|costoso|costosa)|muy (caro|costoso))\b/;
 /** «Voy a pagar», «te envío», «estoy decidida», «apenas me paguen». */
 const PAY =
   /\b(voy a (pagar|hacer el pago|transferir|enviar|mandar|depositar|empezar|iniciar|comenzar)|te (pago|transfiero|envio|mando|deposito|consigno|enviare|mandare|pagare|transferire)|(estoy|me siento) (muy )?decidid[oa]|si quiero (empezar|iniciar|comenzar|el proceso|hacerlo)|quiero (empezar|iniciar|comenzar)|apenas (me|tenga|reciba|cobre|llegue)|cuando (me paguen|cobre|me llegue|reciba|me depositen|pague|haga el pago|tenga el dinero|tenga la plata)|enviare el comprobante|empezamos|lo hago (el|la|este|esta|en)|hago el pago)\b/;
@@ -591,6 +596,7 @@ export const quotePromptLine = (s: QuoteSituation, tz: string, pack: string | nu
     // ENNY (23-oct): «pon la fecha y el día y me envías la forma de pago» al seguimiento.
     `- Si pide el enlace, los datos o la forma de pago, o no recuerda qué le mandó Dayana: empieza recordándole en qué quedó${pack ? ` («Recuerda que con Dayana quedaron en ${packPhrase(pack)}»)` : ""} y vuelve a mandárselo con send_payment_link o send_payment_info, sin escribir a mano una cuenta ni un enlace. El día y la hora de inicio los agenda Dayana cuando reciba el comprobante: no escales por eso.`,
     "- Si dice que lo está pensando: respétalo y ofrécele resolver dudas, sin presionar.",
+    // Cuando lo dice ahora, la línea «NO LE ALCANZA PARA INICIAR» (`cant-afford.ts`, 28-oct) dice qué ofrecer.
     "- Si dice que no le alcanza: mira COMUNIDAD Y OPCIONES MÁS ECONÓMICAS. Si dice que ya pagó o manda el comprobante: register_payment_receipt.",
   ].join("\n");
 

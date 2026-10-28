@@ -25,6 +25,7 @@ import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
 import { acceptedCallWithoutHours, availabilityArgs, flowState, flowStateText, leadBeforeHours, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, asksToJoinCommunity, COMMUNITY_REPLY, communityLink, communityRules } from "./community";
+import { cheaperLine, cheaperOptions, cheaperTool, saysCantAfford, saysHardNews, wantsToTalk, withCheaper } from "./cant-afford";
 import { spendLimits } from "./spend";
 import {
   askedPackage,
@@ -1212,6 +1213,26 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // La comunidad y lo más económico: el enlace lo pega el código, como los datos de pago.
   const community = communityLink(config);
   const options = affordableOptions(config);
+  // Dice ahora que no le alcanza para iniciar (dueña, 28-oct; Joselyn y Andrea, 23/24-oct:
+  // al seguimiento del cierre «no tengo dinero» y la IA solo dijo «cuando puedas, me avisas»):
+  // lo más económico que hay ahora (`cant-afford.ts`): el taller abierto, la comunidad, el curso.
+  // No mientras habla del taller (ahí «no puedo pagar» es el taller), ni con su llamada gratis
+  // agendada, ni si Dayana le acaba de escribir (esa conversación es de ella).
+  const dayanaJustWrote = toDayana && Boolean(lastOutbound?.sentAt && now.getTime() - lastOutbound.sentAt.getTime() < 30 * 60_000);
+  const cheaperItems =
+    !input.clientMode &&
+    !guestEvent &&
+    !workshopAskNow &&
+    !workshopFlow &&
+    !workshopSpot &&
+    !lastInboundMedia &&
+    !upcomingCall &&
+    !dayanaJustWrote &&
+    !(input.stage && ["clienta_activa", "clienta_pasada", "por_revisar", "personal"].includes(input.stage)) &&
+    saysCantAfford(lastInbound, { at: now, tz: input.freeCall?.personTimezone ?? timezone })
+      ? cheaperOptions({ workshop: workshop?.payUrl ? workshop : null, community, options })
+      : [];
+  const cheaperWorkshop = cheaperItems.find((i) => i.kind === "workshop") ?? null;
   const urgentPath = input.clientMode ? null : urgentSessionPath(config);
   const addLink = (url: string) => {
     if (!state.links.includes(url)) state.links.push(url);
@@ -1225,8 +1246,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             inputSchema: z.object({}),
             execute: async () => {
               if (!workshopPay) return log("send_workshop_link", {}, { ok: false, reason: "Ya pagó este taller: no le mandes el enlace." });
-              // Solo a quien habla del taller (no es el enlace de pago de su proceso).
-              if (!workshopLead && !workshopSpot) return log("send_workshop_link", {}, { ok: false, reason: "No está hablando del taller: no le mandes este enlace." });
+              // Solo a quien habla del taller (no es el enlace de pago de su proceso), o a quien
+              // no le alcanza: el taller es lo más económico que hay (28-oct).
+              if (!workshopLead && !workshopSpot && !cheaperWorkshop) {
+                return log("send_workshop_link", {}, { ok: false, reason: "No está hablando del taller: no le mandes este enlace." });
+              }
               // Pregunta por el taller y todavía no eligió (eval 25-oct: a «¿el costo del taller?» le mandaba el enlace sin preguntar).
               if (workshopAskNow && !workshopSpot) {
                 return log("send_workshop_link", {}, {
@@ -1943,6 +1967,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           : workshop && workshopSpot
             ? workshopPayLine(workshop)
             : null,
+      // No le alcanza (28-oct): lo más económico que hay ahora (solo entonces: el prompt fijo no cambia).
+      cheaperItems.length > 0 ? cheaperLine(cheaperItems, { beforeCall: salesOn }) : null,
       guestEvent
         ? guestLine(guestEvent, input.transcript, { timezone, now: now.getTime() })
         : salesOn
@@ -2226,6 +2252,32 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       };
     }
   }
+  // No le alcanza y el modelo se lo pasó a Dayana («Déjame consultarlo», o algo clínico
+  // después de la llamada, que ahí sería el paso del pago) o le escribió líneas de
+  // emergencia: la respuesta del código con lo más económico (`replyText`), y Dayana un
+  // aviso que la persona no ve. Antes de la llamada, lo clínico sigue con la llamada
+  // gratis (`serious`); querer morir o hacerse daño, también. Un pago (cuotas, descuento) escala.
+  const cheaperOnly =
+    cheaperItems.length > 0 &&
+    !agendaOnly &&
+    !chatLinkOnly &&
+    !communityOnly &&
+    !paymentDataOnly &&
+    !quotePay &&
+    !workshopOnly &&
+    !state.receipt &&
+    !state.noReply &&
+    !saysSelfHarm([...lastInbound, modelOutcome.kind === "escalate" ? modelOutcome.reason : null]) &&
+    (modelOutcome.kind === "escalate"
+      ? ["other", "unknown", "reschedule", ...(salesOn ? [] : ["clinical"])].includes(modelOutcome.category)
+      : givesEmergencyAdvice(modelOutcome.message));
+  if (cheaperOnly && modelOutcome.kind === "escalate") {
+    state.silentEscalation ??= {
+      category: modelOutcome.category,
+      severity: "normal",
+      reason: `${modelOutcome.reason} (Dijo que no le alcanza: la asistente le ofreció lo más económico.)`.slice(0, 300),
+    };
+  }
   // Nunca deja de responder (dueño, 21-oct; `serious-reply.ts`): lo delicado
   // recibe una frase de apoyo y el siguiente paso (la llamada gratis o el pago),
   // y Dayana un aviso normal que la persona no ve. Nunca líneas de emergencia
@@ -2274,7 +2326,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     ["other", "unknown", "reschedule"].includes(modelOutcome.category) &&
     asksForMoreHelp(lastInbound);
   // Lo que ya decidió otra respuesta (la sesión urgente, el enlace, la comunidad, los datos, la cotización) va primero.
-  const otherFallback = agendaOnly || chatLinkOnly || communityOnly || paymentDataOnly || Boolean(quotePay) || workshopOnly;
+  const otherFallback = agendaOnly || chatLinkOnly || communityOnly || paymentDataOnly || Boolean(quotePay) || workshopOnly || cheaperOnly;
   // Solo lo que de verdad le llegaría: su respuesta, o el aviso de una escalada (no un comprobante recibido).
   const emergencyTalk =
     !input.clientMode &&
@@ -2493,6 +2545,35 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       log("send_affordable_option", { option: cheaper.key, auto: true }, { ok: true, label: cheaper.label, note: "Lo pegó el código: la respuesta ofrecía el curso sin la herramienta." });
       text = withoutFakeLinks(text) || text;
     }
+    // Dijo que no le alcanza y la respuesta no le ofrece nada (Joselyn y Andrea, 24-oct:
+    // «cuando puedas, me avisas»; el modelo no usó ninguna herramienta): debajo, lo más
+    // económico que hay ahora, con sus enlaces (el taller primero). Si escaló, solo dijo que
+    // lo consultaba o le mandó cómo pagar su proceso, la respuesta del código. No encima de
+    // otra respuesta del código (la sesión urgente, la comunidad, el taller…).
+    if (cheaperItems.length > 0 && outcome === modelOutcome && !state.receipt && !state.urgentSession && !state.slotOffer && !state.booking && !state.bookingNotice) {
+      const pushedPay = Boolean(state.paymentLink) || state.paymentDetails.length > 0;
+      const fixed = withCheaper(text, cheaperItems, {
+        attached: state.links,
+        replace: cheaperOnly || pushedPay || promisesHandoff(text),
+        beforeCall: salesOn,
+        name: sureFirstName(nameInfo),
+        hard: saysHardNews(lastInbound),
+        talk: wantsToTalk(lastInbound),
+      });
+      if (fixed.replaced || fixed.links.length > 0) {
+        // Nada de insistir con el pago de su proceso: no lo pidió.
+        state.paymentLink = null;
+        state.paymentDetails = [];
+        for (const url of fixed.links) {
+          const item = cheaperItems.find((i) => i.url === url)!;
+          addLink(url);
+          log(cheaperTool(item), { auto: true, ...(item.kind === "course" ? { option: item.key } : {}) }, { ok: true, note: "Lo pegó el código: dijo que no le alcanza y la respuesta no le ofrecía lo más económico." });
+        }
+        if (fixed.replaced) log("cheaper_reply", { auto: true }, { ok: true, replaced: text, note: "Lo puso el código: dijo que no le alcanza." });
+      }
+      // También sin cambios de fondo: «cuando estés lista» → «cuando puedas».
+      if (fixed.text !== text) text = withoutFakeLinks(fixed.text) || fixed.text;
+    }
     // «Te comparto los datos de Bancolombia…» sin send_payment_info (eval ENNY, 21-oct):
     // le llegaba la promesa sin los datos. Con las mismas reglas que la herramienta,
     // el código pega la forma de pago que nombra (o la única que hay).
@@ -2609,7 +2690,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       : text;
   // Lo delicado sale tal cual (apoyo o el paso del pago), sin la lista de horas.
   // Bloqueado y con horas del código: sale la lista (con la frase de siempre), no «Déjame consultarlo».
-  const answered: BrainOutcome = autoOffered && outcome.kind === "escalate" ? { kind: "reply", message: "" } : outcome;
+  // No le alcanza y el modelo escaló: sale lo más económico (lo escribe `replyText`), no «Déjame consultarlo».
+  const answered: BrainOutcome = (autoOffered || cheaperOnly) && outcome.kind === "escalate" ? { kind: "reply", message: "" } : outcome;
   const shaped: BrainOutcome =
     answered.kind === "reply"
       ? { ...answered, message: serious ? answered.message : withAgenda(withWorkshop(reminded(named(replyText(answered.message))!))) }

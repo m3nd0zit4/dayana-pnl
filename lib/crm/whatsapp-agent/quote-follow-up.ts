@@ -1,12 +1,16 @@
 import { prisma } from "@/lib/db";
 import { fireNotification } from "@/lib/notifications/platform/emit";
 import { sureFirstName } from "@/lib/sure-name";
+import { sanitizeMensaje } from "../event-template-vars";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
 import { fillVars } from "../whatsapp-outbound-plan";
 import { approvedTemplateFor, ensureTemplatesSubmitted } from "../whatsapp-templates";
+import { enrolledInWorkshop, openWorkshopForAi } from "../workshop-interests";
+import { cheaperFollowUpText, cheaperOptions, cheaperTemplateMessage, type CheaperItem } from "./cant-afford";
 import { chatNameInfo } from "./chat-name";
+import { affordableOptions, communityLink } from "./community";
 import { followUpDue, followUpText, isQuoteLine, QUOTE_FOLLOW_UP_SOURCE, QUOTE_STATE_LABEL, quoteHowText, quoteSituation } from "./quote-follow-up-rules";
 import { quoteLinesFor, quoteZoneFor } from "./quote-follow-up-view";
 import { computeSegment } from "./segment-store";
@@ -24,10 +28,29 @@ import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
  * clienta) y el interruptor general. Dentro de las 24 h va como texto; fuera,
  * con la plantilla `seguimiento_proceso` (se manda sola a aprobar). Lo corre
  * el reloj (`tick.ts`, cada ≥ 15 min).
+ *
+ * A quien dijo que no le alcanza (dueña, 28-oct: «que el modelo le ofrezca
+ * cosas más gratuitas o más económicas, como por ejemplo el taller si hay un
+ * taller activo»): en vez de «¿Cuándo te gustaría empezar?», lo más económico
+ * que hay ahora (`cant-afford.ts`: el taller abierto, la comunidad, el curso),
+ * con los enlaces; fuera de las 24 h, en la plantilla ya aprobada
+ * `retomar_conversacion` («Te escribo para retomar nuestra conversación.
+ * {{mensaje}}»), porque `seguimiento_proceso` tiene fijo «¿Cuándo te gustaría
+ * empezar?». Joselyn y Andrea (23/24-oct) contestaron al 1º «no tengo dinero»:
+ * su 2º, 7 días después, ya es este.
  */
 
 const DAY = 24 * 3600_000;
 export const QUOTE_TEMPLATE_KEY = "seguimiento_proceso";
+/** La plantilla del seguimiento a quien no le alcanza (cuerpo fijo + `{{mensaje}}`). */
+export const CHEAPER_TEMPLATE_KEY = "retomar_conversacion";
+
+/** Lo más económico que hay ahora para esta persona (el taller, si no lo pagó ya). */
+const cheaperFor = async (contactId: string | null, config: WhatsAppAiConfig, now: Date): Promise<CheaperItem[]> => {
+  const open = await openWorkshopForAi(now).catch(() => null);
+  const paid = open && contactId ? await enrolledInWorkshop(contactId, open.id).catch(() => false) : false;
+  return cheaperOptions({ workshop: open && !paid ? open : null, community: communityLink(config), options: affordableOptions(config) });
+};
 
 /**
  * Pistas de un mensaje de Dayana con cómo pagar, para buscar los chats (el
@@ -100,13 +123,20 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
   const name = sureFirstName(await chatNameInfo(conversationId));
   const n = s.sent + 1;
   const source = `${QUOTE_FOLLOW_UP_SOURCE}${s.quoteAt.getTime()}:${n}`;
-  const text = followUpText(due.kind, s.state, name);
+  // Dijo que no le alcanza después del último seguimiento (o de la cotización): lo más
+  // económico. Si ya se lo ofreció el 1º y no contestó, el 2º es el de siempre.
+  const cheaper = s.state === "sin_dinero" && (!s.lastSentAt || s.saidAt > s.lastSentAt) ? await cheaperFor(conv.contactId, config, now) : [];
+  const text = cheaper.length ? cheaperFollowUpText(name, cheaper) : followUpText(due.kind, s.state, name);
+  const templateKey = cheaper.length ? CHEAPER_TEMPLATE_KEY : QUOTE_TEMPLATE_KEY;
+  const vars: Record<string, string> = cheaper.length
+    ? { nombre: name ?? "", mensaje: sanitizeMensaje(cheaperTemplateMessage(cheaper)) }
+    : { nombre: name ?? "" };
   // WhatsApp no lo entregó y Dayana lo borró o lo reenvió (Cristina, 26-oct: «User's
   // number is part of an experiment»): ya no está en el chat, así que la cuenta volvía
   // a 0 y salía otra vez. La bitácora lo recuerda: por `source` y, en los de antes de
   // guardarlo, por el texto (el libre o el de la plantilla, con el nombre como sale).
-  const template = await approvedTemplateFor(QUOTE_TEMPLATE_KEY).catch(() => null);
-  const bodies = [text, ...(template?.body ? [fillVars(template.body, { nombre: name?.trim() || "😊" })] : [])];
+  const template = await approvedTemplateFor(templateKey).catch(() => null);
+  const bodies = [text, ...(template?.body ? [fillVars(template.body, { ...vars, nombre: name?.trim() || "😊" })] : [])];
   const triedBefore = await prisma.auditLog.findFirst({
     where: {
       action: { in: ["WHATSAPP_FAILED_DELETED", "WHATSAPP_FAILED_RESENT"] },
@@ -126,8 +156,8 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
       optedOut: false,
     },
     text,
-    templateKey: QUOTE_TEMPLATE_KEY,
-    vars: { nombre: name ?? "" },
+    templateKey,
+    vars,
     // `recordatorio:`: sale solo, no cuenta como que Dayana contestó.
     source,
     isAutoReply: true,
@@ -142,7 +172,11 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
   fireNotification({
     eventType: "WHATSAPP_AI_INFO",
     title: `Seguimiento a ${name ?? conv.participantName ?? `+${conv.externalThreadId}`} (${n}º)`,
-    body: `${QUOTE_STATE_LABEL[s.state]} · ${quoteHowText(s.how)}. Le escribí para iniciar su proceso.`,
+    body: `${QUOTE_STATE_LABEL[s.state]} · ${quoteHowText(s.how)}. ${
+      cheaper.length
+        ? `Le ofrecí lo más económico: ${cheaper.map((i) => (i.kind === "workshop" ? `el taller «${i.title}»` : i.kind === "community" ? "la comunidad" : `el ${i.name}`)).join(" y ")}.`
+        : "Le escribí para iniciar su proceso."
+    }`,
     href: `/admin/whatsapp?conversation=${conversationId}`,
     entityType: "Conversation",
     entityId: conversationId,
@@ -166,7 +200,7 @@ export const sweepQuoteFollowUps = async (
   if (!config.quoteFollowUp.enabled || config.quoteFollowUp.max <= 0) return { off: true };
   if (!opts.send) {
     if (!(await isWhatsAppAutoReplyEnabled())) return { off: true, reason: "ai_off" };
-    await ensureTemplatesSubmitted([QUOTE_TEMPLATE_KEY]).catch(() => undefined);
+    await ensureTemplatesSubmitted([QUOTE_TEMPLATE_KEY, CHEAPER_TEMPLATE_KEY]).catch(() => undefined);
   }
   const since = new Date(now.getTime() - config.quoteFollowUp.lookbackDays * DAY);
   // Los mensajes con alguna pista (los más nuevos primero) y, de esos, los que
