@@ -46,6 +46,18 @@ describe("insults (Alejandra, 27-oct)", () => {
     "La llamada fue muy corta, no alcancé a contar todo",
     "Gracias por todo",
     "Ok",
+    // Revisión 28-oct: lo que cuenta de otros, de sí, o una duda.
+    "mi esposo es un hijueputa, me trata mal",
+    "el malparido de mi ex no me deja en paz",
+    "mis hermanos son unos interesados, solo les importa la plata",
+    "a mi mamá solo le interesa el dinero",
+    "mi expareja solo quiere dinero",
+    "mis compañeros son unos idiotas",
+    "Qué mierda de persona soy",
+    "¿Esto es una estafa?",
+    "no es una estafa verdad?",
+    "Ya me han estafado otros estafadores",
+    "Todos son unos interesados conmigo",
   ])("no es un insulto a Dayana: %s", (text) => {
     expect(insults([text])).toBe(false);
   });

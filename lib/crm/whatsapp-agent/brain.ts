@@ -2311,12 +2311,24 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     const again = rudeReplied(input.transcript, now.getTime());
     log("rude_reply", { auto: true }, { ok: true, again, replaced: modelOutcome.kind === "reply" ? modelOutcome.message : `escalate:${modelOutcome.category}` });
     if (again) state.noReply = "Ya se le explicó la llamada de 15 minutos y sigue insultando: no se le contesta más.";
-    // Solo ese texto: nada de horas, enlaces, datos ni la sesión urgente.
+    // Solo ese texto: nada de horas, citas por aprobar, enlaces, datos ni la sesión urgente.
     state.slotOffer = null;
+    state.pendingSlots = null;
+    state.pendingBooking = null;
+    state.bookingRequest = null;
+    state.pendingPayment = null;
     state.paymentDetails = [];
     state.paymentLink = null;
     state.links = [];
     state.urgentSession = null;
+    // Lo que el modelo le quería pasar a Dayana (una queja, una pregunta) no se pierde.
+    if (modelOutcome.kind === "escalate") {
+      state.silentEscalation ??= {
+        category: modelOutcome.category === "clinical" ? "clinical" : "other",
+        severity: "normal",
+        reason: `Insultó después de su llamada («${lastInbound.join(" ").slice(0, 120)}»); la IA ${again ? "no le contestó (ya se le había explicado)" : "le explicó la llamada de 15 minutos y las sesiones"}. ${modelOutcome.reason}`.slice(0, 400),
+      };
+    }
   }
   const risk = riskNow || (escalated && saysSelfHarm([modelOutcome.reason, ...recentInbound]));
   const clinical = escalated && modelOutcome.category === "clinical";
@@ -2692,9 +2704,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Bloqueado y con horas del código: sale la lista (con la frase de siempre), no «Déjame consultarlo».
   // No le alcanza y el modelo escaló: sale lo más económico (lo escribe `replyText`), no «Déjame consultarlo».
   const answered: BrainOutcome = (autoOffered || cheaperOnly) && outcome.kind === "escalate" ? { kind: "reply", message: "" } : outcome;
+  // Lo delicado y la respuesta al insulto salen tal cual (sin horas, enlaces ni el paso del taller).
   const shaped: BrainOutcome =
     answered.kind === "reply"
-      ? { ...answered, message: serious ? answered.message : withAgenda(withWorkshop(reminded(named(replyText(answered.message))!))) }
+      ? { ...answered, message: serious || rudeNow ? answered.message : withAgenda(withWorkshop(reminded(named(replyText(answered.message))!))) }
       : answered;
   // Dayana le escribió hace un momento y la persona le contesta a ella: esa
   // conversación es de Dayana (Raquel, 22-oct: a su respuesta al audio de
