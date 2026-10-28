@@ -474,6 +474,50 @@ export const SCENARIOS: Scenario[] = [
     goal: "Va a pagar cuando reciba el dinero la próxima semana: con calidez, que Dayana queda atenta y que cuando haga el pago le mande el comprobante por aquí. No la presiona ni la desvía al taller u otra opción más barata; no escala.",
   },
   {
+    id: "no-le-alcanza-pide-el-de-3",
+    origin:
+      "Revisión 28-oct del cambio «no le alcanza»: «No me alcanza para el de 6, mándame el de 3» se leía como «sin dinero» y el código cambiaba la respuesta por el taller, quitándole el enlace que pidió (Dayana le mandó los de 3 y 6, como a Joselyn)",
+    name: "Joselyn Jiménez 🪷💞🔧⚙️🔩",
+    gender: "unknown",
+    personTimezone: "America/El_Salvador",
+    stage: "tuvo_llamada",
+    transcript: [
+      dayana("Ya te envío el link de pago el paquete de tres sesiones"),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"),
+      dayana("Y ese es el link de pago para el paquete de seis sesiones"),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-6"),
+      person("No me alcanza para el de 6, mándame el de 3"),
+    ],
+    expect: {
+      outcome: "reply",
+      anyTool: ["send_payment_link"],
+      mustMatch: [/pagar\/p\/therapy-3\b/],
+      mustNotMatch: [/\btaller\b/i, /therapy-6/, /\$|\busd\b|\bcop\b/i],
+    },
+    goal: "Le manda el enlace del paquete de 3 sesiones que pidió (debajo) y le pide el comprobante cuando pague. No le ofrece el taller ni otra cosa: pidió pagar el de 3.",
+  },
+  {
+    id: "no-le-alcanza-pide-cuotas",
+    origin:
+      "Revisión 28-oct del cambio «no le alcanza»: «No tengo el dinero completo, ¿puedo pagar en cuotas?» no es para el taller; las cuotas las decide Dayana y tiene que enterarse",
+    name: "Cristian",
+    contactName: "Cristian",
+    gender: "unknown",
+    personTimezone: "America/Lima",
+    stage: "tuvo_llamada",
+    transcript: [
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"),
+      dayana("Tan pronto me envíes el comprobante de pago, agendamos día y hora que me digas"),
+      person("Gracias"),
+      person("No tengo el dinero completo, ¿puedo pagar en cuotas?"),
+    ],
+    expect: {
+      outcome: "escalate",
+      mustNotMatch: [/\btaller\b|m[aá]s econ[oó]mic/i, /\$|\busd\b|\bcop\b/i],
+    },
+    goal: "Las cuotas las decide Dayana: le dice con calidez que se lo consulta a Dayana y le confirma por aquí (escala), sin prometer cuotas, sin precios y sin desviarle al taller.",
+  },
+  {
     id: "perfil-no-es-nombre",
     origin: "DIOS ES MI PROVEEDOR, 13-oct: la IA propuso «Hola DIOS ES MI PROVEEDOR, te bendigo»",
     name: "DIOS ES MI PROVEEDOR 🙏",

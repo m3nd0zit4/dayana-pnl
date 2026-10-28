@@ -245,10 +245,24 @@ const NO =
  * «No me alcanza», «no tengo el dinero», «estoy ahorrando». También (28-oct)
  * «no he tenido el dinero» y «por el factor económico» (Andrea, 23/24-oct),
  * «no tengo para pagarle» (Divianys), «está muy caro», «estoy juntando la
- * plata»; no «cuenta de ahorros» ni «ya tengo ahorrado» (eso es pagar).
+ * plata»; no «cuenta de ahorros», «ya tengo mis ahorros» ni «ya tengo
+ * ahorrado» (eso es pagar).
  */
 const MONEY =
-  /\b(no me alcanza|no (tengo|tenemos) (el |la |los |con que |como |para (el |la )?)?(dinero|plata|recursos|pagar\w*|platica|iniciar|empezar|comenzar|arrancar)|no (he|hemos) (tenido|conseguido|reunido|podido reunir) (el |la )?(dinero|plata|recursos)|no cuento con (el )?(dinero|plata|recursos)|estoy (corta|corto|apretad[oa]|sin (dinero|plata|trabajo|empleo))|sin (dinero|plata)|(mis|sin|pocos|corta de|corto de) ahorros|(?<!\bde )ahorr(o|ar|are|ando|aria|amos|aremos)|(tratando de|intentando) (reunir|juntar)|(reuniendo|juntando) (el |la |suficiente )?(dinero|plata)|no (puedo|podre|voy a poder) pagar|mal de (plata|dinero)|economicamente|(factor|situacion|tema|parte|problema|asunto|lo) economic[oa]s?|(?<!\bno )(esta|es|son|me parece|me queda) (muy |un poco |algo |demasiado )?(caro|cara|caros|carisim[oa]|costoso|costosa)|muy (caro|costoso))\b/;
+  /\b(no me alcanza|no (tengo|tenemos) (el |la |los |con que |como |para (el |la )?)?(dinero|plata|recursos|pagar\w*|platica|iniciar|empezar|comenzar|arrancar)|no (he|hemos) (tenido|conseguido|reunido|podido reunir) (el |la )?(dinero|plata|recursos)|no cuento con (el )?(dinero|plata|recursos)|estoy (corta|corto|apretad[oa]|sin (dinero|plata|trabajo|empleo))|sin (dinero|plata)|(sin|pocos|corta de|corto de) ahorros|(se me (acabaron|fueron)|gaste|no tengo) (mis |los )?ahorros|(?<!\bde )ahorr(o|ar|are|ando|aria|amos|aremos)|(tratando de|intentando) (reunir|juntar)|(reuniendo|juntando) (el |la |suficiente )?(dinero|plata)|no (puedo|podre|voy a poder) pagar|mal de (plata|dinero)|(?<!\bno )(esta|es|son|me parece|me queda) (muy |un poco |algo |demasiado )?(caro|cara|caros|carisim[oa]|costoso|costosa)|muy (caro|costoso))\b/;
+/**
+ * Lo económico solo con una dificultad cerca (revisión 28-oct): «por el factor
+ * económico aún no he podido» (Andrea), «económicamente estoy mal», «un
+ * problema económico»; no «el tema económico ya lo resolví» ni «económicamente
+ * estoy bien».
+ */
+const MONEY_HARD =
+  /\b((factor|situacion|tema|parte|asunto|lo) economic[oa]s?|economicamente)\b[^.?!\n]{0,40}\b(no|dificil|complicad\w*|mal|apretad\w*|dur[oa])\b|\b(no|dificil|complicad\w*|mal|apretad\w*|dur[oa])\b[^.?!\n]{0,25}\b((tema|situacion|factor|parte|asunto) economic[oa]s?|economicamente)\b|\bproblemas? economic\w*/;
+/** Lo resolvió o le va bien: no es «sin dinero» («ya tengo mis ahorros», «no hay problema»). */
+const MONEY_OK =
+  /\b(ya (lo|la) (resolvi|solucione|tengo|tenemos)|ya (tengo|tenemos|cuento con) (el dinero|la plata|mis ahorros|los ahorros|para)|no (es|hay) (un |ningun )?problema|(estoy|estamos|ando) bien)\b/;
+/** ¿Dice que no tiene con qué pagar? */
+const noMoney = (t: string): boolean => !MONEY_OK.test(t) && (MONEY.test(t) || MONEY_HARD.test(t));
 /** «Voy a pagar», «te envío», «estoy decidida», «apenas me paguen». */
 const PAY =
   /\b(voy a (pagar|hacer el pago|transferir|enviar|mandar|depositar|empezar|iniciar|comenzar)|te (pago|transfiero|envio|mando|deposito|consigno|enviare|mandare|pagare|transferire)|(estoy|me siento) (muy )?decidid[oa]|si quiero (empezar|iniciar|comenzar|el proceso|hacerlo)|quiero (empezar|iniciar|comenzar)|apenas (me|tenga|reciba|cobre|llegue)|cuando (me paguen|cobre|me llegue|reciba|me depositen|pague|haga el pago|tenga el dinero|tenga la plata)|enviare el comprobante|empezamos|lo hago (el|la|este|esta|en)|hago el pago)\b/;
@@ -395,8 +409,8 @@ export const stateFromReply = (text: string, at: Date, tz: string): { state: Quo
   if (payBy && (PAY.test(t) || PAY_WORD.test(t) || START_ON.test(t))) return { state: "pagara", payBy };
   if (NO.test(t)) return { state: "no_quiere", payBy: null };
   // «No me alcanza ahora, pero a fin de mes sí»: con una fecha (2 días o más), va a pagar.
-  if (payBy && inDays !== null && inDays >= 2 && (MONEY.test(t) || THINK.test(t))) return { state: "pagara", payBy };
-  if (MONEY.test(t)) return { state: "sin_dinero", payBy: null };
+  if (payBy && inDays !== null && inDays >= 2 && (noMoney(t) || THINK.test(t))) return { state: "pagara", payBy };
+  if (noMoney(t)) return { state: "sin_dinero", payBy: null };
   if (PAY.test(t)) return { state: "pagara", payBy };
   if (THINK.test(t)) return { state: "lo_piensa", payBy: null };
   return null;

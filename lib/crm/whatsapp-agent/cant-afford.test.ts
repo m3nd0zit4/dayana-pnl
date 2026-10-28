@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
+import { stateFromReply } from "./quote-follow-up-rules";
 import {
   cheaperFollowUpText,
   cheaperLine,
   cheaperOptions,
+  cheaperOverEscalation,
   cheaperReply,
   cheaperTemplateMessage,
   invitesFreeCall,
@@ -78,8 +80,52 @@ describe("saysCantAfford", () => {
     ["No es caro, me parece bien"],
     ["Ya no me interesa, gracias"],
     ["Gracias"],
+    // Revisión 28-oct: quiere pagar algo de su proceso (la cuenta, otro paquete, cuándo empieza).
+    ["Ya tengo mis ahorros, ¿a qué cuenta te pago?"],
+    ["No me alcanza para el de 6, mándame el de 3"],
+    ["El tema económico ya lo resolví, ¿cuándo empezamos?"],
+    ["Económicamente estoy bien, gracias"],
+    // Cuotas, un descuento, otra forma de pagar: eso sigue llegando a Dayana.
+    ["No tengo el dinero completo, ¿puedo pagar en cuotas?"],
+    ["No me alcanza, ¿me puedes hacer un descuento?"],
+    ["Ahorita no tengo plata, ¿puedo abonar la mitad?"],
   ])("no: %s", (text) => {
     expect(says(text)).toBe(false);
+  });
+
+  test.each([
+    ["Económicamente estoy muy mal en este momento"],
+    ["Estoy pasando por una situación económica difícil"],
+    ["Tengo un problema económico, por eso no he iniciado"],
+    ["Se me acabaron los ahorros"],
+  ])("lo económico con una dificultad, sí: %s", (text) => {
+    expect(says(text)).toBe(true);
+  });
+});
+
+describe("«sin dinero» en el seguimiento del cierre (revisión 28-oct)", () => {
+  test.each([
+    ["Ya tengo mis ahorros, ¿a qué cuenta te pago?", "pagara"],
+    ["Económicamente estoy bien", null],
+    ["El tema económico ya lo resolví", null],
+    ["Por el factor económico aún no he podido apartar la cita", "sin_dinero"],
+    ["No he tenido el dinero", "sin_dinero"],
+  ])("«%s» → %s", (text, state) => {
+    expect(stateFromReply(text, AT, BOG)?.state ?? null).toBe(state as never);
+  });
+});
+
+describe("cheaperOverEscalation", () => {
+  test("nunca una respuesta del modelo (las líneas de emergencia las arregla `serious`)", () => {
+    expect(cheaperOverEscalation({ kind: "reply" }, { beforeCall: false })).toBe(false);
+  });
+  test("«Déjame consultarlo» (otra / no sabe / reagendar), sí; un pago o una queja, no", () => {
+    for (const category of ["other", "unknown", "reschedule"]) expect(cheaperOverEscalation({ kind: "escalate", category }, { beforeCall: true })).toBe(true);
+    for (const category of ["payment", "complaint"]) expect(cheaperOverEscalation({ kind: "escalate", category }, { beforeCall: false })).toBe(false);
+  });
+  test("lo clínico: después de la llamada sí (sería el paso del pago); antes, la llamada gratis", () => {
+    expect(cheaperOverEscalation({ kind: "escalate", category: "clinical" }, { beforeCall: false })).toBe(true);
+    expect(cheaperOverEscalation({ kind: "escalate", category: "clinical" }, { beforeCall: true })).toBe(false);
   });
 });
 
@@ -208,6 +254,10 @@ describe("withCheaper", () => {
     // Eval 28-oct (Joselyn): «Cuando puedas y estés lista» no queda «puedas y puedas».
     expect(withoutReadyGender("Cuando puedas y estés lista, me avisas.")).toBe("Cuando puedas, me avisas.");
     expect(withoutReadyGender("Cuando puedas y puedas hacerlo, aquí estaremos.")).toBe("Cuando puedas, aquí estaremos.");
+    // Eval 28-oct (Joselyn): «lista y dispuesta», «de todo corazón», «con todo respeto y cariño».
+    expect(withoutReadyGender("Cuando estés lista y dispuesta, por aquí estaremos.")).toBe("Cuando puedas, por aquí estaremos.");
+    expect(withoutReadyGender("Siento mucho lo de tu hermana, te acompaño de todo corazón.")).toBe("Siento mucho lo de tu hermana, te acompaño.");
+    expect(withoutReadyGender("Te mando un abrazo con todo respeto y cariño.")).toBe("Te mando un abrazo con todo respeto.");
     expect(withoutReadyGender("Te entiendo de corazón, Joselyn. Te acompaño con el corazón en este momento.")).toBe("Te entiendo, Joselyn. Te acompaño en este momento.");
     const r = withCheaper("Te entiendo. Cuando estés lista, me avisas.", ALL, { attached: [WORKSHOP.payUrl!], replace: false, beforeCall: false, name: null });
     expect(r.text).toBe("Te entiendo. Cuando puedas, me avisas.");

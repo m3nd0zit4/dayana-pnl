@@ -8,7 +8,7 @@ import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbo
 import { fillVars } from "../whatsapp-outbound-plan";
 import { approvedTemplateFor, ensureTemplatesSubmitted } from "../whatsapp-templates";
 import { enrolledInWorkshop, openWorkshopForAi } from "../workshop-interests";
-import { cheaperFollowUpText, cheaperOptions, cheaperTemplateMessage, type CheaperItem } from "./cant-afford";
+import { cheaperFollowUpText, cheaperOptions, cheaperTemplateMessage, saysCantAfford, type CheaperItem } from "./cant-afford";
 import { chatNameInfo } from "./chat-name";
 import { affordableOptions, communityLink } from "./community";
 import { followUpDue, followUpText, isQuoteLine, QUOTE_FOLLOW_UP_SOURCE, QUOTE_STATE_LABEL, quoteHowText, quoteSituation } from "./quote-follow-up-rules";
@@ -124,8 +124,12 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
   const n = s.sent + 1;
   const source = `${QUOTE_FOLLOW_UP_SOURCE}${s.quoteAt.getTime()}:${n}`;
   // Dijo que no le alcanza después del último seguimiento (o de la cotización): lo más
-  // económico. Si ya se lo ofreció el 1º y no contestó, el 2º es el de siempre.
-  const cheaper = s.state === "sin_dinero" && (!s.lastSentAt || s.saidAt > s.lastSentAt) ? await cheaperFor(conv.contactId, config, now) : [];
+  // económico. Si ya se lo ofreció el 1º y no contestó, el 2º es el de siempre. Con las
+  // mismas excepciones que la respuesta (pidió otro paquete, la cuenta, cuotas: no).
+  const cheaper =
+    s.state === "sin_dinero" && s.said && saysCantAfford([s.said], { at: s.saidAt, tz }) && (!s.lastSentAt || s.saidAt > s.lastSentAt)
+      ? await cheaperFor(conv.contactId, config, now)
+      : [];
   const text = cheaper.length ? cheaperFollowUpText(name, cheaper) : followUpText(due.kind, s.state, name);
   const templateKey = cheaper.length ? CHEAPER_TEMPLATE_KEY : QUOTE_TEMPLATE_KEY;
   const vars: Record<string, string> = cheaper.length

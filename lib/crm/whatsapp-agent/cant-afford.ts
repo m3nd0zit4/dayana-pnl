@@ -1,4 +1,5 @@
 import { foldForSearch } from "../search-normalize";
+import { askedPackage } from "./chat-payment-link";
 import { absoluteUrl, type AffordableOption } from "./community";
 import { asksHowToPay, stateFromReply } from "./quote-follow-up-rules";
 import type { OpenWorkshop } from "./workshop-interest";
@@ -24,8 +25,10 @@ import type { OpenWorkshop } from "./workshop-interest";
  *
  * No es «no le alcanza»: el enlace que no abre («No puedo pagar» + «No me
  * deja», Lluvia, 26-oct), quien dice cuándo paga o que espera un dinero («a la
- * espera de la próxima semana recibir un dinero», Paola, 23-oct: va a pagar) ni
- * quien pide cómo pagar («no me alcanza para el de 6, mándame el de 3»).
+ * espera de la próxima semana recibir un dinero», Paola, 23-oct: va a pagar),
+ * quien pide cómo pagar o la cuenta («no me alcanza para el de 6, mándame el de
+ * 3», «ya tengo mis ahorros, ¿a qué cuenta te pago?») ni quien pregunta por
+ * cuotas o un descuento (eso sigue llegando a Dayana).
  *
  * Puro: lo usan `brain.ts` (el prompt, las herramientas y el freno de la
  * respuesta) y el seguimiento del cierre (`quote-follow-up.ts`).
@@ -48,17 +51,45 @@ const TECH =
   /\bno (me )?(deja|abre|funciona|carga|sale|aparece|acepta|pasa)\b|\b(error|rechaz\w*|fallo|fallido|declinad\w*)\b|\b(el|la) (link|enlace|pagina|tarjeta|boton) no\b/;
 
 /**
+ * Quiere pagar algo de su proceso (revisión 28-oct: «ya tengo mis ahorros, ¿a qué
+ * cuenta te pago?», «no me alcanza para el de 6, mándame el de 3», «el tema
+ * económico ya lo resolví, ¿cuándo empezamos?»): la cuenta, el enlace, cuándo
+ * empieza. Eso lo contesta lo de siempre (el enlace o los datos), nunca el taller.
+ */
+const PAY_INTENT =
+  /\b(a que cuenta|que cuenta|numero de cuenta|(la|tu|su) cuenta|nequi|daviplata|bancolombia|western|transferencia|transferir|consign\w*|(el|ese|tu) (link|enlace)|mandame|enviame|pasame|regalame|me (mandas|manda|envias|envia|pasas|pasa|das|da) (el|la|los|tu|su)|como (te |le )?(pago|puedo pagar|hago el pago)|cuando (empezamos|iniciamos|arrancamos|comenzamos|empiezo|inicio))\b/;
+/**
+ * Cuotas, un descuento u otra forma de pagar (revisión 28-oct: «no tengo el
+ * dinero completo, ¿puedo pagar en cuotas?»): eso lo responde Dayana, como antes.
+ */
+const OTHER_WAY =
+  /\b(cuotas?|a plazos|plazos|abonos?|abonar|por partes|en partes|la mitad|financ\w*|descuento|rebaja|precio especial|otra forma de pago|otro medio de pago|otra manera de pagar)\b/;
+
+/**
  * ¿Dice ahora que no le alcanza para iniciar? Lo decide `stateFromReply` (el
- * mismo «sin dinero» del seguimiento del cierre), sin el enlace que no abre y
- * sin quien pide cómo pagar.
+ * mismo «sin dinero» del seguimiento del cierre), sin el enlace que no abre,
+ * sin quien quiere pagar algo de su proceso (cómo pagar, la cuenta, otro
+ * paquete) y sin quien pregunta por cuotas o un descuento.
  */
 export const saysCantAfford = (texts: string[], opts: { at: Date; tz: string }): boolean => {
   const joined = texts.map((t) => t.replace(/^🎤\s*/, "").trim()).filter(Boolean).join("\n");
   if (!joined) return false;
   const t = foldForSearch(joined);
-  if (TECH.test(t) || asksHowToPay(texts)) return false;
+  if (TECH.test(t) || PAY_INTENT.test(t) || OTHER_WAY.test(t) || asksHowToPay(texts) || askedPackage(joined) !== null) return false;
   return stateFromReply(joined, opts.at, opts.tz)?.state === "sin_dinero";
 };
+
+/**
+ * ¿La respuesta del código toma el lugar de esta escalada? Solo las que no son
+ * de Dayana (otra, no sabe, reagendar; lo clínico después de la llamada, donde
+ * `serious` sería el paso del pago). Nunca una respuesta del modelo: si escribió
+ * líneas de emergencia, eso lo arregla `serious` (24-oct), no esto (revisión 28-oct).
+ */
+export const cheaperOverEscalation = (
+  outcome: { kind: "reply" } | { kind: "escalate"; category: string },
+  opts: { beforeCall: boolean }
+): boolean =>
+  outcome.kind === "escalate" && ["other", "unknown", "reschedule", ...(opts.beforeCall ? [] : ["clinical"])].includes(outcome.category);
 
 /** «domingo 15 de noviembre» en la zona del taller (o lo que diga su fecha escrita). */
 const workshopDay = (w: OpenWorkshop): string | null => {
@@ -177,11 +208,16 @@ export const cheaperReply = (items: CheaperItem[], opts: { name: string | null; 
  */
 export const withoutReadyGender = (text: string): string =>
   text
-    .replace(/\b(te sientas|estés|estes) (list[ao]s?|preparad[ao]s?)\b/gi, (m) => (/^[A-ZÉ]/.test(m) ? "Puedas" : "puedas"))
+    // También «lista y dispuesta» (eval 28-oct: quedaba «cuando puedas y dispuesta»).
+    .replace(/\b(te sientas|estés|estes) (list|preparad|dispuest)[ao]s?( y (list|preparad|dispuest)[ao]s?)?\b/gi, (m) =>
+      /^[A-ZÉ]/.test(m) ? "Puedas" : "puedas"
+    )
     // «Cuando puedas y estés lista» → «cuando puedas y puedas»: una sola vez.
     .replace(/\b(puedas),? y puedas( hacerlo)?\b/gi, "$1")
-    // «Te entiendo de corazón» (Joselyn, 24-oct, también en producción): sin el «corazón» (tono serio).
-    .replace(/\s+(de|con el|con todo el|con todo mi) coraz[oó]n\b/gi, "");
+    // «Te entiendo de corazón», «de todo corazón», «con todo respeto y cariño» (Joselyn, 24-oct,
+    // también en producción; eval 28-oct): sin «corazón» ni «cariño» (tono serio).
+    .replace(/\s+(de|de todo|con el|con todo el|con todo mi) coraz[oó]n\b/gi, "")
+    .replace(/\s+(y|con)( todo)?( mi)? cariño\b/gi, "");
 
 /** ¿La respuesta ya le ofrece la llamada gratis («te agendo una llamada gratis…»)? */
 export const invitesFreeCall = (text: string): boolean => {

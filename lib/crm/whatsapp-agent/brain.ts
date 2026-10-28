@@ -25,7 +25,7 @@ import { inferLocaleFromPhone } from "@/lib/contact-timezone";
 import { isFreeCallAppointment } from "./event-title";
 import { acceptedCallWithoutHours, availabilityArgs, flowState, flowStateText, leadBeforeHours, salesFlowRules } from "./sales-flow";
 import { absoluteUrl, affordableOptions, asksToJoinCommunity, COMMUNITY_REPLY, communityLink, communityRules } from "./community";
-import { cheaperLine, cheaperOptions, cheaperTool, saysCantAfford, saysHardNews, wantsToTalk, withCheaper } from "./cant-afford";
+import { cheaperLine, cheaperOptions, cheaperOverEscalation, cheaperTool, saysCantAfford, saysHardNews, wantsToTalk, withCheaper } from "./cant-afford";
 import { spendLimits } from "./spend";
 import {
   askedPackage,
@@ -2253,10 +2253,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     }
   }
   // No le alcanza y el modelo se lo pasó a Dayana («Déjame consultarlo», o algo clínico
-  // después de la llamada, que ahí sería el paso del pago) o le escribió líneas de
-  // emergencia: la respuesta del código con lo más económico (`replyText`), y Dayana un
-  // aviso que la persona no ve. Antes de la llamada, lo clínico sigue con la llamada
-  // gratis (`serious`); querer morir o hacerse daño, también. Un pago (cuotas, descuento) escala.
+  // después de la llamada, que ahí sería el paso del pago): la respuesta del código con
+  // lo más económico (`replyText`), y Dayana un aviso que la persona no ve. Antes de la
+  // llamada, lo clínico sigue con la llamada gratis (`serious`); querer morir o hacerse
+  // daño, también; las líneas de emergencia del modelo las arregla `serious` (24-oct),
+  // no esto. Un pago (cuotas, descuento) escala. Con las horas, una cita, la sesión
+  // urgente o el pago de su proceso ya puestos en esta vuelta, tampoco (revisión 28-oct).
   const cheaperOnly =
     cheaperItems.length > 0 &&
     !agendaOnly &&
@@ -2267,10 +2269,16 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !workshopOnly &&
     !state.receipt &&
     !state.noReply &&
+    !state.slotOffer &&
+    !state.booking &&
+    !state.pendingBooking &&
+    !state.bookingNotice &&
+    !state.bookingRequest &&
+    !state.urgentSession &&
+    !state.paymentLink &&
+    state.paymentDetails.length === 0 &&
     !saysSelfHarm([...lastInbound, modelOutcome.kind === "escalate" ? modelOutcome.reason : null]) &&
-    (modelOutcome.kind === "escalate"
-      ? ["other", "unknown", "reschedule", ...(salesOn ? [] : ["clinical"])].includes(modelOutcome.category)
-      : givesEmergencyAdvice(modelOutcome.message));
+    cheaperOverEscalation(modelOutcome, { beforeCall: salesOn });
   if (cheaperOnly && modelOutcome.kind === "escalate") {
     state.silentEscalation ??= {
       category: modelOutcome.category,
@@ -2559,29 +2567,47 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     }
     // Dijo que no le alcanza y la respuesta no le ofrece nada (Joselyn y Andrea, 24-oct:
     // «cuando puedas, me avisas»; el modelo no usó ninguna herramienta): debajo, lo más
-    // económico que hay ahora, con sus enlaces (el taller primero). Si escaló, solo dijo que
-    // lo consultaba o le mandó cómo pagar su proceso, la respuesta del código. No encima de
-    // otra respuesta del código (la sesión urgente, la comunidad, el taller…).
-    if (cheaperItems.length > 0 && outcome === modelOutcome && !state.receipt && !state.urgentSession && !state.slotOffer && !state.booking && !state.bookingNotice) {
-      const pushedPay = Boolean(state.paymentLink) || state.paymentDetails.length > 0;
+    // económico que hay ahora, con sus enlaces (el taller primero). Si escaló o solo dijo que
+    // lo consultaba, la respuesta del código (y Dayana se entera). No encima de otra
+    // respuesta del código (la sesión urgente, la comunidad, el taller, las horas…), y nunca
+    // si el modelo le puso el pago de su proceso: eso se queda tal cual (revisión 28-oct).
+    const pushedPay = Boolean(state.paymentLink) || state.paymentDetails.length > 0;
+    if (
+      cheaperItems.length > 0 &&
+      outcome === modelOutcome &&
+      !pushedPay &&
+      !state.receipt &&
+      !state.urgentSession &&
+      !state.slotOffer &&
+      !state.booking &&
+      !state.pendingBooking &&
+      !state.bookingNotice &&
+      !state.bookingRequest
+    ) {
+      const handoff = !cheaperOnly && promisesHandoff(text);
       const fixed = withCheaper(text, cheaperItems, {
         attached: state.links,
-        replace: cheaperOnly || pushedPay || promisesHandoff(text),
+        replace: cheaperOnly || handoff,
         beforeCall: salesOn,
         name: sureFirstName(nameInfo),
         hard: saysHardNews(lastInbound),
         talk: wantsToTalk(lastInbound),
       });
       if (fixed.replaced || fixed.links.length > 0) {
-        // Nada de insistir con el pago de su proceso: no lo pidió.
-        state.paymentLink = null;
-        state.paymentDetails = [];
         for (const url of fixed.links) {
           const item = cheaperItems.find((i) => i.url === url)!;
           addLink(url);
           log(cheaperTool(item), { auto: true, ...(item.kind === "course" ? { option: item.key } : {}) }, { ok: true, note: "Lo pegó el código: dijo que no le alcanza y la respuesta no le ofrecía lo más económico." });
         }
         if (fixed.replaced) log("cheaper_reply", { auto: true }, { ok: true, replaced: text, note: "Lo puso el código: dijo que no le alcanza." });
+        // La respuesta prometía pasárselo a Dayana: se entera igual, sin que la persona lo vea.
+        if (handoff) {
+          state.silentEscalation ??= {
+            category: "other",
+            severity: "normal",
+            reason: `Dijo que no le alcanza («${lastInbound.join(" ").slice(0, 150)}»); la asistente le ofreció lo más económico (la respuesta del modelo decía que te lo consultaba).`,
+          };
+        }
       }
       // También sin cambios de fondo: «cuando estés lista» → «cuando puedas».
       if (fixed.text !== text) text = withoutFakeLinks(fixed.text) || fixed.text;
