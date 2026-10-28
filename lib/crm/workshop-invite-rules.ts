@@ -1,5 +1,6 @@
 import { isSilentCategory } from "./chat-category-rules";
 import { foldForSearch } from "./search-normalize";
+import { whatsAppDigits, whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { isOptOutMessage } from "./whatsapp-outbound-plan";
 import { WORKSHOP_CHOICE, workshopWhen, type OpenWorkshop } from "./whatsapp-agent/workshop-interest";
 
@@ -32,8 +33,60 @@ export const INVITE_WINDOW_DAYS = 60;
 export const INVITE_SEND_KIND = "invitacion_taller";
 /** La plantilla de Marketing para quien no escribió en las últimas 24 h (se manda sola a aprobar). */
 export const INVITE_TEMPLATE_KEY = "taller_invitacion_inscritas";
-/** Una invitación por persona y edición: la misma clave nunca sale dos veces (`sendMetaMessage`). */
-export const inviteClientKey = (editionId: string, contactId: string): string => `taller-invita:${editionId}:${contactId}`;
+/**
+ * Una invitación por CHAT y edición: la misma clave nunca sale dos veces
+ * (`sendMetaMessage` devuelve el mensaje que ya existe). Por chat y no por
+ * contacto: dos contactos con el mismo número en dos formas (México 52 / 521)
+ * son un solo chat (revisión 28-oct).
+ */
+export const inviteClientKey = (editionId: string, conversationId: string): string => `taller-invita:${editionId}:${conversationId}`;
+
+/**
+ * El chat al que va un número, igual para todas sus formas (52 / 521, 54 / 549,
+ * Brasil con o sin el 9): para no invitar dos veces al mismo chat.
+ */
+export const chatKeyOf = (phoneE164: string): string | null => {
+  const variants = whatsAppIdVariants(whatsAppDigits(phoneE164));
+  return variants.length ? [...variants].sort()[0] : null;
+};
+
+/**
+ * De varias personas en el mismo chat, a cuál se invita: la que el chat tiene
+ * como su contacto (`preferred`), si no la primera. Devuelve los índices de
+ * las que sobran.
+ */
+export const duplicateChats = (items: { key: string | null; preferred: boolean }[]): Set<number> => {
+  const keep = new Map<string, number>();
+  items.forEach((it, i) => {
+    if (!it.key) return;
+    const prev = keep.get(it.key);
+    if (prev === undefined || (it.preferred && !items[prev].preferred)) keep.set(it.key, i);
+  });
+  const out = new Set<number>();
+  items.forEach((it, i) => {
+    if (it.key && keep.get(it.key) !== i) out.add(i);
+  });
+  return out;
+};
+
+/**
+ * Lo que Dayana confirmó en la vista previa y lo que hay al empezar (revisión
+ * 28-oct: si Meta aprueba la plantilla entre la vista previa y «Enviar»,
+ * saldrían plantillas de pago que el diálogo nunca contó). Si cambió, no se
+ * empieza: que vuelva a mirar.
+ */
+export type InviteExpect = { viaText: number; viaTemplate: number; includeTemplate: boolean };
+export const inviteStartMismatch = (expect: InviteExpect, actual: { viaText: number; viaTemplate: number; templateApproved: boolean }): string | null => {
+  if (expect.includeTemplate && !actual.templateApproved) {
+    return "La plantilla ya no está aprobada en Meta: revisa la vista previa otra vez.";
+  }
+  const tpl = expect.includeTemplate ? actual.viaTemplate : 0;
+  const want = expect.includeTemplate ? expect.viaTemplate : 0;
+  if (actual.viaText === expect.viaText && tpl === want) return null;
+  return `Cambió a quién le llega desde que lo revisaste (por mensaje ${expect.viaText} → ${actual.viaText}${
+    expect.includeTemplate ? `, con la plantilla ${want} → ${tpl}` : ""
+  }). Revisa la vista previa otra vez antes de enviar.`;
+};
 
 /**
  * Fuera de las 24 h. Voz de la asistente, sin corazones ni «te bendigo»
@@ -61,7 +114,9 @@ export type InviteExclusion =
   | "review"
   | "client"
   | "already_invited"
+  | "already_contacted"
   | "interested"
+  | "same_chat"
   | "has_call"
   | "ai_blocked";
 
@@ -75,7 +130,9 @@ export const INVITE_EXCLUSIONS: readonly InviteExclusion[] = [
   "review",
   "client",
   "already_invited",
+  "already_contacted",
   "interested",
+  "same_chat",
   "has_call",
   "ai_blocked",
 ];
@@ -89,7 +146,9 @@ export const INVITE_EXCLUSION_LABEL: Record<InviteExclusion, string> = {
   review: "Por revisar (¿clienta?)",
   client: "Clientas: las atiende Dayana",
   already_invited: "Ya se les invitó a este taller",
+  already_contacted: "Ya les llegó otro mensaje de este taller (un envío masivo o «Que la IA le escriba»)",
   interested: "Ya están en «Interesadas»: escríbeles desde ahí",
+  same_chat: "Su número es el mismo chat de WhatsApp que el de otra persona de la lista",
   has_call: "Tienen una llamada agendada con Dayana",
   ai_blocked: "La IA no atiende ese chat (favorito, tomado, Manual, pausa o asignado)",
 };
@@ -109,6 +168,8 @@ export type InviteFacts = {
   categorySource: string | null;
   ignoredNumber: boolean;
   alreadyInvited: boolean;
+  /** Le llegó otro mensaje de esta edición: un envío masivo del taller o «Que la IA le escriba». */
+  alreadyContacted: boolean;
   inInterests: boolean;
   hasUpcomingCall: boolean;
   /** `waitingRoomBlocked` o asignado a alguien del equipo sin «La IA responde siempre». */
@@ -136,6 +197,7 @@ export const inviteExclusion = (f: InviteFacts): InviteExclusion | null => {
     return "client";
   }
   if (f.alreadyInvited) return "already_invited";
+  if (f.alreadyContacted) return "already_contacted";
   if (f.inInterests) return "interested";
   if (f.hasUpcomingCall) return "has_call";
   if (f.aiBlocked) return "ai_blocked";

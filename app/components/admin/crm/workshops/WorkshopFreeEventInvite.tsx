@@ -33,7 +33,23 @@ type Preview = {
   canSend: boolean;
 };
 
-type SendProgress = { status: string; total: number; sent: number; failed: number; skipped: number; pending: number; notice?: string };
+type SendProgress = {
+  status: string;
+  total: number;
+  sent: number;
+  failed: number;
+  skipped: number;
+  pending: number;
+  /** No hubo nada que enviar y quedan filas «enviándose» (otra ventana, o un intento que se cortó). */
+  stalled?: boolean;
+  notice?: string;
+};
+
+/** Un respiro entre tandas, y cuántas seguidas sin avanzar antes de parar (revisión 28-oct: giraba sin fin). */
+const STEP_DELAY_MS = 400;
+const MAX_IDLE_STEPS = 2;
+const STALLED_MESSAGE =
+  "El envío no avanza: puede que esté saliendo desde otra ventana o que un intento se haya cortado. Vuelve a tocar el botón en unos minutos: a nadie le llega dos veces.";
 
 export type InvitationView = {
   contactId: string;
@@ -91,6 +107,7 @@ const WorkshopFreeEventInvite = ({
   const [progress, setProgress] = useState<SendProgress | null>(null);
   const [running, setRunning] = useState(false);
   const [sendId, setSendId] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const url = `/api/admin/workshops/${encodeURIComponent(slug)}/invite`;
   const post = (body: unknown) =>
     fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
@@ -114,25 +131,38 @@ const WorkshopFreeEventInvite = ({
     setPreview((await res.json()) as Preview);
   };
 
-  const run = async () => {
+  const run = async (p: Preview) => {
     setRunning(true);
     try {
-      const started = await post({ action: "start" });
+      // Lo que Dayana vio y confirmó: si al empezar no cuadra (alguien escribió, pagó, o Meta
+      // aprobó la plantilla entre medias), el servidor no empieza y se vuelve a mirar.
+      const started = await post({
+        action: "start",
+        expect: { viaText: p.viaText, viaTemplate: p.viaTemplate, includeTemplate: p.template.approved },
+      });
       if (!started?.ok) {
         toast(await readMessage(started, "No se pudo preparar la invitación."), "error");
+        if (started?.status === 409) void openPreview();
         return;
       }
       const data = (await started.json()) as { status: "started"; sendId: string; total: number } | { status: "in_progress"; sendId: string; pending: number };
       setSendId(data.sendId);
       let last: SendProgress | null = null;
+      let idle = 0;
       for (;;) {
         const step = await post({ action: "next", sendId: data.sendId });
         if (!step?.ok) throw new Error(await readMessage(step, ""));
-        last = (await step.json()) as SendProgress;
+        const next = (await step.json()) as SendProgress;
+        const moved = !last || next.pending !== last.pending || next.sent + next.failed + next.skipped !== last.sent + last.failed + last.skipped;
+        last = next;
         setProgress(last);
         if (last.pending === 0 || last.status === "DONE" || last.status === "CANCELLED") break;
+        idle = moved && !last.stalled ? 0 : idle + 1;
+        if (idle >= MAX_IDLE_STEPS) break;
+        await new Promise((r) => setTimeout(r, STEP_DELAY_MS));
       }
-      if (last?.notice) toast(last.notice, "error");
+      if (last && last.pending > 0 && last.status === "SENDING") toast(STALLED_MESSAGE, "error");
+      else if (last?.notice) toast(last.notice, "error");
       else if (last?.status === "CANCELLED") toast("Invitación detenida: a las que faltaban no se les escribió.", "info");
       else toast(`Invitación enviada a ${n(last?.sent ?? 0)} ${last?.sent === 1 ? "persona" : "personas"}.`);
       router.refresh();
@@ -160,13 +190,31 @@ const WorkshopFreeEventInvite = ({
         ? `¿Seguir con la invitación? Faltan ${n(p.inProgress.pending)}`
         : `¿Enviar la invitación a ${n(p.sendableNow)} ${p.sendableNow === 1 ? "persona" : "personas"}?`,
       message: `La IA les escribe por WhatsApp como la asistente de Dayana: que es un taller de pago (el valor lo ven en el enlace), cuándo es, y si quieren separar su cupo o agendar una llamada con Dayana. ${
-        p.template.approved && p.viaTemplate > 0 ? `${n(p.viaTemplate)} van con la plantilla (Meta la cobra). ` : ""
+        p.inProgress
+          ? ""
+          : `${n(p.viaText)} por mensaje (gratis)${p.template.approved && p.viaTemplate > 0 ? ` y ${n(p.viaTemplate)} con la plantilla (Meta la cobra)` : ""}. `
       }Antes de escribirle a cada una se vuelve a comprobar que pueda recibirla.`,
       confirmLabel: p.inProgress ? "Seguir" : "Enviar",
       onConfirm: () => {
-        void run();
+        void run(p);
       },
     });
+
+  /** La plantilla a Meta: solo la dueña, y solo si nunca se mandó o la rechazaron. */
+  const submitTemplate = async () => {
+    setSubmitting(true);
+    const res = await post({ action: "submit_template" });
+    setSubmitting(false);
+    if (!res?.ok) {
+      toast(await readMessage(res, "No se pudo mandar la plantilla a aprobar."), "error");
+      return;
+    }
+    const data = (await res.json()) as { status: "submitted" | "already" };
+    toast(data.status === "submitted" ? "Plantilla enviada a Meta: te avisa el CRM cuando la aprueben." : "La plantilla ya está en revisión en Meta.");
+    void openPreview();
+  };
+  const canSubmitTemplate = (p: Preview) =>
+    p.canSend && !p.template.approved && (!p.template.status || p.template.status.toUpperCase().startsWith("REJECTED"));
 
   const done = progress && progress.pending === 0;
   const blockedReason = !open ? "El taller no tiene las inscripciones abiertas." : null;
@@ -276,12 +324,19 @@ const WorkshopFreeEventInvite = ({
                         {preview.estimatedCost > 0 ? `, unos ${preview.currency} ${preview.estimatedCost.toFixed(2)} en total` : ""}.
                       </p>
                     ) : (
-                      <p className="text-xs text-warning">
-                        {n(preview.viaTemplate)} no escribieron en las últimas 24 h y la plantilla «Invitación a inscritas de eventos
-                        gratuitos» todavía no está aprobada por Meta
-                        {preview.template.status ? ` (${preview.template.status.toLowerCase()})` : " (se acaba de mandar a revisión)"}.
-                        Les llega cuando Meta la apruebe y vuelvas a tocar el botón.
-                      </p>
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-warning">
+                          {n(preview.viaTemplate)} no escribieron en las últimas 24 h y la plantilla «Invitación a inscritas de eventos
+                          gratuitos» todavía no está aprobada por Meta
+                          {preview.template.status ? ` (${preview.template.status.toLowerCase()})` : " (no se ha mandado a revisión)"}.
+                          Les llega cuando Meta la apruebe y vuelvas a tocar el botón.
+                        </p>
+                        {canSubmitTemplate(preview) ? (
+                          <Button type="button" variant="outline" size="sm" disabled={submitting} onClick={() => void submitTemplate()}>
+                            {submitting ? "Mandando…" : "Mandar la plantilla a aprobar"}
+                          </Button>
+                        ) : null}
+                      </div>
                     )
                   ) : null}
                 </div>

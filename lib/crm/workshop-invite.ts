@@ -4,7 +4,8 @@ import { prisma } from "@/lib/db";
 import { MetaWindowError, sendMetaMessage } from "@/lib/meta/send";
 import { resolveWindow } from "@/lib/meta/window";
 import { sureFirstName } from "@/lib/sure-name";
-import { whatsAppDigits } from "@/lib/whatsapp-contact";
+import { resolveWhatsAppThreadId } from "@/lib/meta/whatsapp-thread";
+import { whatsAppDigits, whatsAppIdVariants } from "@/lib/whatsapp-contact";
 
 import { writeAuditLog } from "./audit";
 import { getOperationalTimezone } from "./operational-timezone";
@@ -15,9 +16,11 @@ import { fillVars, templateParams } from "./whatsapp-outbound-plan";
 import { estimateTemplateCost } from "./whatsapp-rates";
 import {
   approvedTemplateFor,
-  ensureTemplatesSubmitted,
+  createWhatsAppTemplate,
   getTemplatePrices,
   getWhatsAppTemplateStatus,
+  STARTER_TEMPLATES,
+  type StarterTemplate,
   type WaTemplate,
 } from "./whatsapp-templates";
 import { chatNameInfo } from "./whatsapp-agent/chat-name";
@@ -25,8 +28,10 @@ import { computeSegment } from "./whatsapp-agent/segment-store";
 import { waitingRoomBlocked } from "./whatsapp-agent/waiting-room";
 import { workshopOutreachSource, type OpenWorkshop } from "./whatsapp-agent/workshop-interest";
 import {
+  chatKeyOf,
   countExclusions,
   declinesInvite,
+  duplicateChats,
   INVITE_EXCLUSION_LABEL,
   INVITE_SEND_KIND,
   INVITE_TEMPLATE_KEY,
@@ -34,11 +39,13 @@ import {
   inviteBlockedReason,
   inviteClientKey,
   inviteExclusion,
+  inviteStartMismatch,
   inviteWindowStart,
   workshopInviteTemplateVars,
   workshopInviteText,
   type InviteEvent,
   type InviteExclusion,
+  type InviteExpect,
   type InviteFacts,
 } from "./workshop-invite-rules";
 import { enrolledInWorkshop, workshopPayUrl } from "./workshop-interests";
@@ -58,11 +65,13 @@ import { loadOutreachConversation, OUTREACH_CONVERSATION_SELECT, outreachAiOff, 
  * vuelve a mirar todo con su estado al día (las reglas de «Que la IA le
  * escriba»: `workshop-outreach-guard.ts`).
  *
- * Una invitación por persona y edición: la clave `taller-invita:<edición>:<contacto>`
- * se reclama antes de enviar (`sendMetaMessage` no repite una clave), y a quien
- * ya tiene una fila enviada, enviándose o fallida de otra tanda no se le vuelve
- * a escribir. Una que falló no se reintenta sola (Cristina, 26-oct: reintentar
- * una plantilla de Marketing que Meta rechaza le baja la calidad al número).
+ * Una invitación por chat y edición: la clave `taller-invita:<edición>:<chat>`
+ * (`sendMetaMessage` no repite una clave), y a quien ya tiene una fila
+ * enviada, enviándose o fallida de otra tanda —por contacto o por chat— no se
+ * le vuelve a escribir. Una que falló no se reintenta sola (Cristina, 26-oct:
+ * reintentar una plantilla de Marketing que Meta rechaza le baja la calidad al
+ * número). Tampoco a quien ya le llegó otro mensaje de este taller: un envío
+ * masivo de la pestaña WhatsApp o «Que la IA le escriba» (revisión 28-oct).
  */
 
 /** Por tanda (cada persona se recalcula: `computeSegment`, su agenda) y el respiro entre mensajes. */
@@ -76,8 +85,8 @@ type Deps = {
   now?: Date;
   /** Solo las inscritas de estos eventos (las pruebas: la base de desarrollo tiene inscritas de verdad). */
   onlyEventIds?: string[];
-  /** Mandar a aprobar la plantilla si falta (en las pruebas, nada: no se llama a 360dialog). */
-  ensureTemplates?: (keys: string[]) => Promise<unknown>;
+  /** Mandar la plantilla a aprobar (en las pruebas, nada: no se llama a 360dialog). */
+  submitTemplate?: (t: StarterTemplate) => Promise<unknown>;
   pauseMs?: number;
 };
 
@@ -121,6 +130,8 @@ const globalBlock = async (edition: InviteEdition, config: WhatsAppAiConfig, now
 type CandidateConversation = {
   id: string;
   lastInboundAt: Date | null;
+  /** El contacto que tiene el chat (con dos contactos para un chat, se invita a ese). */
+  contactId: string | null;
 };
 
 type Candidate = {
@@ -142,6 +153,22 @@ const validPhone = (p: string | null | undefined): string | null => (p && /^\+\d
  */
 const INVITED_STATUSES = ["SENT", "FAILED"];
 
+/** Las claves de esta invitación en una edición (`inviteClientKey`). */
+const invitePrefix = (editionId: string) => `taller-invita:${editionId}:`;
+
+/**
+ * Le llegó (o le está llegando) otro envío masivo de este taller: la
+ * invitación o el recordatorio de la pestaña WhatsApp (revisión 28-oct: sin
+ * esto recibía dos mensajes por lo mismo). Enviado, o en cola de un envío que
+ * sigue en curso.
+ */
+const reachedByBulk = (editionId: string) => ({
+  send: { workshopEditionId: editionId, kind: { not: INVITE_SEND_KIND } },
+  OR: [{ status: { in: ["SENT", "SENDING"] } }, { status: "PENDING", send: { status: "SENDING" } }],
+});
+
+/** Una fila «enviándose» más vieja que esto quedó colgada (la invocación se cortó). */
+const STALE_SENDING_MS = 5 * 60_000;
 const chunked = async <T, R>(items: T[], size: number, fn: (item: T) => Promise<R>): Promise<R[]> => {
   const out: R[] = [];
   for (let i = 0; i < items.length; i += size) out.push(...(await Promise.all(items.slice(i, i + size).map(fn))));
@@ -181,10 +208,11 @@ const loadCandidates = async (
   const people = [...byContact.values()];
   const ids = people.map((p) => p.contactId);
   if (ids.length === 0) return [];
-  const threadOf = (phone: string | null) => (phone ? whatsAppDigits(phone) : null);
-  const threads = [...new Set(people.map((p) => threadOf(validPhone(p.contact.phoneE164))).filter((t): t is string => Boolean(t)))];
+  // Todas las formas del número (México 52 / 521…): el chat puede estar en cualquiera.
+  const variantsOf = (phone: string | null) => (phone ? whatsAppIdVariants(whatsAppDigits(phone)) : []);
+  const threads = [...new Set(people.flatMap((p) => variantsOf(validPhone(p.contact.phoneE164))))];
 
-  const [conversations, paid, invited, keyed, interests, ignored] = await Promise.all([
+  const [conversations, paid, ignored] = await Promise.all([
     prisma.conversation.findMany({
       where: { channel: "WHATSAPP", OR: [{ contactId: { in: ids } }, { externalThreadId: { in: threads } }] },
       select: {
@@ -197,22 +225,36 @@ const loadCandidates = async (
       where: { workshopEditionId: edition.id, contactId: { in: ids }, status: { in: ["ACTIVE", "COMPLETED"] } },
       select: { contactId: true },
     }),
-    prisma.whatsAppSendRecipient.findMany({
-      where: { contactId: { in: ids }, status: { in: INVITED_STATUSES }, send: { kind: INVITE_SEND_KIND, workshopEditionId: edition.id } },
-      select: { contactId: true },
-    }),
-    prisma.conversationMessage.findMany({
-      where: { clientKey: { in: ids.map((id) => inviteClientKey(edition.id, id)) } },
-      select: { clientKey: true },
-    }),
-    prisma.$queryRaw<{ conversation_id: string }[]>`SELECT conversation_id FROM workshop_interests WHERE edition_id = ${edition.id}`,
     prisma.whatsAppIgnoredNumber.findMany({
       where: { phoneHash: { in: threads.map(phoneHash).filter((h): h is string => Boolean(h)) } },
       select: { phoneHash: true },
     }),
   ]);
   const convIds = conversations.map((c) => c.id);
-  const [appointments, bookings] = await Promise.all([
+  const byPersonOrChat = { OR: [{ contactId: { in: ids } }, { conversationId: { in: convIds } }] };
+  const [invited, reached, outreach, interests, appointments, bookings] = await Promise.all([
+    // Invitaciones de esta edición (enviadas o fallidas: una que falló no se reintenta).
+    prisma.whatsAppSendRecipient.findMany({
+      where: { status: { in: INVITED_STATUSES }, send: { kind: INVITE_SEND_KIND, workshopEditionId: edition.id }, ...byPersonOrChat },
+      select: { contactId: true, conversationId: true },
+    }),
+    // Otro envío masivo de este taller (pestaña WhatsApp, Envíos) que le llegó o le está llegando.
+    prisma.whatsAppSendRecipient.findMany({
+      where: {
+        AND: [reachedByBulk(edition.id), byPersonOrChat],
+      },
+      select: { contactId: true, conversationId: true },
+    }),
+    // Lo que la asistente le escribió por este taller: esta invitación (su clave) o «Que la IA le escriba».
+    prisma.conversationMessage.findMany({
+      where: {
+        conversationId: { in: convIds },
+        direction: "OUTBOUND",
+        OR: [{ source: workshopOutreachSource(edition), status: { not: "FAILED" } }, { clientKey: { startsWith: invitePrefix(edition.id) } }],
+      },
+      select: { conversationId: true, clientKey: true },
+    }),
+    prisma.$queryRaw<{ conversation_id: string }[]>`SELECT conversation_id FROM workshop_interests WHERE edition_id = ${edition.id}`,
     prisma.calendarAppointment.findMany({
       where: { status: "active", startsAt: { gte: now }, OR: [{ conversationId: { in: convIds } }, { contactId: { in: ids } }] },
       select: { conversationId: true, contactId: true },
@@ -224,13 +266,23 @@ const loadCandidates = async (
   ]);
 
   const paidSet = new Set(paid.map((p) => p.contactId));
-  const invitedSet = new Set([...invited.map((r) => r.contactId), ...keyed.map((m) => m.clientKey?.split(":")[2])]);
+  const isInviteKey = (k: string | null) => Boolean(k?.startsWith(invitePrefix(edition.id)));
+  const invitedContacts = new Set(invited.map((r) => r.contactId));
+  const invitedChats = new Set([
+    ...invited.map((r) => r.conversationId),
+    ...outreach.filter((m) => isInviteKey(m.clientKey)).map((m) => m.conversationId),
+  ]);
+  const reachedContacts = new Set(reached.map((r) => r.contactId));
+  const reachedChats = new Set([
+    ...reached.map((r) => r.conversationId),
+    ...outreach.filter((m) => !isInviteKey(m.clientKey)).map((m) => m.conversationId),
+  ]);
   const interestSet = new Set(interests.map((i) => i.conversation_id));
   const ignoredSet = new Set(ignored.map((i) => i.phoneHash));
   const callConv = new Set([...appointments.map((a) => a.conversationId), ...bookings.map((b) => b.conversationId)]);
   const callContact = new Set(appointments.map((a) => a.contactId));
-  const convFor = (contactId: string, thread: string | null) => {
-    const mine = conversations.filter((c) => c.contactId === contactId || (thread && c.externalThreadId === thread));
+  const convFor = (contactId: string, variants: string[]) => {
+    const mine = conversations.filter((c) => c.contactId === contactId || variants.includes(c.externalThreadId));
     mine.sort(
       (a, b) =>
         Number(b.contactId === contactId) - Number(a.contactId === contactId) ||
@@ -239,11 +291,11 @@ const loadCandidates = async (
     return mine[0] ?? null;
   };
 
-  return chunked(people, 20, async (p): Promise<Candidate> => {
+  const candidates = await chunked(people, 20, async (p): Promise<Candidate> => {
     const phone = validPhone(p.contact.phoneE164);
-    const thread = threadOf(phone);
-    const conv = convFor(p.contactId, thread);
-    const hash = thread ? phoneHash(thread) : null;
+    const variants = variantsOf(phone);
+    const conv = convFor(p.contactId, variants);
+    const hash = variants[0] ? phoneHash(variants[0]) : null;
     const facts: InviteFacts = {
       consentMarketing: Boolean(p.contact.consentMarketingAt),
       optedOut: p.contact.notifyWhatsapp === false,
@@ -255,7 +307,8 @@ const loadCandidates = async (
       category: conv?.category ?? null,
       categorySource: conv?.categorySource ?? null,
       ignoredNumber: Boolean(hash && ignoredSet.has(hash)),
-      alreadyInvited: invitedSet.has(p.contactId),
+      alreadyInvited: invitedContacts.has(p.contactId) || Boolean(conv && invitedChats.has(conv.id)),
+      alreadyContacted: reachedContacts.has(p.contactId) || Boolean(conv && reachedChats.has(conv.id)),
       inInterests: Boolean(conv && interestSet.has(conv.id)),
       hasUpcomingCall: Boolean((conv && callConv.has(conv.id)) || callContact.has(p.contactId)),
       aiBlocked: false,
@@ -270,11 +323,24 @@ const loadCandidates = async (
       name: [p.contact.firstName, p.contact.lastName].filter(Boolean).join(" ").trim() || null,
       phoneE164: phone,
       event: { headline: p.webinar.headline, eventLabel: p.webinar.eventLabel, startsAt: p.webinar.startsAt },
-      conversation: conv ? { id: conv.id, lastInboundAt: conv.lastInboundAt } : null,
+      conversation: conv ? { id: conv.id, lastInboundAt: conv.lastInboundAt, contactId: conv.contactId } : null,
       exclusion,
       windowOpen: resolveWindow("WHATSAPP", conv?.lastInboundAt ?? null, now).isOpen,
     };
   });
+
+  // Dos contactos, un solo chat (el mismo número en dos formas): se invita a uno.
+  const eligible = candidates.filter((c) => !c.exclusion);
+  const dupes = duplicateChats(
+    eligible.map((c) => ({
+      key: c.conversation ? `c:${c.conversation.id}` : c.phoneE164 ? `t:${chatKeyOf(c.phoneE164)}` : null,
+      preferred: c.conversation?.contactId === c.contactId,
+    }))
+  );
+  eligible.forEach((c, i) => {
+    if (dupes.has(i)) c.exclusion = "same_chat";
+  });
+  return candidates;
 };
 
 // ── La vista previa ────────────────────────────────────────────────────────
@@ -365,33 +431,70 @@ const computePreview = async (editionId: string, deps: Deps) => {
   return { preview, edition, candidates, template };
 };
 
-/** A cuántas les llegaría y por qué a las demás no. No envía nada. */
-export const previewWorkshopInvite = async (editionId: string, deps: Deps = {}): Promise<InvitePreview | null> => {
-  const r = await computePreview(editionId, deps);
-  if (!r) return null;
-  // La plantilla se manda sola a aprobar si falta o Meta la rechazó (gratis; una vez cada 30 min
-  // como mucho), aunque hoy no haga falta: la aprobación tarda y las que lleguen después la esperarían.
-  if (!r.preview.template.approved) {
-    void (deps.ensureTemplates ?? ensureTemplatesSubmitted)([INVITE_TEMPLATE_KEY]).catch(() => undefined);
-  }
-  return r.preview;
-};
+/**
+ * A cuántas les llegaría y por qué a las demás no. No envía nada ni manda la
+ * plantilla a aprobar (revisión 28-oct: la vista previa la abre cualquiera que
+ * escribe en el CRM; mandarla a Meta es cosa de la dueña: `startWorkshopInvite`
+ * o `submitInviteTemplate`).
+ */
+export const previewWorkshopInvite = async (editionId: string, deps: Deps = {}): Promise<InvitePreview | null> =>
+  (await computePreview(editionId, deps))?.preview ?? null;
 
-// ── Empezar, por tandas, cancelar ──────────────────────────────────────────
+/** Nunca mandada a Meta, o rechazada: se puede mandar (otra vez) a aprobar. */
+const templateSubmittable = (status: string | null) => !status || status.toUpperCase().startsWith("REJECTED");
+
+/**
+ * Manda la plantilla de la invitación a aprobar (la dueña: al empezar el envío
+ * o con «Mandar la plantilla a aprobar»). Gratis; lo que se cobra es cada
+ * mensaje enviado con ella. Solo si nunca se mandó o Meta la rechazó.
+ */
+export const submitInviteTemplate = async (deps: Deps = {}): Promise<{ status: "submitted" | "already" } | { status: "failed"; error: string }> => {
+  const current = await getWhatsAppTemplateStatus(INVITE_TEMPLATE_KEY).catch(() => null);
+  if (!templateSubmittable(current)) return { status: "already" };
+  const starter = STARTER_TEMPLATES.find((t) => t.key === INVITE_TEMPLATE_KEY)!;
+  try {
+    await (deps.submitTemplate ?? ((t: StarterTemplate) => createWhatsAppTemplate(t)))(starter);
+    return { status: "submitted" };
+  } catch (e) {
+    return { status: "failed", error: e instanceof Error ? e.message : String(e) };
+  }
+};
 
 export type StartResult =
   | { status: "started"; sendId: string; total: number }
   | { status: "in_progress"; sendId: string; pending: number }
+  | { status: "changed"; message: string }
   | { status: "blocked"; message: string };
 
-/** Prepara el envío con quienes pasan las reglas ahora (y por plantilla, solo si ya está aprobada). */
-export const startWorkshopInvite = async (input: { editionId: string; staffId: string }, deps: Deps = {}): Promise<StartResult> => {
+/**
+ * Prepara el envío con lo que Dayana confirmó (`expect`, de la vista previa):
+ * si al empezar no cuadra —alguien escribió, pagó, o Meta aprobó la plantilla
+ * entre medias—, no empieza (`changed`). Con `includeTemplate: false` nunca
+ * sale una plantilla, aunque ya esté aprobada.
+ */
+export const startWorkshopInvite = async (
+  input: { editionId: string; staffId: string; expect: InviteExpect },
+  deps: Deps = {}
+): Promise<StartResult> => {
   const r = await computePreview(input.editionId, deps);
   if (!r) return { status: "blocked", message: "El taller no existe." };
   const { preview, edition, candidates, template } = r;
   if (preview.inProgress) return { status: "in_progress", ...preview.inProgress };
+  // La dueña empieza: si la plantilla falta (o Meta la rechazó), se manda ya a aprobar.
+  if (!template && templateSubmittable(preview.template.status)) {
+    void submitInviteTemplate(deps).catch(() => undefined);
+  }
   if (preview.blocked) return { status: "blocked", message: preview.blocked };
-  const recipients = candidates.filter((c) => !c.exclusion && (c.windowOpen || template)).slice(0, MAX_RECIPIENTS);
+  const eligible = candidates.filter((c) => !c.exclusion);
+  const byText = eligible.filter((c) => c.windowOpen);
+  const byTemplate = input.expect.includeTemplate && template ? eligible.filter((c) => !c.windowOpen) : [];
+  const changed = inviteStartMismatch(input.expect, {
+    viaText: byText.length,
+    viaTemplate: eligible.length - byText.length,
+    templateApproved: Boolean(template),
+  });
+  if (changed) return { status: "changed", message: changed };
+  const recipients = [...byText, ...byTemplate].slice(0, MAX_RECIPIENTS);
   if (recipients.length === 0) {
     return {
       status: "blocked",
@@ -407,6 +510,8 @@ export const startWorkshopInvite = async (input: { editionId: string; staffId: s
       kind: INVITE_SEND_KIND,
       text: preview.textExample,
       templateKey: INVITE_TEMPLATE_KEY,
+      // Lo confirmado: si se puede usar la plantilla y cuántas como mucho (Meta cobra cada una).
+      vars: { includeTemplate: byTemplate.length > 0 ? "1" : "0", maxTemplate: String(byTemplate.length) },
       status: "SENDING",
       total: recipients.length,
       createdById: input.staffId,
@@ -426,8 +531,8 @@ export const startWorkshopInvite = async (input: { editionId: string; staffId: s
       total: send.total,
       windowDays: INVITE_WINDOW_DAYS,
       registered: preview.registered,
-      viaText: recipients.filter((c) => c.windowOpen).length,
-      viaTemplate: recipients.filter((c) => !c.windowOpen).length,
+      viaText: byText.length,
+      viaTemplate: byTemplate.length,
       excluded: Object.fromEntries(preview.excluded.map((e) => [e.reason, e.count])),
     },
   }).catch(() => undefined);
@@ -442,13 +547,29 @@ export type InviteProgress = {
   failed: number;
   skipped: number;
   pending: number;
+  /**
+   * No hubo nada que hacer y aún quedan filas «enviándose» de hace menos de 5
+   * min (otra ventana enviando, o un intento que se acaba de cortar): la página
+   * deja de pedir tandas en vez de girar sin parar.
+   */
+  stalled?: boolean;
   notice?: string;
 };
 
-const progressOf = async (sendId: string, notice?: string): Promise<InviteProgress> => {
+const progressOf = async (sendId: string, extra: { notice?: string; stalled?: boolean } = {}): Promise<InviteProgress> => {
   const send = await prisma.whatsAppSend.findUniqueOrThrow({ where: { id: sendId } });
   const pending = await prisma.whatsAppSendRecipient.count({ where: { sendId, status: { in: ["PENDING", "SENDING"] } } });
-  return { id: sendId, status: send.status, total: send.total, sent: send.sent, failed: send.failed, skipped: send.skipped, pending, ...(notice ? { notice } : {}) };
+  return {
+    id: sendId,
+    status: send.status,
+    total: send.total,
+    sent: send.sent,
+    failed: send.failed,
+    skipped: send.skipped,
+    pending,
+    ...(extra.notice ? { notice: extra.notice } : {}),
+    ...(extra.stalled ? { stalled: true } : {}),
+  };
 };
 
 type RowOutcome = {
@@ -466,11 +587,35 @@ const skipped = (reason: InviteExclusion, conversationId?: string | null): RowOu
       ? { status: "NO_PHONE", conversationId }
       : { status: "SKIPPED", error: INVITE_EXCLUSION_LABEL[reason], conversationId };
 
+/** Su chat de WhatsApp, si ya tiene: por contacto o por cualquier forma de su número. Sin crear ni tocar nada. */
+const existingChat = async (contact: { id: string; phoneE164: string }): Promise<string | null> => {
+  const mine = await prisma.conversation.findFirst({
+    where: { channel: "WHATSAPP", contactId: contact.id },
+    orderBy: { lastMessageAt: "desc" },
+    select: { id: true },
+  });
+  if (mine) return mine.id;
+  const thread = await resolveWhatsAppThreadId(whatsAppDigits(contact.phoneE164));
+  const existing = await prisma.conversation.findUnique({
+    where: { channel_externalThreadId: { channel: "WHATSAPP", externalThreadId: thread } },
+    select: { id: true },
+  });
+  return existing?.id ?? null;
+};
+
+type RowContext = {
+  edition: InviteEdition;
+  config: WhatsAppAiConfig;
+  template: WaTemplate | null;
+  /** Este envío puede usar la plantilla (lo confirmado) y cuántas le quedan. */
+  templateLeft: number;
+  now: Date;
+  tz: string;
+  send: typeof sendMetaMessage;
+};
+
 /** Una persona: todo otra vez con su estado al día, y la invitación (texto o plantilla). */
-const inviteOne = async (
-  row: { id: string; contactId: string | null },
-  ctx: { edition: InviteEdition; config: WhatsAppAiConfig; template: WaTemplate | null; now: Date; tz: string; send: typeof sendMetaMessage }
-): Promise<RowOutcome> => {
+const inviteOne = async (row: { id: string; contactId: string | null }, ctx: RowContext): Promise<RowOutcome> => {
   const { edition, config, template, now } = ctx;
   if (!row.contactId) return { status: "FAILED", error: "El contacto ya no existe." };
   const contact = await prisma.contact.findUnique({
@@ -479,50 +624,77 @@ const inviteOne = async (
   });
   if (!contact) return { status: "FAILED", error: "El contacto ya no existe." };
 
-  // Esta misma fila ya salió (la tanda se cortó y la recuperación la devolvió a la cola).
-  const clientKey = inviteClientKey(edition.id, contact.id);
-  const existing = await prisma.conversationMessage.findUnique({
-    where: { clientKey },
-    select: { id: true, status: true, conversationId: true, failedReason: true },
-  });
-  if (existing) {
-    return existing.status === "FAILED"
-      ? { status: "FAILED", conversationId: existing.conversationId, messageId: existing.id, error: existing.failedReason ?? "WhatsApp no lo entregó." }
-      : { status: "SENT", conversationId: existing.conversationId, messageId: existing.id };
-  }
-  const elsewhere = await prisma.whatsAppSendRecipient.count({
-    where: {
-      id: { not: row.id },
-      contactId: contact.id,
-      status: { in: ["SENDING", "SENT", "FAILED"] },
-      send: { kind: INVITE_SEND_KIND, workshopEditionId: edition.id },
-    },
-  });
-
   const phone = validPhone(contact.phoneE164);
+  const found = phone ? await existingChat({ id: contact.id, phoneE164: phone }) : null;
+  if (found) {
+    // Otra fila de esta invitación ya fue a este mismo chat (otro contacto con el mismo número).
+    const sameChat = await prisma.whatsAppSendRecipient.count({
+      where: {
+        id: { not: row.id },
+        conversationId: found,
+        status: { in: ["SENDING", "SENT", "FAILED"] },
+        send: { kind: INVITE_SEND_KIND, workshopEditionId: edition.id },
+      },
+    });
+    if (sameChat > 0) return skipped("same_chat", found);
+    // Esta misma fila ya salió (la tanda se cortó antes de anotarla): se anota, no se
+    // reenvía. Una que falló tampoco se reintenta.
+    const existing = await prisma.conversationMessage.findUnique({
+      where: { clientKey: inviteClientKey(edition.id, found) },
+      select: { id: true, status: true, failedReason: true },
+    });
+    if (existing) {
+      return existing.status === "FAILED"
+        ? { status: "FAILED", conversationId: found, messageId: existing.id, error: existing.failedReason ?? "WhatsApp no lo entregó." }
+        : { status: "SENT", conversationId: found, messageId: existing.id };
+    }
+  }
+
+  // Lo que se sabe por la persona, sin tocar su chat (no se crea un chat para quien no la va a recibir).
+  const [invitedElsewhere, reached, paid, ignoredNumber] = await Promise.all([
+    prisma.whatsAppSendRecipient.count({
+      where: { id: { not: row.id }, contactId: contact.id, status: { in: ["SENDING", "SENT", "FAILED"] }, send: { kind: INVITE_SEND_KIND, workshopEditionId: edition.id } },
+    }),
+    prisma.whatsAppSendRecipient.count({ where: { AND: [reachedByBulk(edition.id), { contactId: contact.id }] } }),
+    enrolledInWorkshop(contact.id, edition.id),
+    phone ? isIgnoredNumber(whatsAppDigits(phone)) : Promise.resolve(false),
+  ]);
   const base: InviteFacts = {
     consentMarketing: Boolean(contact.consentMarketingAt),
     optedOut: contact.notifyWhatsapp === false,
     phoneOk: Boolean(phone),
-    paidWorkshop: await enrolledInWorkshop(contact.id, edition.id),
+    paidWorkshop: paid,
     segment: null,
     stage: null,
     segmentReview: false,
     category: null,
     categorySource: null,
-    ignoredNumber: phone ? await isIgnoredNumber(whatsAppDigits(phone)) : false,
-    alreadyInvited: elsewhere > 0,
+    ignoredNumber,
+    alreadyInvited: invitedElsewhere > 0,
+    alreadyContacted: reached > 0,
     inInterests: false,
     hasUpcomingCall: false,
     aiBlocked: false,
   };
-  // Lo que se sabe sin tocar el chat (no se crea un chat para quien no la va a recibir).
   const early = inviteExclusion(base);
   if (early) return skipped(early);
 
+  // Su chat tal cual; solo si no tiene ninguno se crea (`ensureWhatsAppConversation`
+  // le pondría este contacto a un chat que ya es de otro: el mismo número en dos formas).
   const name = [contact.firstName, contact.lastName].filter(Boolean).join(" ").trim() || null;
-  const { id: conversationId } = await ensureWhatsAppConversation({ phoneE164: phone!, contactId: contact.id, name });
+  const conversationId = found ?? (await ensureWhatsAppConversation({ phoneE164: phone!, contactId: contact.id, name })).id;
+  const clientKey = inviteClientKey(edition.id, conversationId);
+
+  const [contacted, bulkToChat] = await Promise.all([
+    prisma.conversationMessage.count({
+      where: { conversationId, direction: "OUTBOUND", source: workshopOutreachSource(edition), status: { not: "FAILED" } },
+    }),
+    prisma.whatsAppSendRecipient.count({ where: { AND: [reachedByBulk(edition.id), { conversationId }] } }),
+  ]);
+
+  // Sin su estado al día no se sabe si es clienta, por revisar o personal: no se le escribe.
   const seg = await computeSegment(conversationId).catch(() => null);
+  if (!seg) return { status: "SKIPPED", conversationId, error: "No se pudo comprobar su estado (clienta, por revisar, personal): no se le escribió." };
   const conv = await loadOutreachConversation(conversationId);
   if (!conv) return { status: "FAILED", error: "No se encontró su chat de WhatsApp." };
   const [interest] = await prisma.$queryRaw<{ id: string }[]>`
@@ -531,11 +703,12 @@ const inviteOne = async (
   const facts: InviteFacts = {
     ...base,
     paidWorkshop: base.paidWorkshop || refusal?.reason === "paid",
-    segment: seg?.segment ?? null,
-    stage: seg?.stage ?? null,
-    segmentReview: Boolean(seg?.review),
+    segment: seg.segment,
+    stage: seg.stage,
+    segmentReview: seg.review,
     category: conv.category,
     categorySource: conv.categorySource,
+    alreadyContacted: contacted > 0 || bulkToChat > 0,
     inInterests: Boolean(interest),
     hasUpcomingCall: refusal?.reason === "has_call",
     aiBlocked: refusal?.reason === "assigned" || refusal?.reason === "blocked",
@@ -546,7 +719,15 @@ const inviteOne = async (
   if (exclusion) return skipped(exclusion, conversationId);
 
   const windowOpen = resolveWindow("WHATSAPP", conv.lastInboundAt, now).isOpen;
-  if (!windowOpen && !template?.metaTemplateName) return { status: "NEEDS_TEMPLATE", conversationId };
+  if (!windowOpen && (!template?.metaTemplateName || ctx.templateLeft <= 0)) {
+    return {
+      status: "NEEDS_TEMPLATE",
+      conversationId,
+      error: template?.metaTemplateName
+        ? "Su ventana de 24 h se cerró y en este envío no se confirmaron plantillas (o ya salieron las confirmadas)."
+        : null,
+    };
+  }
   const firstName = sureFirstName(await chatNameInfo(conversationId));
   const lastReg = await prisma.webinarRegistration.findFirst({
     where: { contactId: contact.id, webinar: { OR: [{ startsAt: { gte: inviteWindowStart(now) } }, { startsAt: null }] } },
@@ -608,10 +789,25 @@ export const processWorkshopInviteBatch = async (
       where: { id: send.id },
       data: { status: "DONE", finishedAt: now, skipped: { increment: left.count } },
     });
-    return progressOf(send.id, stop ?? undefined);
+    return progressOf(send.id, { notice: stop ?? undefined });
   }
 
-  const [template, tz] = await Promise.all([approvedTemplateFor(INVITE_TEMPLATE_KEY), getOperationalTimezone()]);
+  // Una fila que quedó «enviándose» (la invocación se cortó, o falló anotar el
+  // resultado) vuelve a la cola: `inviteOne` mira primero si su mensaje ya
+  // existe (la clave del chat) y entonces solo lo anota; nunca lo reenvía.
+  await prisma.whatsAppSendRecipient.updateMany({
+    where: { sendId: send.id, status: "SENDING", processedAt: { lt: new Date(Date.now() - STALE_SENDING_MS) } },
+    data: { status: "PENDING" },
+  });
+
+  const vars = (send.vars ?? {}) as Record<string, string>;
+  const allowTemplate = vars.includeTemplate === "1";
+  const [template, tz, templatesSent] = await Promise.all([
+    allowTemplate ? approvedTemplateFor(INVITE_TEMPLATE_KEY) : Promise.resolve(null),
+    getOperationalTimezone(),
+    prisma.whatsAppSendRecipient.count({ where: { sendId: send.id, status: "SENT", mode: "template" } }),
+  ]);
+  let templateLeft = allowTemplate ? Math.max(0, Number(vars.maxTemplate ?? 0) - templatesSent) : 0;
   const rows = await prisma.whatsAppSendRecipient.findMany({
     where: { sendId: send.id, status: "PENDING" },
     take: input.batchSize ?? BATCH_SIZE,
@@ -619,6 +815,7 @@ export const processWorkshopInviteBatch = async (
     select: { id: true, contactId: true },
   });
   const pause = deps.pauseMs ?? PAUSE_MS;
+  let claimedAny = false;
   for (const row of rows) {
     // Se reclama antes de enviar: si la invocación se corta, no se repite.
     const claimed = await prisma.whatsAppSendRecipient.updateMany({
@@ -626,9 +823,11 @@ export const processWorkshopInviteBatch = async (
       data: { status: "SENDING", processedAt: new Date() },
     });
     if (claimed.count === 0) continue;
-    const outcome = await inviteOne(row, { edition, config, template, now, tz, send: deps.send ?? sendMetaMessage }).catch(
+    claimedAny = true;
+    const outcome = await inviteOne(row, { edition, config, template, templateLeft, now, tz, send: deps.send ?? sendMetaMessage }).catch(
       (e: unknown): RowOutcome => ({ status: "FAILED", error: (e instanceof Error ? e.message : String(e)).slice(0, 500) })
     );
+    if (outcome.status === "SENT" && outcome.mode === "template") templateLeft -= 1;
     await prisma.whatsAppSendRecipient.update({
       where: { id: row.id },
       data: {
@@ -669,7 +868,7 @@ export const processWorkshopInviteBatch = async (
       }).catch(() => undefined);
     }
   }
-  return progressOf(send.id);
+  return progressOf(send.id, { stalled: !claimedAny && remaining > 0 });
 };
 
 export const cancelWorkshopInvite = async (input: { sendId: string; staffId: string }): Promise<boolean> => {

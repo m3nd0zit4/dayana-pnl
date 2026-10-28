@@ -13,14 +13,17 @@ import {
   type OpenWorkshop,
 } from "./whatsapp-agent/workshop-interest";
 import {
+  chatKeyOf,
   countExclusions,
   declinesInvite,
+  duplicateChats,
   INVITE_TEMPLATE_BODY,
   INVITE_TEMPLATE_EXAMPLE,
   inviteBlockedReason,
   inviteClientKey,
   inviteEventMention,
   inviteExclusion,
+  inviteStartMismatch,
   inviteWindowStart,
   workshopInviteTemplateVars,
   workshopInviteText,
@@ -52,6 +55,7 @@ const OK: InviteFacts = {
   categorySource: "ai",
   ignoredNumber: false,
   alreadyInvited: false,
+  alreadyContacted: false,
   inInterests: false,
   hasUpcomingCall: false,
   aiBlocked: false,
@@ -93,8 +97,9 @@ describe("a quién se invita", () => {
     expect(inviteExclusion({ ...OK, stage: "no_contesto" })).toBeNull();
   });
 
-  test("ya invitada, ya en Interesadas, con llamada, o la IA no atiende el chat: no", () => {
+  test("ya invitada, ya le llegó otro mensaje del taller, ya en Interesadas, con llamada, o la IA no atiende el chat: no", () => {
     expect(inviteExclusion({ ...OK, alreadyInvited: true })).toBe("already_invited");
+    expect(inviteExclusion({ ...OK, alreadyContacted: true })).toBe("already_contacted");
     expect(inviteExclusion({ ...OK, inInterests: true })).toBe("interested");
     expect(inviteExclusion({ ...OK, hasUpcomingCall: true })).toBe("has_call");
     expect(inviteExclusion({ ...OK, aiBlocked: true })).toBe("ai_blocked");
@@ -114,9 +119,31 @@ describe("a quién se invita", () => {
     expect(inviteWindowStart(now).toISOString()).toBe("2026-08-29T12:00:00.000Z");
   });
 
-  test("una clave por persona y edición", () => {
-    expect(inviteClientKey("ws1", "c1")).toBe("taller-invita:ws1:c1");
-    expect(inviteClientKey("ws2", "c1")).not.toBe(inviteClientKey("ws1", "c1"));
+  test("una clave por chat y edición", () => {
+    expect(inviteClientKey("ws1", "conv1")).toBe("taller-invita:ws1:conv1");
+    expect(inviteClientKey("ws2", "conv1")).not.toBe(inviteClientKey("ws1", "conv1"));
+  });
+
+  test("el mismo chat en dos formas del número (México 52 / 521, Brasil con o sin 9)", () => {
+    expect(chatKeyOf("+525512345678")).toBe(chatKeyOf("+5215512345678"));
+    expect(chatKeyOf("+5511987654321")).toBe(chatKeyOf("+551187654321"));
+    expect(chatKeyOf("+573001112233")).not.toBe(chatKeyOf("+573001112234"));
+  });
+
+  test("de dos personas en un chat se invita a una: la que el chat tiene como contacto", () => {
+    expect([...duplicateChats([{ key: "a", preferred: false }, { key: "a", preferred: true }, { key: "b", preferred: false }])]).toEqual([0]);
+    expect([...duplicateChats([{ key: "a", preferred: false }, { key: "a", preferred: false }])]).toEqual([1]);
+    expect(duplicateChats([{ key: null, preferred: false }, { key: null, preferred: false }]).size).toBe(0);
+  });
+
+  test("lo confirmado en la vista previa tiene que seguir igual al empezar", () => {
+    const ok = { viaText: 3, viaTemplate: 2, templateApproved: true };
+    expect(inviteStartMismatch({ viaText: 3, viaTemplate: 2, includeTemplate: true }, ok)).toBeNull();
+    // Sin la plantilla confirmada, que ahora esté aprobada no suma plantillas: solo cuentan los mensajes.
+    expect(inviteStartMismatch({ viaText: 3, viaTemplate: 2, includeTemplate: false }, ok)).toBeNull();
+    expect(inviteStartMismatch({ viaText: 2, viaTemplate: 2, includeTemplate: true }, ok)).toContain("por mensaje 2 → 3");
+    expect(inviteStartMismatch({ viaText: 3, viaTemplate: 1, includeTemplate: true }, ok)).toContain("con la plantilla 1 → 2");
+    expect(inviteStartMismatch({ viaText: 3, viaTemplate: 2, includeTemplate: true }, { ...ok, templateApproved: false })).toContain("ya no está aprobada");
   });
 
   test("sin precio o sin fecha no se invita", () => {
