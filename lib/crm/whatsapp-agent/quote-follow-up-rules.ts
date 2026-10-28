@@ -3,6 +3,7 @@ import { getDateKeyInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import { foldForSearch } from "../search-normalize";
 import { isAutoSend } from "../whatsapp-attention-rules";
 import { isPaymentInfo, paymentInfoKind } from "./chat-payment-link";
+import { insults } from "./rude-reply";
 
 /**
  * El seguimiento del cierre (pedido de la dueña, 22-oct): después de la
@@ -377,6 +378,8 @@ const START_ON = new RegExp(
 export const stateFromReply = (text: string, at: Date, tz: string): { state: QuoteState; payBy: Date | null } | null => {
   const t = foldForSearch(text);
   if (!t.trim()) return null;
+  // Insultó (Alejandra, 27-oct: «Lo único q les interesa es la plata… Coman mierda»): no se le escribe más.
+  if (insults([text])) return { state: "no_quiere", payBy: null };
   if (PAID.test(t) && !FUTURE.test(t)) return { state: "pago_enviado", payBy: null };
   const payBy = payDateFrom(t, at, tz);
   const inDays = payBy ? Math.round((payBy.getTime() - zonedDateTimeToUtc(getDateKeyInTz(at, tz), "00:00", tz).getTime()) / DAY) : null;

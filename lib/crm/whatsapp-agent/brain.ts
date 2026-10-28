@@ -39,6 +39,7 @@ import {
 } from "./chat-payment-link";
 import { saysSelfHarm } from "./pause-rules";
 import { asksForMoreHelp, seriousReply } from "./serious-reply";
+import { insults, RUDE_REPLY, rudeReplied } from "./rude-reply";
 import { answeringDayana, givesEmergencyAdvice, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls, withoutToolText } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
@@ -2249,6 +2250,22 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !input.clientMode &&
     !state.receipt;
   const riskNow = !input.clientMode && saysSelfHarm(lastInbound);
+  // Insulta después de su llamada gratis (Alejandra, 27-oct: «Lo único q les interesa es la
+  // plata… Coman mierda»; la IA: «Entiendo tu frustración… Quedamos en contacto»). Dueña:
+  // «que el modelo solo le envíe esto»: los 15 minutos, las sesiones y las líneas gratuitas
+  // de su país (`rude-reply.ts`), una vez; si sigue, no se le contesta más.
+  const rudeNow = !input.clientMode && input.stage === "tuvo_llamada" && !riskNow && insults(lastInbound);
+  if (rudeNow) {
+    const again = rudeReplied(input.transcript, now.getTime());
+    log("rude_reply", { auto: true }, { ok: true, again, replaced: modelOutcome.kind === "reply" ? modelOutcome.message : `escalate:${modelOutcome.category}` });
+    if (again) state.noReply = "Ya se le explicó la llamada de 15 minutos y sigue insultando: no se le contesta más.";
+    // Solo ese texto: nada de horas, enlaces, datos ni la sesión urgente.
+    state.slotOffer = null;
+    state.paymentDetails = [];
+    state.paymentLink = null;
+    state.links = [];
+    state.urgentSession = null;
+  }
   const risk = riskNow || (escalated && saysSelfHarm([modelOutcome.reason, ...recentInbound]));
   const clinical = escalated && modelOutcome.category === "clinical";
   const afterCallAsk =
@@ -2266,7 +2283,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     givesEmergencyAdvice(modelOutcome.kind === "reply" ? modelOutcome.message : escalated ? state.holdingReply : null);
   if (emergencyTalk) log("emergency_advice", { auto: true }, { ok: true, note: "El modelo escribió una línea de emergencias o «urgencias»: no sale." });
   const serious =
-    (risk || clinical || afterCallAsk || emergencyTalk) && !otherFallback
+    (risk || clinical || afterCallAsk || emergencyTalk) && !otherFallback && !rudeNow
       ? (() => {
           const link = pickPaymentLink(chatLinks, input.memory);
           const reply = seriousReply({
@@ -2311,7 +2328,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   if (guestFix && modelOutcome.kind === "reply") {
     log("guest_reply", { auto: true }, { ok: true, replaced: modelOutcome.message, note: "Lo puso el código: solo se inscribió al evento y no pidió la llamada." });
   }
-  const outcome: BrainOutcome = agendaOnly
+  const outcome: BrainOutcome = rudeNow
+    ? { kind: "reply", message: state.noReply ? "" : RUDE_REPLY }
+    : agendaOnly
     ? { kind: "reply", message: URGENT_SESSION_REPLY }
     : chatLinkOnly
       ? { kind: "reply", message: CHAT_LINK_REPLY }

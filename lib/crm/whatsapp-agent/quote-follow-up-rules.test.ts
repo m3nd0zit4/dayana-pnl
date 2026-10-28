@@ -115,6 +115,8 @@ describe("stateFromReply", () => {
     ["Lo voy a pensar y te aviso", "lo_piensa"],
     ["Lo hablo con mi esposo", "lo_piensa"],
     ["Muchísimas gracias si !! Estamos en contacto", "lo_piensa"],
+    // Alejandra, 27-oct: insultó al 2º seguimiento; no se le escribe más.
+    ["ʟᴏ ᴜɴɪᴄᴏ ǫ ʟᴇs ɪɴᴛᴇʀᴇsᴀ ᴇs ʟᴀ ᴘʟᴀᴛᴀ .. ᴄᴏᴍᴀɴ ᴍɪᴇʀᴅᴀ", "no_quiere"],
   ])("«%s» → %s", (text, state) => {
     expect(stateFromReply(text, WED, BOG)?.state).toBe(state as never);
   });
