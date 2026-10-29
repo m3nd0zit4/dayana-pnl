@@ -27,6 +27,8 @@ import { canManageTeam } from "@/lib/crm/staff-permissions";
 import { currentSlugForPrevious, listWorkshopDocuments } from "@/lib/crm/workshop-editions";
 import { countWorkshopInterests, listWorkshopInterests, syncWorkshopInterests } from "@/lib/crm/workshop-interests";
 import { listWorkshopInvitations, syncInviteReplies } from "@/lib/crm/workshop-invite";
+import { registrationTemplateState } from "@/lib/crm/workshop-registration";
+import { registrationTemplateNotice } from "@/lib/crm/workshop-registration-rules";
 import { resolveWindow } from "@/lib/meta/window";
 import { getWorkshopPublishBlockers } from "@/lib/crm/workshop-lifecycle";
 import {
@@ -110,7 +112,7 @@ const syncedInterestCount = async (edition: WorkshopForPanel): Promise<number> =
  * cuáles son y llamarles o agendarles por el modelo»). La página ya las puso al día.
  */
 const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz: string }) => {
-  const [rows, invitations] = await Promise.all([
+  const [rows, invitations, registrationTemplate] = await Promise.all([
     listWorkshopInterests(edition.id).catch((e: unknown) => {
       console.error("[talleres] no se pudo cargar la lista de interesadas", e);
       return null;
@@ -119,6 +121,8 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
       console.error("[talleres] no se pudo cargar a quién se invitó", e);
       return [];
     }),
+    // La plantilla del registro en la página (28-oct): si Meta la pasó a Marketing, se dice.
+    registrationTemplateState().catch(() => null),
   ]);
   if (!rows) {
     return (
@@ -157,6 +161,7 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
         timeZone={tz}
         open={open}
         payable={Boolean(edition.productId) && (edition.prices.cop != null || edition.prices.usd != null)}
+        registrationNotice={open || rows.some((r) => r.registration) ? registrationTemplateNotice(registrationTemplate) : null}
         rows={rows.map((r) => ({
           id: r.id,
           conversationId: r.conversationId,
@@ -171,6 +176,15 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
           offeredAtIso: r.offeredAt?.toISOString() ?? null,
           offeredVia: r.offeredVia,
           windowOpen: resolveWindow("WHATSAPP", r.lastInboundAt).isOpen,
+          pageOnly: r.pageOnly,
+          registration: r.registration
+            ? {
+                kind: r.registration.kind,
+                label: r.registration.label,
+                detail: r.registration.detail,
+                sentAtIso: r.registration.sentAt?.toISOString() ?? null,
+              }
+            : null,
         }))}
       />
     </div>

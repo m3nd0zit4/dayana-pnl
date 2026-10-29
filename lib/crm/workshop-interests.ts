@@ -6,6 +6,7 @@ import { PROXIMO_WORKSHOP_SLUG } from "@/lib/workshops";
 
 import { getSiteSetting, setSiteSetting } from "./site-settings";
 import { isWorkshopAsk, titleWords, type OpenWorkshop } from "./whatsapp-agent/workshop-interest";
+import { PAGE_REGISTRATION_MESSAGE, parsePageVia, registrationWaStatus, type RegistrationWaStatus } from "./workshop-registration-rules";
 
 /**
  * Las interesadas en un taller (dueña, 24-oct: «en la sección de taller, una
@@ -162,6 +163,14 @@ export type WorkshopInterestRow = {
   offeredVia: "text" | "template" | null;
   /** Su último mensaje: dentro de las 24 h la IA le manda horas; fuera, la plantilla. */
   lastInboundAt: Date | null;
+  /**
+   * Se registró en la página del taller (botón «Taller» de Enlaces, 28-oct) y
+   * cómo quedó el WhatsApp del registro: enviado, esperando la plantilla o por
+   * qué no salió (`registrationWaStatus`). null = solo preguntó por WhatsApp.
+   */
+  registration: RegistrationWaStatus | null;
+  /** La fila nació del registro: no hay mensaje suyo que mostrar. */
+  pageOnly: boolean;
 };
 
 /** Las interesadas de la edición, la más reciente primero, con su próxima llamada y si ya pagó. */
@@ -182,13 +191,19 @@ export const listWorkshopInterests = async (editionId: string): Promise<Workshop
       offered_at: Date | null;
       offered_via: string | null;
       last_inbound_at: Date | null;
+      updated_at: Date;
+      reg_status: string | null;
+      reg_sent_at: Date | null;
+      reg_failed_reason: string | null;
     }[]
   >`
     SELECT i.id, i.conversation_id,
            COALESCE(NULLIF(TRIM(CONCAT(ct.first_name, ' ', ct.last_name)), ''), c.participant_name) AS name,
            c.external_thread_id AS phone,
            i.first_message, i.first_asked_at, i.last_asked_at, i.asks, i.status,
-           i.offered_at, i.offered_via, c.last_inbound_at,
+           i.offered_at, i.offered_via, c.last_inbound_at, i.updated_at,
+           -- El WhatsApp del registro en la página, por su clave (registrationClientKey).
+           rm.status::text AS reg_status, rm.sent_at AS reg_sent_at, rm.failed_reason AS reg_failed_reason,
            (SELECT MIN(a.starts_at) FROM calendar_appointments a
              WHERE a.conversation_id = c.id AND a.status = 'active' AND a.starts_at > NOW() - INTERVAL '1 hour') AS next_call_at,
            EXISTS (SELECT 1 FROM enrollments e
@@ -197,25 +212,41 @@ export const listWorkshopInterests = async (editionId: string): Promise<Workshop
     FROM workshop_interests i
     JOIN conversations c ON c.id = i.conversation_id
     LEFT JOIN contacts ct ON ct.id = c.contact_id
+    LEFT JOIN conversation_messages rm
+      ON i.offered_via LIKE 'pagina:%' AND rm.client_key = CONCAT('taller-registro:', i.edition_id, ':', i.conversation_id)
     WHERE i.edition_id = ${editionId}
     ORDER BY i.last_asked_at DESC
     LIMIT 300`;
-  return rows.map((r) => ({
-    id: r.id,
-    conversationId: r.conversation_id,
-    name: r.name,
-    phone: r.phone,
-    firstMessage: r.first_message,
-    firstAskedAt: r.first_asked_at,
-    lastAskedAt: r.last_asked_at,
-    asks: r.asks,
-    status: isInterestStatus(r.status) ? r.status : "nuevo",
-    nextCallAt: r.next_call_at,
-    paid: r.paid,
-    offeredAt: r.offered_at,
-    offeredVia: r.offered_via === "text" || r.offered_via === "template" ? r.offered_via : null,
-    lastInboundAt: r.last_inbound_at,
-  }));
+  const now = new Date();
+  return rows.map((r) => {
+    const page = parsePageVia(r.offered_via);
+    const via = page.page ? (page.state === "text" || page.state === "template" ? page.state : null) : r.offered_via;
+    return {
+      id: r.id,
+      conversationId: r.conversation_id,
+      name: r.name,
+      phone: r.phone,
+      firstMessage: r.first_message,
+      firstAskedAt: r.first_asked_at,
+      lastAskedAt: r.last_asked_at,
+      asks: r.asks,
+      status: isInterestStatus(r.status) ? r.status : "nuevo",
+      nextCallAt: r.next_call_at,
+      paid: r.paid,
+      offeredAt: r.offered_at,
+      offeredVia: via === "text" || via === "template" ? via : null,
+      lastInboundAt: r.last_inbound_at,
+      registration: page.page
+        ? registrationWaStatus({
+            state: page.state,
+            message: r.reg_status && r.reg_sent_at ? { status: r.reg_status, sentAt: r.reg_sent_at, failedReason: r.reg_failed_reason } : null,
+            updatedAt: r.updated_at,
+            now,
+          })
+        : null,
+      pageOnly: r.first_message === PAGE_REGISTRATION_MESSAGE,
+    };
+  });
 };
 
 /** Cuántas hay registradas (el número de la pestaña «Interesadas»). */

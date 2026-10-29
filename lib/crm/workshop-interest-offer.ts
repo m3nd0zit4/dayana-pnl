@@ -6,13 +6,14 @@ import { getDateKeyInTz } from "@/lib/datetime/zoned-time";
 import { getOperationalTimezone } from "./operational-timezone";
 import { getWhatsAppAiConfig } from "./whatsapp-ai-config";
 import { fillVars, templateParams } from "./whatsapp-outbound-plan";
-import { approvedTemplateFor } from "./whatsapp-templates";
+import { approvedTemplateFor, approvedUtilityTemplateFor } from "./whatsapp-templates";
 import { sanitizeMensaje } from "./event-template-vars";
 import { chatNameInfo } from "./whatsapp-agent/chat-name";
 import { computeSegment } from "./whatsapp-agent/segment-store";
 import { workshopOfferTemplateMessage, workshopOfferText, workshopOutreachSource } from "./whatsapp-agent/workshop-interest";
 import { loadOutreachConversation, outreachAiOff, outreachRefusal } from "./workshop-outreach-guard";
 import { workshopPayUrl } from "./workshop-interests";
+import { pageVia, parsePageVia, REGISTRATION_TEMPLATE_KEY, workshopRegistrationTemplateVars } from "./workshop-registration-rules";
 
 /**
  * «Que la IA le escriba» en la lista de interesadas (dueña, 24-oct: «para que
@@ -24,7 +25,9 @@ import { workshopPayUrl } from "./workshop-interests";
  * o las horas.
  *
  * - dentro de las 24 h de WhatsApp: un mensaje de texto;
- * - fuera: la plantilla aprobada `retomar_conversacion` con ese texto.
+ * - fuera: la plantilla aprobada `retomar_conversacion` con ese texto; a quien
+ *   se registró en la página del taller (28-oct), la del registro
+ *   (`taller_registro_pagina`) si Meta ya la aprobó como Utilidad.
  *
  * El mensaje lleva `source` `asistente:taller:<edición>`: durante 3 días su
  * respuesta sigue lo del taller aunque ya haya tenido su llamada gratis
@@ -49,8 +52,8 @@ export const offerWorkshopCall = async (
 ): Promise<OfferResult> => {
   const send = deps.send ?? sendMetaMessage;
   const now = deps.now ?? new Date();
-  const [interest] = await prisma.$queryRaw<{ id: string; conversation_id: string; status: string }[]>`
-    SELECT id, conversation_id, status FROM workshop_interests
+  const [interest] = await prisma.$queryRaw<{ id: string; conversation_id: string; status: string; offered_via: string | null }[]>`
+    SELECT id, conversation_id, status, offered_via FROM workshop_interests
     WHERE id = ${input.interestId} AND edition_id = ${input.editionId}`;
   if (!interest) return { status: "skipped", reason: "not_found" };
 
@@ -113,6 +116,9 @@ export const offerWorkshopCall = async (
     return { status: "skipped", reason: "already" };
   }
   const windowOpen = resolveWindow("WHATSAPP", conv.lastInboundAt, now).isOpen;
+  const fromPage = parsePageVia(interest.offered_via).page;
+  // Solo aprobada como Utilidad (lo que se pidió): pasada a Marketing, la de siempre.
+  const registrationTemplate = fromPage && !windowOpen ? await approvedUtilityTemplateFor(REGISTRATION_TEMPLATE_KEY) : null;
 
   let via: "text" | "template";
   try {
@@ -125,6 +131,23 @@ export const offerWorkshopCall = async (
         clientKey,
       });
       via = "text";
+    } else if (fromPage && registrationTemplate?.metaTemplateName && workshop.payUrl) {
+      // Se registró en la página y nunca escribió (28-oct): «retomar nuestra
+      // conversación» no le cuadra; la del registro sí, en cuanto Meta la aprueba.
+      const vars = workshopRegistrationTemplateVars(workshop, { firstName });
+      await send({
+        conversationId: conv.id,
+        body: fillVars(registrationTemplate.body, vars),
+        template: {
+          name: registrationTemplate.metaTemplateName,
+          language: registrationTemplate.metaTemplateLang ?? "es",
+          variables: templateParams(registrationTemplate.metaVarNames, vars),
+        },
+        source,
+        isAutoReply: true,
+        clientKey,
+      });
+      via = "template";
     } else {
       const template = await approvedTemplateFor("retomar_conversacion");
       if (!template?.metaTemplateName) {
@@ -150,10 +173,12 @@ export const offerWorkshopCall = async (
     return { status: "failed", error: e instanceof Error ? e.message : String(e) };
   }
 
-  // Ya salió: si no se marca, queda en el registro y se avisa como enviado.
+  // Ya salió: si no se marca, queda en el registro y se avisa como enviado. Quien
+  // se registró en la página conserva la marca (`pagina:…`): ahora con su WhatsApp.
   await prisma.$executeRaw`
     UPDATE workshop_interests
-    SET offered_at = ${now}, offered_via = ${via},
+    SET offered_at = ${now},
+        offered_via = CASE WHEN offered_via LIKE 'pagina:%' THEN ${pageVia(via)} ELSE ${via} END,
         status = CASE WHEN status = 'nuevo' THEN 'contactada' ELSE status END,
         updated_at = NOW()
     WHERE id = ${interest.id}`.catch((e: unknown) => console.warn("[talleres] no se marcó la oferta", e));

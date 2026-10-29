@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { BRAND } from "@/lib/contact";
 import LinktreePage from "@/app/components/enlaces/LinktreePage";
 import { getOpenFreeEvent } from "@/lib/crm/free-webinar";
+import { openWorkshopForAi } from "@/lib/crm/workshop-interests";
+import { workshopRegistrationPath } from "@/lib/crm/workshop-registration-rules";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 
 const title = `Enlaces — ${BRAND.name}`;
@@ -25,6 +27,18 @@ const Page = async () => {
   let webinarHasTime = true;
 
   const userCountry = await getServerUserCountry();
+
+  // El taller con inscripciones abiertas (dueña, 28-oct: «cuando se crea un
+  // taller aparezca ahí en la página de enlaces el botón del taller, que diga
+  // "Taller" y abajo del taller el nombre»). Solo, sin ajuste en el CRM: la
+  // misma regla que usa la IA (`openWorkshopForAi`), y lleva al registro.
+  let workshop: { title: string; href: string } | null = null;
+  try {
+    const open = await openWorkshopForAi();
+    if (open) workshop = { title: open.title, href: `${workshopRegistrationPath(open.slug)}?ref=enlaces` };
+  } catch {
+    /* DB down — hide workshop CTA */
+  }
 
   try {
     // El publicado, con fecha y sin terminar. El botón se configura en el CRM
@@ -55,6 +69,7 @@ const Page = async () => {
       webinarCtaSubtitle={webinarCtaSubtitle}
       webinarStartsAtIso={webinarStartsAtIso}
       webinarHasTime={webinarHasTime}
+      workshop={workshop}
       userCountry={userCountry}
     />
   );

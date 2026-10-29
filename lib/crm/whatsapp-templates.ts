@@ -17,6 +17,12 @@ import { scheduleVars } from "./event-schedule";
 import { EVENT_ACCESS_BODY, EVENT_INVITATION_BODY } from "./event-template-vars";
 import { toMetaBody } from "./whatsapp-template-rules";
 import { INVITE_TEMPLATE_BODY, INVITE_TEMPLATE_EXAMPLE, INVITE_TEMPLATE_KEY } from "./workshop-invite-rules";
+import {
+  REGISTRATION_TEMPLATE_BODY,
+  REGISTRATION_TEMPLATE_EXAMPLE,
+  REGISTRATION_TEMPLATE_KEY,
+  REGISTRATION_TEMPLATE_TITLE,
+} from "./workshop-registration-rules";
 
 /**
  * Plantillas de WhatsApp (las que Meta aprueba) conectadas con el CRM.
@@ -264,6 +270,18 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
     category: "MARKETING",
     body: INVITE_TEMPLATE_BODY,
     example: INVITE_TEMPLATE_EXAMPLE,
+  },
+  // Quien se registró en la página del taller (botón «Taller» de Enlaces,
+  // 28-oct) y no escribió en las últimas 24 h: recibimos tu registro y cómo
+  // completar la inscripción (`workshop-registration.ts`). De UTILIDAD (dueña:
+  // «que no sea de marketing ya que la persona aceptó»): confirma lo que ella
+  // acaba de pedir, sin palabras de venta. Si Meta la pasa a Marketing, no se usa sola.
+  {
+    key: REGISTRATION_TEMPLATE_KEY,
+    title: REGISTRATION_TEMPLATE_TITLE,
+    category: "UTILITY",
+    body: REGISTRATION_TEMPLATE_BODY,
+    example: REGISTRATION_TEMPLATE_EXAMPLE,
   },
   {
     key: "cita_reprogramar",

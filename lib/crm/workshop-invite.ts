@@ -978,7 +978,10 @@ export const syncInviteReplies = async (edition: { id: string }): Promise<number
       INSERT INTO workshop_interests (id, edition_id, conversation_id, first_message, first_asked_at, last_asked_at, asks, status, offered_at, offered_via, updated_at)
       VALUES (${randomUUID()}, ${edition.id}, ${r.conversation_id}, ${body.slice(0, 500)}, ${r.replied_at}, ${r.replied_at}, 1, ${status}, ${r.processed_at}, ${r.mode === "template" ? "template" : "text"}, NOW())
       ON CONFLICT (edition_id, conversation_id) DO UPDATE
-        SET offered_at = EXCLUDED.offered_at, offered_via = EXCLUDED.offered_via, updated_at = NOW()
+        SET offered_at = EXCLUDED.offered_at,
+            -- Quien se registró en la página conserva su marca y el estado de ese WhatsApp (28-oct).
+            offered_via = CASE WHEN workshop_interests.offered_via LIKE 'pagina:%' THEN workshop_interests.offered_via ELSE EXCLUDED.offered_via END,
+            updated_at = NOW()
         WHERE workshop_interests.offered_at IS NULL`;
   }
   return changed;

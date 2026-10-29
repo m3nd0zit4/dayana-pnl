@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  CalendarHeart,
   Compass,
   GraduationCap,
   Star,
@@ -15,6 +16,7 @@ import {
   buildWhatsAppUrl,
 } from "@/lib/contact";
 import LocalInstantText from "@/app/components/datetime/LocalInstantText";
+import { WORKSHOP_LINK_CTA } from "@/lib/crm/workshop-registration-rules";
 
 const TikTokIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="h-5 w-5">
@@ -213,13 +215,14 @@ const Row = ({ row, delay }: { row: LinkRow; delay: number }) => {
   );
 };
 
-type CtaVariant = "diagnostico" | "whatsapp" | "community" | "webinar";
+type CtaVariant = "diagnostico" | "whatsapp" | "community" | "webinar" | "workshop";
 
 const Cta = ({
   href,
   icon,
   title,
   subtitle,
+  note,
   badge,
   variant,
   delay,
@@ -229,6 +232,8 @@ const Cta = ({
   icon: React.ReactNode;
   title: string;
   subtitle: React.ReactNode;
+  /** Una tercera línea («Si te interesa, regístrate»); con ella el subtítulo ocupa hasta dos líneas. */
+  note?: string;
   badge?: string;
   variant: CtaVariant;
   delay: number;
@@ -241,7 +246,10 @@ const Cta = ({
       ? "border border-[#3fdc7a]/35 bg-gradient-to-br from-[#2fdb70]/95 to-[#0f9d58] shadow-[0_12px_32px_-12px_rgba(37,211,102,0.65),inset_0_1px_0_rgba(255,255,255,0.35)] hover:shadow-[0_16px_40px_-10px_rgba(37,211,102,0.75)]"
       : variant === "community"
         ? "border border-[#3fdc7a]/30 bg-[#25D366]/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-xl hover:border-[#3fdc7a]/55 hover:bg-[#25D366]/[0.22]"
-        : "border border-terracotta/45 bg-terracotta/[0.16] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-xl hover:border-terracotta/70 hover:bg-terracotta/[0.24]";
+        : variant === "workshop"
+          ? // La misma familia que el del evento gratuito, en rubor para que no se confundan.
+            "border border-blush/60 bg-blush/[0.2] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-xl hover:border-blush/80 hover:bg-blush/[0.28]"
+          : "border border-terracotta/45 bg-terracotta/[0.16] shadow-[inset_0_1px_0_rgba(255,255,255,0.22)] backdrop-blur-xl hover:border-terracotta/70 hover:bg-terracotta/[0.24]";
 
   const className = `lt-fade lt-press group relative flex w-full items-center gap-3.5 overflow-hidden rounded-[1.35rem] px-4 py-3.5 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.985] ${variantClass}`;
   const style = { animationDelay: `${delay}ms` };
@@ -256,7 +264,9 @@ const Cta = ({
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white transition-transform duration-300 group-hover:scale-105 ${
           variant === "community"
             ? "bg-[#25D366]/25 ring-1 ring-[#3fdc7a]/40"
-            : "bg-white/15 ring-1 ring-white/30"
+            : variant === "workshop"
+              ? "bg-blush/30 ring-1 ring-blush/50"
+              : "bg-white/15 ring-1 ring-white/30"
         }`}
       >
         {icon}
@@ -272,9 +282,20 @@ const Cta = ({
             </span>
           )}
         </span>
-        <span className="mt-0.5 block truncate font-[font1] text-xs text-white/75">
-          {subtitle}
-        </span>
+        {note ? (
+          <>
+            <span className="mt-0.5 line-clamp-2 block font-[font1] text-sm leading-snug text-white">
+              {subtitle}
+            </span>
+            <span className="mt-0.5 block font-[font1] text-xs text-white/75">
+              {note}
+            </span>
+          </>
+        ) : (
+          <span className="mt-0.5 block truncate font-[font1] text-xs text-white/75">
+            {subtitle}
+          </span>
+        )}
       </span>
       <ArrowUpRight className="h-4 w-4 shrink-0 text-white/70 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
     </>
@@ -316,6 +337,8 @@ type Props = {
   webinarCtaSubtitle?: string;
   webinarStartsAtIso?: string | null;
   webinarHasTime?: boolean;
+  /** El taller con inscripciones abiertas: su nombre y el registro. null = sin botón. */
+  workshop?: { title: string; href: string } | null;
   userCountry?: string | null;
 };
 
@@ -325,6 +348,7 @@ const LinktreePage = ({
   webinarCtaSubtitle = "Regístrate al webinar gratis en vivo",
   webinarStartsAtIso = null,
   webinarHasTime = true,
+  workshop = null,
   userCountry = null,
 }: Props) => {
   const whatsappHref = buildWhatsAppUrl(
@@ -438,6 +462,22 @@ const LinktreePage = ({
               badge="Gratis"
               variant="webinar"
               delay={260}
+              internal
+            />
+          )}
+          {/* El taller abierto (dueña, 28-oct: «que diga "Taller" y abajo del
+              taller el nombre, y colocarle "si estás interesado, regístrate"»):
+              lleva al registro, que la anota en «Interesadas» y le escribe por
+              WhatsApp para separar el cupo o agendar la llamada gratis. */}
+          {workshop && (
+            <Cta
+              href={workshop.href}
+              icon={<CalendarHeart className="h-5 w-5" />}
+              title={WORKSHOP_LINK_CTA.title}
+              subtitle={workshop.title}
+              note={WORKSHOP_LINK_CTA.note}
+              variant="workshop"
+              delay={300}
               internal
             />
           )}

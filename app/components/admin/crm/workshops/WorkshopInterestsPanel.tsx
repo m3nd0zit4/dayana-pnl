@@ -26,7 +26,31 @@ export type InterestRowView = {
   offeredVia: "text" | "template" | null;
   /** Escribió en las últimas 24 h: la IA le escribe un mensaje; si no, va la plantilla. */
   windowOpen: boolean;
+  /** La fila nació del registro en la página: no hay mensaje suyo que citar. */
+  pageOnly: boolean;
+  /**
+   * Se registró en la página del taller (28-oct) y cómo quedó el WhatsApp del
+   * registro (`registrationWaStatus`); null = solo preguntó por WhatsApp.
+   */
+  registration: {
+    kind: "sent" | "pending" | "skipped" | "failed";
+    label: string;
+    detail: string | null;
+    sentAtIso: string | null;
+  } | null;
 };
+
+/** El tono de la insignia del WhatsApp del registro (solo tokens). */
+const REGISTRATION_TONE: Record<NonNullable<InterestRowView["registration"]>["kind"], string> = {
+  sent: "border-success/40 text-success",
+  pending: "border-warning/40 text-warning",
+  skipped: "text-muted-foreground",
+  failed: "border-destructive/40 text-destructive",
+};
+
+/** «La IA le escribió» repetiría el WhatsApp del registro si es ese mismo mensaje (mismo minuto). */
+const offeredAfterRegistration = (r: InterestRowView): boolean =>
+  !r.registration?.sentAtIso || !r.offeredAtIso || new Date(r.offeredAtIso).getTime() - new Date(r.registration.sentAtIso).getTime() > 60_000;
 
 const STATUS_LABEL: Record<InterestStatus, string> = {
   nuevo: "Nuevo",
@@ -54,6 +78,10 @@ const SKIP_MESSAGE: Record<string, string> = {
  * tiene acceso). Dayana las llama ella misma o toca «Que la IA le escriba»: la
  * IA le pregunta si separa su cupo (el enlace de pago) o agenda la llamada con
  * Dayana (25-oct). La fila lleva al chat; el seguimiento se marca a la derecha.
+ *
+ * Desde el 28-oct también quien se registró en la página del taller (el botón
+ * «Taller» de Enlaces): «Se registró en la página» y cómo quedó el WhatsApp
+ * automático del registro (enviado, esperando la plantilla o por qué no salió).
  */
 const WorkshopInterestsPanel = ({
   slug,
@@ -61,6 +89,7 @@ const WorkshopInterestsPanel = ({
   timeZone,
   open,
   payable,
+  registrationNotice = null,
 }: {
   slug: string;
   rows: InterestRowView[];
@@ -69,6 +98,8 @@ const WorkshopInterestsPanel = ({
   open: boolean;
   /** Tiene precio (enlace de pago): la IA pregunta cupo o llamada; si no, solo la llamada. */
   payable: boolean;
+  /** Cómo está en Meta la plantilla del registro en la página (`registrationTemplateNotice`). */
+  registrationNotice?: { tone: "ok" | "warn" | "info"; text: string } | null;
 }) => {
   const { toast, confirm } = useCrm();
   const [rows, setRows] = useState(initialRows);
@@ -128,7 +159,14 @@ const WorkshopInterestsPanel = ({
         payable
           ? "Le cuenta del taller y le pregunta si quiere separar su cupo de una vez (le manda el enlace de pago) o agendar primero una llamada con Dayana."
           : "Le cuenta del taller y le pregunta si quiere separar la llamada con Dayana para inscribirse."
-      }${r.windowOpen ? "" : " Pasaron más de 24 h desde su último mensaje: va con la plantilla «Retomar la conversación» (Meta la cobra)."}`,
+      }${
+        r.windowOpen
+          ? ""
+          : r.registration
+            ? // Se registró en la página: la del registro si Meta ya la aprobó (`offerWorkshopCall`).
+              " Pasaron más de 24 h desde su último mensaje: va con una plantilla (Meta la cobra)."
+            : " Pasaron más de 24 h desde su último mensaje: va con la plantilla «Retomar la conversación» (Meta la cobra)."
+      }`,
       confirmLabel: "Escribirle",
       onConfirm: () => offer(r),
     });
@@ -142,17 +180,26 @@ const WorkshopInterestsPanel = ({
       <div>
         <h2 className="text-sm font-medium">Interesadas ({rows.length.toLocaleString("es-CO")})</h2>
         <p className="text-xs text-muted-foreground">
-          Registro de interés: preguntaron por este taller por WhatsApp. No es una inscripción: no han pagado y no tienen acceso.
+          Registro de interés: preguntaron por este taller por WhatsApp o se registraron en su página (el botón «Taller» de Enlaces). No es una
+          inscripción: no han pagado y no tienen acceso.{" "}
           {payable
             ? "Llámalas tú o deja que la IA les escriba: les pregunta si separan su cupo con el enlace de pago o agendan una llamada con Dayana."
             : "Llámalas tú o deja que la IA les ofrezca la llamada con Dayana para inscribirse."}
         </p>
+        {registrationNotice ? (
+          <p
+            className={`mt-1 text-xs ${registrationNotice.tone === "warn" ? "text-warning" : registrationNotice.tone === "ok" ? "text-success" : "text-muted-foreground"}`}
+            data-testid="taller-registro-plantilla"
+          >
+            {registrationNotice.text}
+          </p>
+        ) : null}
       </div>
       {rows.length === 0 ? (
         <CrmEmptyState
           icon={HandHeart}
           title="Nadie ha preguntado todavía"
-          description="Cuando alguien pregunte por este taller por WhatsApp, aparece aquí."
+          description="Cuando alguien pregunte por este taller por WhatsApp o se registre en su página, aparece aquí."
         />
       ) : (
         <CrmDataList>
@@ -185,23 +232,33 @@ const WorkshopInterestsPanel = ({
                   </Link>
                   <p className="mt-0.5 text-xs text-muted-foreground">
                     {r.name ? `${phoneLabel(r.phone)} · ` : ""}
-                    preguntó {when(r.lastAskedAtIso)}
+                    {r.pageOnly ? "se registró" : "preguntó"} {when(r.lastAskedAtIso)}
                     {r.asks > 1 ? ` · ${r.asks} veces` : ""}
                   </p>
-                  <p className="mt-1 line-clamp-2 text-sm [overflow-wrap:anywhere]">«{r.firstMessage}»</p>
+                  {r.pageOnly ? null : <p className="mt-1 line-clamp-2 text-sm [overflow-wrap:anywhere]">«{r.firstMessage}»</p>}
                   <p className="mt-1 flex flex-wrap gap-1.5">
+                    {r.registration ? <Badge variant="secondary">Se registró en la página</Badge> : null}
+                    {r.registration ? (
+                      <Badge variant="outline" className={REGISTRATION_TONE[r.registration.kind]}>
+                        {r.registration.label}
+                        {r.registration.sentAtIso ? ` · ${when(r.registration.sentAtIso)}` : ""}
+                      </Badge>
+                    ) : null}
                     {r.paid ? <Badge variant="secondary">Pagó el taller</Badge> : null}
                     {r.nextCallAtIso ? (
                       <Badge variant="outline">Llamada: {when(r.nextCallAtIso)}</Badge>
                     ) : (
                       <Badge variant="outline">Sin llamada agendada</Badge>
                     )}
-                    {r.offeredAtIso ? (
+                    {r.offeredAtIso && offeredAfterRegistration(r) ? (
                       <Badge variant="outline">
                         La IA le escribió · {when(r.offeredAtIso)}
                       </Badge>
                     ) : null}
                   </p>
+                  {r.registration?.detail ? (
+                    <p className="mt-1 text-xs text-muted-foreground [overflow-wrap:anywhere]">{r.registration.detail}</p>
+                  ) : null}
                 </div>
                 <Select
                   value={r.status}
