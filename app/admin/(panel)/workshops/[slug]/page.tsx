@@ -17,6 +17,7 @@ import WorkshopHistory from "@/app/components/admin/crm/workshops/WorkshopHistor
 import WorkshopInterestsPanel from "@/app/components/admin/crm/workshops/WorkshopInterestsPanel";
 import WorkshopPageEditor from "@/app/components/admin/crm/workshops/WorkshopPageEditor";
 import WorkshopPriceEditor from "@/app/components/admin/crm/workshops/WorkshopPriceEditor";
+import WorkshopTemplatesStatus from "@/app/components/admin/crm/workshops/WorkshopTemplatesStatus";
 import { parseWorkshopTab, workshopTabSpecs, type WorkshopTab } from "@/app/components/admin/crm/workshops/tabs";
 import PeopleWhatsAppList from "@/app/components/admin/whatsapp/PeopleWhatsAppList";
 import WhatsAppBulkSend from "@/app/components/admin/whatsapp/WhatsAppBulkSend";
@@ -27,8 +28,7 @@ import { canManageTeam } from "@/lib/crm/staff-permissions";
 import { currentSlugForPrevious, listWorkshopDocuments } from "@/lib/crm/workshop-editions";
 import { countWorkshopInterests, listWorkshopInterests, syncWorkshopInterests } from "@/lib/crm/workshop-interests";
 import { listWorkshopInvitations, syncInviteReplies } from "@/lib/crm/workshop-invite";
-import { registrationTemplateState } from "@/lib/crm/workshop-registration";
-import { registrationTemplateNotice } from "@/lib/crm/workshop-registration-rules";
+import { listWorkshopTemplates } from "@/lib/crm/workshop-templates";
 import { resolveWindow } from "@/lib/meta/window";
 import { getWorkshopPublishBlockers } from "@/lib/crm/workshop-lifecycle";
 import {
@@ -112,7 +112,7 @@ const syncedInterestCount = async (edition: WorkshopForPanel): Promise<number> =
  * cuáles son y llamarles o agendarles por el modelo»). La página ya las puso al día.
  */
 const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz: string }) => {
-  const [rows, invitations, registrationTemplate] = await Promise.all([
+  const [rows, invitations, templates] = await Promise.all([
     listWorkshopInterests(edition.id).catch((e: unknown) => {
       console.error("[talleres] no se pudo cargar la lista de interesadas", e);
       return null;
@@ -121,8 +121,11 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
       console.error("[talleres] no se pudo cargar a quién se invitó", e);
       return [];
     }),
-    // La plantilla del registro en la página (28-oct): si Meta la pasó a Marketing, se dice.
-    registrationTemplateState().catch(() => null),
+    // Las dos plantillas del taller y cómo están en Meta (29-oct): la dueña las manda a aprobar desde aquí.
+    listWorkshopTemplates().catch((e: unknown) => {
+      console.error("[talleres] no se pudo leer el estado de las plantillas", e);
+      return null;
+    }),
   ]);
   if (!rows) {
     return (
@@ -135,6 +138,14 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
   const open = edition.status === "OPEN" && !isWorkshopEnded(edition);
   return (
     <div className="flex flex-col gap-4">
+      {/* Las plantillas del taller en Meta (29-oct): mientras está abierto, o si alguien se registró o fue invitada (por qué no le llegó). */}
+      {templates && (open || invitations.length > 0 || rows.some((r) => r.registration)) ? (
+        <WorkshopTemplatesStatus
+          key={`${edition.id}:plantillas`}
+          slug={edition.slug}
+          templates={templates.map((t) => ({ key: t.key, title: t.title, purpose: t.purpose, state: t.state }))}
+        />
+      ) : null}
       {/* La invitación a inscritas de eventos gratuitos (dueña, 28-oct): mientras está abierto o si ya se invitó a alguien. */}
       {open || invitations.length > 0 ? (
         <WorkshopFreeEventInvite
@@ -161,7 +172,6 @@ const InterestsSection = async ({ edition, tz }: { edition: WorkshopForPanel; tz
         timeZone={tz}
         open={open}
         payable={Boolean(edition.productId) && (edition.prices.cop != null || edition.prices.usd != null)}
-        registrationNotice={open || rows.some((r) => r.registration) ? registrationTemplateNotice(registrationTemplate) : null}
         rows={rows.map((r) => ({
           id: r.id,
           conversationId: r.conversationId,

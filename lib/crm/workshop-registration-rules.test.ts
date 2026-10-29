@@ -25,7 +25,6 @@ import {
   registrationClientKey,
   registrationSkip,
   registrationSourceDetail,
-  registrationTemplateNotice,
   registrationWaStatus,
   registrationWhen,
   WORKSHOP_LINK_CTA,
@@ -342,16 +341,6 @@ describe("lo que ve Dayana", () => {
     const mkt = registrationWaStatus({ state: "marketing", message: null, updatedAt: at, now });
     expect(mkt).toMatchObject({ kind: "pending", label: "WhatsApp: Meta pasó la plantilla a Marketing" });
     expect(mkt.detail).toContain("como Marketing, no como Utilidad: no se envía sola");
-  });
-
-  test("la plantilla en Meta, en la cabecera: sin mandar, en revisión, Utilidad, pasada a Marketing, rechazada", () => {
-    expect(registrationTemplateNotice(null)).toMatchObject({ tone: "info" });
-    expect(registrationTemplateNotice({ status: "PENDING", category: "UTILITY" }).text).toContain("en revisión de Meta");
-    expect(registrationTemplateNotice({ status: "APPROVED", category: "UTILITY" })).toMatchObject({ tone: "ok" });
-    const mkt = registrationTemplateNotice({ status: "APPROVED", category: "MARKETING" });
-    expect(mkt.tone).toBe("warn");
-    expect(mkt.text).toContain("Meta la aprobó como Marketing, no como Utilidad. No se envía sola");
-    expect(registrationTemplateNotice({ status: "REJECTED", category: "UTILITY" })).toMatchObject({ tone: "warn" });
   });
 
   test("cada motivo tiene su explicación", () => {

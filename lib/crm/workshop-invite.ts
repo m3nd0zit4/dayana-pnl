@@ -16,10 +16,8 @@ import { fillVars, templateParams } from "./whatsapp-outbound-plan";
 import { estimateTemplateCost } from "./whatsapp-rates";
 import {
   approvedTemplateFor,
-  createWhatsAppTemplate,
   getTemplatePrices,
   getWhatsAppTemplateStatus,
-  STARTER_TEMPLATES,
   type StarterTemplate,
   type WaTemplate,
 } from "./whatsapp-templates";
@@ -49,6 +47,7 @@ import {
   type InviteFacts,
 } from "./workshop-invite-rules";
 import { enrolledInWorkshop, workshopPayUrl } from "./workshop-interests";
+import { submitWorkshopTemplates } from "./workshop-templates";
 import { loadOutreachConversation, OUTREACH_CONVERSATION_SELECT, outreachAiOff, outreachRefusal } from "./workshop-outreach-guard";
 
 /**
@@ -446,18 +445,19 @@ const templateSubmittable = (status: string | null) => !status || status.toUpper
 /**
  * Manda la plantilla de la invitación a aprobar (la dueña: al empezar el envío
  * o con «Mandar la plantilla a aprobar»). Gratis; lo que se cobra es cada
- * mensaje enviado con ella. Solo si nunca se mandó o Meta la rechazó.
+ * mensaje enviado con ella. Solo si nunca se mandó o Meta la rechazó. Pasa por
+ * `submitWorkshopTemplates` (29-oct): el intento queda en la auditoría.
  */
-export const submitInviteTemplate = async (deps: Deps = {}): Promise<{ status: "submitted" | "already" } | { status: "failed"; error: string }> => {
-  const current = await getWhatsAppTemplateStatus(INVITE_TEMPLATE_KEY).catch(() => null);
-  if (!templateSubmittable(current)) return { status: "already" };
-  const starter = STARTER_TEMPLATES.find((t) => t.key === INVITE_TEMPLATE_KEY)!;
-  try {
-    await (deps.submitTemplate ?? ((t: StarterTemplate) => createWhatsAppTemplate(t)))(starter);
-    return { status: "submitted" };
-  } catch (e) {
-    return { status: "failed", error: e instanceof Error ? e.message : String(e) };
-  }
+export const submitInviteTemplate = async (
+  deps: Deps = {},
+  who: { staffId?: string | null; editionId?: string | null } = {}
+): Promise<{ status: "submitted" | "already" } | { status: "failed"; error: string }> => {
+  const [r] = await submitWorkshopTemplates(
+    { staffId: who.staffId ?? null, editionId: who.editionId ?? null, keys: [INVITE_TEMPLATE_KEY], via: "invitacion" },
+    { submitTemplate: deps.submitTemplate }
+  );
+  if (!r) return { status: "failed", error: "No está entre las plantillas recomendadas." };
+  return r.status === "failed" ? { status: "failed", error: r.error } : { status: r.status };
 };
 
 export type StartResult =
@@ -482,7 +482,7 @@ export const startWorkshopInvite = async (
   if (preview.inProgress) return { status: "in_progress", ...preview.inProgress };
   // La dueña empieza: si la plantilla falta (o Meta la rechazó), se manda ya a aprobar.
   if (!template && templateSubmittable(preview.template.status)) {
-    void submitInviteTemplate(deps).catch(() => undefined);
+    void submitInviteTemplate(deps, { staffId: input.staffId, editionId: input.editionId }).catch(() => undefined);
   }
   if (preview.blocked) return { status: "blocked", message: preview.blocked };
   const eligible = candidates.filter((c) => !c.exclusion);

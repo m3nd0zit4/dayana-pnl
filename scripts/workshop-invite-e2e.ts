@@ -508,6 +508,8 @@ const main = async () => {
   } finally {
     const sends = await prisma.whatsAppSend.findMany({ where: { workshopEditionId: edition.id }, select: { id: true } });
     await prisma.auditLog.deleteMany({ where: { entityId: { in: sends.map((s) => s.id) } } });
+    // Mandar la plantilla a aprobar (con el falso) también queda auditado desde el 29-oct.
+    await prisma.auditLog.deleteMany({ where: { entityType: "WhatsAppTemplate", changes: { path: ["editionId"], equals: edition.id } } });
     await prisma.whatsAppSend.deleteMany({ where: { id: { in: sends.map((s) => s.id) } } });
     await prisma.$executeRaw`DELETE FROM workshop_interests WHERE edition_id = ${edition.id}`;
     const convs = await prisma.conversation.findMany({
