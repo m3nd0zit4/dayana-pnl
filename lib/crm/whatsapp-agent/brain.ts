@@ -66,7 +66,9 @@ import {
   isWorkshopChoice,
   isWorkshopOffer,
   promisesWorkshopLink,
+  replyAnswersWorkshopAsk,
   saysNoWorkshop,
+  saysTaller,
   wantsWorkshopSpot,
   withoutWorkshopPayUrls,
   withWorkshopStep,
@@ -977,9 +979,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const workshop =
     openWorkshop && !(input.contactId && (await enrolledInWorkshop(input.contactId, openWorkshop.id).catch(() => false))) ? openWorkshop : null;
   // También si le escribimos desde la lista de interesadas (Dayana tocó «Ofrecerle la llamada»).
-  const workshopLead = Boolean(workshop) && !input.clientMode && workshopLeadActive(input.transcript, workshop!, now.getTime());
+  // Con su evento gratis: «la clase de noviembre» de una inscrita a un evento de noviembre
+  // puede ser ese (Jesmara, 24-oct: «el curso de noviembre» sí era el taller).
+  const askOpts = { freeEventAt: input.freeEvent?.startsAt ?? null };
+  const workshopLead = Boolean(workshop) && !input.clientMode && workshopLeadActive(input.transcript, workshop!, now.getTime(), askOpts);
   // La llamada para el taller solo mientras habla de él (no 24 h abierta a cualquier mensaje).
-  const workshopFlow = workshopLead && workshopFlowActive(input.transcript, workshop!, now.getTime());
+  const workshopFlow = workshopLead && workshopFlowActive(input.transcript, workshop!, now.getTime(), askOpts);
   const noFreeCall =
     Boolean(input.stage && NO_FREE_CALL_STAGES.has(input.stage)) &&
     !(workshopFlow && (input.stage === "tuvo_llamada" || input.stage === "clienta_pasada"));
@@ -1021,7 +1026,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     if (m.attachment) lastInboundMedia = true;
   }
   // Pregunta por el taller en lo que escribió ahora («Mi pregunta es, para el 15 de noviembre» + «El taller»: juntos).
-  const workshopAskNow = Boolean(workshop) && workshopLead && isWorkshopAsk(lastInbound.join("\n"), workshop!);
+  const workshopAskNow = Boolean(workshop) && workshopLead && isWorkshopAsk(lastInbound.join("\n"), workshop!, askOpts);
   // El enlace de pago del taller (dueña, 25-oct: «que pregunte si para separar su cupo o agendar»).
   const workshopPay = workshop?.payUrl ?? null;
   // Su llamada ya agendada (también sin agenda automática), para decirle que ahí la inscribe Dayana.
@@ -1962,7 +1967,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       // Preguntó por el taller ahora: la información y la llamada para inscribirse.
       // Después (el país, la hora, el «sí»): seguir con el agendamiento.
       workshop && workshopAskNow
-        ? workshopLine(workshop, { upcomingLabel: upcomingLabelText })
+        ? workshopLine(workshop, { upcomingLabel: upcomingLabelText, namedOtherwise: !saysTaller(saidNow) })
         : workshop && workshopFlow && !workshopCall
           ? workshopFollowLine(input.transcript, workshop, now.getTime())
           : workshop && workshopSpot
@@ -2209,6 +2214,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !quotePay;
   const wrongWorkshopReply =
     modelOutcome.kind === "reply" && (saysNoWorkshop(modelOutcome.message) || Boolean(state.paymentLink) || state.paymentDetails.length > 0);
+  // Preguntó por el taller y el modelo le contestó otra cosa (la consulta gratis «para los
+  // valores») sin nombrarlo; o lo llamó de otra forma («el curso de noviembre», Jesmara, eval
+  // 29-oct) y la respuesta no dice cuál es (ni el título ni la fecha): va la información del
+  // taller. No encima de horas o una cita que ya le dio.
+  const ignoresWorkshop =
+    workshopAskNow &&
+    modelOutcome.kind === "reply" &&
+    !replyAnswersWorkshopAsk(modelOutcome.message, saidNow, workshop!) &&
+    !state.slotOffer &&
+    !state.booking &&
+    !state.pendingBooking &&
+    !state.bookingNotice &&
+    !state.bookingRequest;
   // Una promoción que la IA no conoce (dueña, 25-oct: «el modelo deja de responder y la
   // persona no tiene respuesta… a veces las promociones tienen tiempo limitado»): siempre el
   // enlace + «la promoción te la confirma Dayana», conteste o escale el modelo (nunca la confirma).
@@ -2218,7 +2236,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     : workshopSpot &&
         (promoFix || wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown", "payment"].includes(modelOutcome.category)))
       ? "link"
-      : workshopAskNow && (wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown"].includes(modelOutcome.category)))
+      : workshopAskNow &&
+          (wrongWorkshopReply || ignoresWorkshop || (modelOutcome.kind === "escalate" && ["other", "unknown"].includes(modelOutcome.category)))
         ? "info"
         : null;
   const workshopOnly = workshopFix !== null;
