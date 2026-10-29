@@ -1685,4 +1685,61 @@ export const SCENARIOS: Scenario[] = [
     },
     goal: "La promoción del webinar es para el taller: le manda el enlace de pago del taller y le dice que Dayana le confirma la promoción. No la confirma ni dice solo «déjame consultarlo». Dayana recibe el aviso.",
   },
+  {
+    id: "xime-si-a-la-hora-propuesta",
+    origin:
+      "22-oct (Xime, Cuernavaca): pidió reagendar antes de su llamada; la IA le propuso sola «mañana viernes 8:00 a. m.», Dayana mandó un audio y su «si mañana esta perfecto a esa hora» se calló; luego le llegaron otras horas y nadie la agendó",
+    name: "Xime Nabel",
+    stage: "llamada_agendada",
+    personTimezone: "America/Mexico_City",
+    hasBooking: true,
+    // Su llamada era hoy a las 12:45 p. m. de su hora (la evaluación corre 15 min después).
+    backing: ["miércoles 12:45 p. m.", "miércoles 1:45 p. m."],
+    transcript: [
+      person("Cómo puedo agendar"),
+      ai("Si quieres, te agendo una llamada gratis de 15 minutos con Dayana, sin costo ni compromiso. Ella te escucha y te dice cómo te puede ayudar."),
+      person("Si porfavor"),
+      ai("Listo. Tu llamada gratis con Dayana quedó para el miércoles, 14 de octubre, 12:45 p. m. (tu hora) · 1:45 p. m. en Colombia. Dayana te llama por WhatsApp a este número."),
+      person("Gracias"),
+      person(
+        "Hola hola oye fíjate qué pasó algo imprevisto y el tema es que no voy a estar en un lugar tranquilo ni quería ver si podíamos reagendar porque tiene súper mega interesa igual mañana no sé o qué día tenga libre"
+      ),
+      ai("Entiendo perfecto, no hay problema. Mañana jueves a las 2:00 p. m. de tu hora (3:00 p. m. de Colombia), ¿te queda bien?"),
+      dayana(
+        "🎤 Hola, mi hermosa, te bendigo, te habla Dayana Beltrán, okay, mi bella, no hay problema, quedamos atentos para reagendar, hacemos esta llamadita en lo que te pueda servir, ¿okay? Bendiciones."
+      ),
+      person("si mañana esta perfecto a esa hora"),
+    ],
+    expect: {
+      outcome: "reply",
+      anyTool: ["book_free_call", "offer_free_call_slots"],
+      mustNotMatch: [/(consult|confirm)(o|arlo|a)? con dayana|le (paso|aviso) (tu mensaje )?a dayana/i, /no lograron comunicarse/i],
+    },
+    goal:
+      "Aceptó la hora que le propuso la asistente (mañana jueves 2:00 p. m. de su hora, 3:00 p. m. en Colombia): queda agendada esa hora si la agenda la tiene libre (o le muestra las horas libres de la agenda diciéndole cuál sí hay, sin dejarla creyendo que quedó). No se calla por el audio de Dayana, no escala, no dice que Dayana lo confirma y no le manda otras horas sueltas sin relación con lo que acordaron.",
+  },
+  {
+    id: "xime-la-hora-propuesta-ya-no-esta",
+    origin: "22-oct (Xime): la hora que la IA le propuso sola («viernes 8:00 a. m.») ya era de otra persona; aceptó y nadie le dijo nada",
+    name: "Xime Nabel",
+    stage: "llamada_agendada",
+    personTimezone: "America/Mexico_City",
+    hasBooking: true,
+    backing: ["miércoles 12:45 p. m.", "miércoles 1:45 p. m."],
+    transcript: [
+      ai("Listo. Tu llamada gratis con Dayana quedó para el miércoles, 14 de octubre, 12:45 p. m. (tu hora) · 1:45 p. m. en Colombia. Dayana te llama por WhatsApp a este número."),
+      person("Gracias"),
+      person("Hola, fíjate que pasó algo imprevisto y no voy a estar en un lugar tranquilo, ¿podemos reagendar? Mañana o qué día tenga libre"),
+      // Mañana a esa hora la agenda no tiene nada libre (la evaluación: jueves 3:00 y 6:45 p. m., viernes 9:15 a. m. de Colombia).
+      ai("Entiendo perfecto, no hay problema. Mañana jueves a las 8:00 a. m. de tu hora (9:00 a. m. de Colombia), ¿te queda bien?"),
+      person("si mañana esta perfecto a esa hora"),
+    ],
+    expect: {
+      outcome: "reply",
+      anyTool: ["offer_free_call_slots"],
+      mustMatch: [/ya no est[aá] libre/i, /\n1\. /],
+      mustNotMatch: [/(consult|confirm)(o|arlo|a)? con dayana|le (paso|aviso) (tu mensaje )?a dayana/i, /qued[oó] para el jueves, 15 de octubre, 8:00/i],
+    },
+    goal: "La hora que aceptó ya no está libre: se lo dice claro (sin dejarla creyendo que quedó) y le da las horas libres más cercanas, numeradas. No escala ni dice que Dayana lo confirma.",
+  },
 ];

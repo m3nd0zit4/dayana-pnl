@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { dayanaOfferedSlot, findFreeSlots, matchesWish, pickFreeCallSlots, relaxedWishes, saidPartOfDay, wishFromWords } from "./slots";
+import { dayanaOfferedSlot, findFreeSlots, matchesWish, nearestFreeCallSlots, pickFreeCallSlots, relaxedWishes, saidPartOfDay, wishFromWords } from "./slots";
 
 const TZ = "America/Bogota";
 // Lunes 8:00 a 6:00 p. m., todos los días de la semana.
@@ -124,5 +124,29 @@ describe("dayanaOfferedSlot (horas que Dayana escribió: «Horas libres» o a ma
     expect(dayanaOfferedSlot([horasLibres], "2026-10-15T23:00:00Z", "America/Bogota")).toBe(false);
     expect(dayanaOfferedSlot([horasLibres], "2026-10-22T23:45:00Z", "America/Bogota")).toBe(false);
     expect(dayanaOfferedSlot(["el jueves a las 16:45 pm"], "2026-10-15T23:45:00Z", "America/Bogota")).toBe(false);
+  });
+});
+
+describe("nearestFreeCallSlots (Xime, 22-oct: la hora que aceptó ya no estaba)", () => {
+  const slot = (iso: string) => {
+    const d = new Date(iso);
+    return { startIso: d.toISOString(), endIso: new Date(d.getTime() + 15 * 60_000).toISOString(), dateKey: d.toISOString().slice(0, 10), time: "" };
+  };
+  // Viernes 23 en Bogotá (UTC-5): 9:00 tomada; libres 9:45, 10:15, 11:30, 7:00 p. m. y el sábado 8:15.
+  const free = ["2026-10-23T14:45:00Z", "2026-10-23T15:15:00Z", "2026-10-23T16:30:00Z", "2026-10-24T00:00:00Z", "2026-10-24T13:15:00Z"].map(slot);
+  free[3].dateKey = "2026-10-23"; // 7:00 p. m. del viernes en Bogotá es sábado en UTC
+  const around = new Date("2026-10-23T14:00:00Z");
+  test("las del mismo día, de la más cercana a la más lejana, en orden de hora", () => {
+    expect(nearestFreeCallSlots(free, { around, count: 3, timezone: TZ }).map((s) => s.startIso)).toEqual([
+      "2026-10-23T14:45:00.000Z",
+      "2026-10-23T15:15:00.000Z",
+      "2026-10-23T16:30:00.000Z",
+    ]);
+  });
+  test("si el día no alcanza, las más cercanas de otros días; nunca la misma hora ni un día lleno", () => {
+    const withSame = [slot("2026-10-23T14:00:00Z"), ...free];
+    expect(nearestFreeCallSlots(withSame, { around, count: 6, timezone: TZ }).map((s) => s.startIso)).not.toContain("2026-10-23T14:00:00.000Z");
+    const full = nearestFreeCallSlots(free, { around, count: 2, timezone: TZ, fullDays: new Set(["2026-10-23"]) });
+    expect(full.map((s) => s.startIso)).toEqual(["2026-10-24T13:15:00.000Z"]);
   });
 });

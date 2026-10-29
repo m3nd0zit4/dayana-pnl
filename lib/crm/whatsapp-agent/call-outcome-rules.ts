@@ -313,7 +313,12 @@ export const canChangeOutcome = (a: { status: string; callOutcome: string | null
   (a.callOutcome === "answered" || a.callOutcome === "no_answer") &&
   a.endsAt.getTime() >= now.getTime() - FOLLOW_UP_LOOKBACK_DAYS * 24 * HOUR;
 
-export type RescheduleSend = { sent: true } | { sent: false; reason: "needs_template" | "failed" };
+/**
+ * `booked`: ya había quedado en el chat con otra hora y quedó agendada (Xime,
+ * 22-oct). `handled`: en el chat ya tiene otra llamada o ya se le mandaron
+ * horas: no sale nada más.
+ */
+export type RescheduleSend = { sent: true; booked?: string } | { sent: false; reason: "needs_template" | "failed" | "handled" };
 
 /** Qué pasó con el mensaje para reagendar, en lo que la pantalla sabe explicar. */
 export const rescheduleSendOf = (r: { status: string; reason?: string }): RescheduleSend =>

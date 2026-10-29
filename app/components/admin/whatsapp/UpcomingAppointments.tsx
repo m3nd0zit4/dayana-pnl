@@ -40,7 +40,7 @@ type Item = {
   canChangeOutcome: boolean;
 };
 
-type MarkResult = { sent?: boolean; reason?: "needs_template" | "silenced" | "failed"; error?: string };
+type MarkResult = { sent?: boolean; booked?: string; reason?: "needs_template" | "silenced" | "failed" | "handled"; error?: string };
 
 /** Cómo quedó la llamada gratis, si ya pasó. null = aún no ha pasado o no aplica. */
 const outcomeLabel = (a: Item): { text: string; tone: "ok" | "bad" | "muted" } | null => {
@@ -58,6 +58,7 @@ const NOT_SENT: Record<NonNullable<MarkResult["reason"]>, string> = {
     "No se le pudo escribir: su último mensaje fue hace más de 24 h y falta aprobar la plantilla «Llamada gratis: no contestó». Apruébala en Plantillas o escríbele desde tu celular.",
   silenced: "No se le escribió: la asistente no escribe en ese chat (manual, tomado por ti, clienta o número personal). Escríbele tú para reagendar.",
   failed: "El mensaje para reagendar no salió. Escríbele desde el chat o desde tu celular.",
+  handled: "No se le mandaron horas: en el chat ya quedó con otra hora o la asistente ya le mandó horas.",
 };
 
 /** El recordatorio de hoy de la llamada gratis, si ya se decidió algo. */
@@ -127,7 +128,7 @@ const UpcomingAppointments = ({ canEdit }: { canEdit: boolean }) => {
       } else if (outcome === "answered") {
         toast("Listo: quedó que hablaron.", "success");
       } else if (d.sent) {
-        toast("Le mandamos horas para reagendar.", "success");
+        toast(d.booked ? `Ya lo había acordado en el chat: quedó para el ${d.booked}.` : "Le mandamos horas para reagendar.", "success");
       } else {
         toast({
           title: "Quedó como no contestada",
