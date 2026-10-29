@@ -72,12 +72,17 @@ const BATCH = 500;
 const accentless = (word: string) =>
   word.replace(/[aeiou]/g, (v) => ({ a: "[aáà]", e: "[eéè]", i: "[iíì]", o: "[oóò]", u: "[uúü]" })[v as "a"]);
 
-/** Lo que puede ser una pregunta por el taller: «taller», una palabra del título o el mes (lo decide `isWorkshopAsk`). */
+/**
+ * Lo que puede ser una pregunta por el taller: «taller», una palabra del título,
+ * el mes o «el/del <día>» («¿cuánto cuesta el del 15?», 29-oct). Lo decide `isWorkshopAsk`.
+ */
 const candidatePattern = (edition: OpenWorkshop) => {
-  const month = edition.startsAt
-    ? new Intl.DateTimeFormat("es-CO", { timeZone: edition.timezone, month: "long" }).format(edition.startsAt).toLowerCase()
-    : null;
-  return ["taller", "workshop", ...titleWords(edition.title), ...(month ? [month] : [])].map(accentless).join("|");
+  const at = edition.startsAt;
+  const month = at ? new Intl.DateTimeFormat("es-CO", { timeZone: edition.timezone, month: "long" }).format(at).toLowerCase() : null;
+  const day = at ? new Intl.DateTimeFormat("es-CO", { timeZone: edition.timezone, day: "numeric" }).format(at) : null;
+  return ["taller", "workshop", ...titleWords(edition.title), ...(month ? [month] : []), ...(day ? [`(el|del) ${day}([^0-9]|$)`] : [])]
+    .map(accentless)
+    .join("|");
 };
 
 /** ¿Ya pagó esta edición? Quien pagó no es interesada (la IA no la invita a inscribirse). */

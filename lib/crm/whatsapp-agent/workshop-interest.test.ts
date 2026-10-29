@@ -6,7 +6,10 @@ import {
   isWorkshopChoice,
   isWorkshopOffer,
   promisesWorkshopLink,
+  replyAnswersWorkshopAsk,
+  replyNamesWorkshop,
   saysNoWorkshop,
+  saysTaller,
   titleWords,
   wantsWorkshopSpot,
   withoutWorkshopPayUrls,
@@ -84,6 +87,90 @@ describe("isWorkshopAsk: quién pregunta por el taller abierto (24-oct)", () => 
   });
   test("las palabras del título", () => {
     expect(titleWords(W.title)).toEqual(["sanacion", "dinero"]);
+  });
+});
+
+describe("isWorkshopAsk: «el curso de noviembre» es el taller (Jesmara, 24-oct; 29-oct)", () => {
+  test("curso, clase, evento o jornada con el mes o el día de la edición", () => {
+    for (const t of [
+      // Jesmara, inscrita al webinar: el filtro del webinar le contestó «Te esperamos el domingo».
+      "Para el curso de noviembre cuanto es su costo ? Soy de Venezuela",
+      "¿Cuánto cuesta el curso del 15?",
+      "Me interesa la clase del 15 de noviembre",
+      "En noviembre hay algún evento? quiero saber el precio",
+      "Quiero inscribirme en la jornada de noviembre",
+      "¿Cuánto hay que pagar por el curso de noviembre?",
+      "Info del evento de noviembre por favor",
+      "Buenas, el curso que empieza en noviembre, cómo me inscribo?",
+      // Sin el sustantivo: «el de noviembre», «el del 15».
+      "¿Y el de noviembre cuánto vale?",
+      "¿cuánto es el del 15?",
+    ]) {
+      expect([t, isWorkshopAsk(t, W)]).toEqual([t, true]);
+    }
+  });
+  test("lo que no: el curso mensual, el evento gratis, otra fecha, su proceso, sin la edición", () => {
+    for (const t of [
+      // Jesmara, minutos después: hablaba del webinar del día siguiente.
+      "Para entrar al curso de mañana entro por el ling o por tik tok",
+      "¿Cuánto cuesta el curso?",
+      // El curso mensual (`course-live`, «Curso de PNL en vivo»).
+      "¿Cuánto cuesta el curso mensual de noviembre?",
+      "La mensualidad de noviembre, ¿cuánto es?",
+      "¿El curso de reprogramación empieza en noviembre?",
+      "¿El curso en vivo de noviembre a qué hora es?",
+      "¿Las clases grabadas de noviembre dónde las veo?",
+      // El evento gratis por su nombre.
+      "¿A qué hora es la clase gratuita del domingo?",
+      "¿La clase gratuita de noviembre a qué hora es?",
+      // Otra fecha u otro mes.
+      "¿El curso del 22 de noviembre cuánto cuesta?",
+      "¿El 15 de diciembre hay clase?",
+      "¿El curso de diciembre cuánto cuesta?",
+      // Su proceso en la misma frase.
+      "¿La clase de la terapia de noviembre cuánto cuesta?",
+      // Sin pregunta ni interés.
+      "En noviembre te pago la clase",
+    ]) {
+      expect([t, isWorkshopAsk(t, W)]).toEqual([t, false]);
+    }
+  });
+  test("inscrita a un evento gratis del mismo mes: sin el día, solo si pregunta el valor", () => {
+    const opts = { freeEventAt: new Date("2026-11-08T14:30:00Z") };
+    expect(isWorkshopAsk("¿A qué hora es la clase de noviembre?", W, opts)).toBe(false);
+    expect(isWorkshopAsk("¿Cuánto cuesta la clase de noviembre?", W, opts)).toBe(true);
+    expect(isWorkshopAsk("¿A qué hora es la clase del 15?", W, opts)).toBe(true);
+    // Su evento es de otro mes (el webinar del 25 de octubre): «el curso de noviembre» es el taller.
+    expect(isWorkshopAsk("¿A qué hora es el curso de noviembre?", W, { freeEventAt: new Date("2026-10-25T14:30:00Z") })).toBe(true);
+  });
+  test("la respuesta del modelo nombra el taller, o no (entonces va la del código)", () => {
+    // Lo que contestó el modelo en la evaluación (29-oct): la consulta gratis, sin el taller.
+    expect(
+      replyNamesWorkshop("Jesmara, cada proceso se adapta a lo que necesitas. Dayana te explica las opciones y los valores en una consulta gratis de 15 minutos.", W)
+    ).toBe(false);
+    expect(replyNamesWorkshop("El taller es el domingo 15 de noviembre.", W)).toBe(true);
+    expect(replyNamesWorkshop("«Tu Sanación con el Dinero» es una jornada intensiva.", W)).toBe(true);
+    expect(replyNamesWorkshop("Es el 15 de noviembre, virtual.", W)).toBe(true);
+  });
+  test("si lo llamó «curso», la respuesta tiene que decir cuál es (título o fecha); si dijo «taller», basta nombrarlo", () => {
+    const jesmara = "Para el curso de noviembre cuanto es su costo ? Soy de Venezuela";
+    // Eval 29-oct: nombra «el taller» pero no le dice cuál ni cuándo.
+    expect(replyAnswersWorkshopAsk("Dayana te explica los valores del taller en una llamada de 15 minutos, Jesmara.", jesmara, W)).toBe(false);
+    expect(replyAnswersWorkshopAsk("El taller «Tu Sanación con el Dinero» es el domingo 15 de noviembre.", jesmara, W)).toBe(true);
+    expect(replyAnswersWorkshopAsk("Sí, el taller es virtual por Google Meet.", "¿el taller es virtual?", W)).toBe(true);
+    expect(replyAnswersWorkshopAsk("¿Desde qué país me escribes?", "¿el taller es virtual?", W)).toBe(false);
+  });
+  test("su chat real: sigue lo del taller (y ya no es solo una inscrita al webinar)", () => {
+    const now = new Date("2026-10-24T17:14:10Z").getTime();
+    const lines = [
+      { direction: "OUTBOUND", body: "Hola Jesmara, te escribimos porque te inscribiste en «Webinar Gratuito».", sentAt: new Date("2026-10-24T14:46:46Z") },
+      { direction: "INBOUND", body: "Buen dia ya me inscribi", sentAt: new Date("2026-10-24T17:10:18Z") },
+      { direction: "OUTBOUND", body: "Con gusto, Jesmara. Te damos la bienvenida: te esperamos en «Webinar Gratuito» el domingo, 25 de octubre.", sentAt: new Date("2026-10-24T17:10:29Z") },
+      { direction: "INBOUND", body: "Para el curso de noviembre cuanto es su costo ? Soy de Venezuela", sentAt: new Date("2026-10-24T17:14:05Z") },
+    ];
+    const opts = { freeEventAt: new Date("2026-10-25T14:30:00Z") };
+    expect(workshopLeadActive(lines, W, now, opts)).toBe(true);
+    expect(workshopFlowActive(lines, W, now, opts)).toBe(true);
   });
 });
 
@@ -292,6 +379,11 @@ describe("lo que dice", () => {
     expect(l).toContain("offer_free_call_slots y book_free_call");
     expect(l).toContain("No le des el valor ni enlaces de pago");
     expect(workshopLine(W, { upcomingLabel: "lunes, 26 de octubre, 9:00 a. m." })).toContain("No le ofrezcas otra.");
+    // Lo llamó «curso» (Jesmara, 29-oct): solo entonces la aclaración; con «taller», la línea de siempre.
+    expect(l).not.toContain("Aunque lo llame curso");
+    expect(workshopLine(W, { upcomingLabel: null, namedOtherwise: true })).toContain("Aunque lo llame curso, clase, evento o jornada");
+    expect(saysTaller("¿el costo del taller?")).toBe(true);
+    expect(saysTaller("Para el curso de noviembre cuanto es su costo")).toBe(false);
   });
   test("la línea del prompt con enlace de pago: pregunta cupo o llamada, el enlace con la herramienta, sin el valor", () => {
     const l = workshopLine(WP, { upcomingLabel: null });

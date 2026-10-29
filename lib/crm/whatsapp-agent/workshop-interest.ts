@@ -72,7 +72,69 @@ const INTEREST =
 /** Lo de su proceso, no del taller («¿puedo pagar la terapia el 15 de noviembre?»). */
 const HER_PROCESS = /\b(sesion|sesiones|terapia|terapias|cita|llamada|paquete|pago|pagar|pague|comprobante)\b/;
 
-export const isWorkshopAsk = (text: string | null | undefined, w: OpenWorkshop): boolean => {
+/** Lo que sabemos de la persona para leer su pregunta. */
+export type WorkshopAskOpts = {
+  /**
+   * Cuándo es el evento gratuito en el que está inscrita (`guestFreeEvent`):
+   * si cae en el mismo mes que el taller, «la clase de noviembre» puede ser ese.
+   */
+  freeEventAt?: Date | null;
+};
+
+/**
+ * Jesmara (Venezuela, 24-oct), inscrita al webinar del domingo: «Para el curso
+ * de noviembre cuánto es su costo? Soy de Venezuela». Sin «taller» ni el título
+ * no era una pregunta por el taller, así que el filtro del webinar
+ * (`webinar-guest.ts`) le cambió la respuesta por «Te esperamos el domingo».
+ * La gente le dice «curso», «clase», «evento» o «jornada» al taller (su
+ * descripción dice «Jornada intensiva»): con el mes o el día de esta edición
+ * («el curso de noviembre», «la clase del 15», «en noviembre hay algún
+ * evento?») o «el de noviembre» / «el del 15», es el taller (29-oct).
+ *
+ * No lo son, aunque digan «curso» o «clase»: el curso mensual (`course-live`,
+ * «Curso de PNL en vivo»: «el curso mensual», «la mensualidad», «el curso de
+ * reprogramación», los grabados) ni el evento gratis por su nombre («la clase
+ * gratuita del domingo»). Tampoco «el curso de mañana» (Jesmara, minutos
+ * después, hablaba del webinar: no nombra la edición), otro día del mes («el
+ * curso del 22 de noviembre») ni algo de su proceso en la misma frase.
+ */
+const EVENT_NOUN = "(?:curso|cursos|clase|clases|evento|eventos|jornada|jornadas)";
+const MONTHLY_COURSE =
+  /\b(mensual\w*|suscrip\w*|membresia|cada mes|al mes)\b|\b(curso|cursos|clases?) (en vivo|de (pnl|reprogramacion|reprogramar)|grabad\w*|del portal)\b|\breprogramacion\b/;
+const FREE_EVENT_NAME = new RegExp(`\\b${EVENT_NOUN} (gratis|gratuit[oa]s?|sin costo)\\b`);
+/** Su proceso en la misma frase (pagar sí vale: «¿cuánto hay que pagar por el curso de noviembre?»). */
+const PROCESS_WORDS = /\b(sesion|sesiones|secion|seciones|terapia|terapias|cita|citas|llamada|paquete|paquetes|proceso|comprobante)\b/;
+/** Pregunta el valor: el evento gratis no tiene, así que es el taller. */
+const ASKS_PRICE = /\b(valor|precio|precios|costo|costos|cuesta|cuestan|inversion|cuanto (vale|valen|es|sale|seria|queda))\b/;
+
+const monthIndexIn = (d: Date, tz: string) =>
+  Number(new Intl.DateTimeFormat("es-CO", { timeZone: tz, month: "numeric" }).formatToParts(d).find((p) => p.type === "month")?.value);
+
+const namesEditionAsEvent = (t: string, w: OpenWorkshop, opts: WorkshopAskOpts): boolean => {
+  const dm = dayMonth(w);
+  if (!dm || !INTEREST.test(t)) return false;
+  const others = MONTHS.filter((m) => m !== dm.month).join("|");
+  // «el 15», «del 15», «día 15» (no «el 15 de diciembre»).
+  const day = `\\b(?:el|del|dia) ${dm.day}\\b(?! ?(?:de )?(?:${others})\\b)`;
+  const ref = `(?:${day}|\\b${dm.month}\\b)`;
+  const near = new RegExp(`\\b${EVENT_NOUN}\\b[^.?!\\n]{0,30}${ref}|${ref}[^.?!\\n]{0,30}\\b${EVENT_NOUN}\\b`);
+  const bare = new RegExp(`\\b(?:el|la|lo) (?:de (?:mes de )?${dm.month}|del ${dm.day})\\b`);
+  const dated = new RegExp(`\\b(\\d{1,2}) (?:de )?${dm.month}\\b`);
+  const freeSameMonth = Boolean(opts.freeEventAt && monthIndexIn(opts.freeEventAt, w.timezone) === MONTHS.indexOf(dm.month) + 1);
+  return t.split(/[.?!¿¡\n]+/).some((s) => {
+    if (!near.test(s) && !bare.test(s)) return false;
+    if (PROCESS_WORDS.test(s) || MONTHLY_COURSE.test(s) || FREE_EVENT_NAME.test(s)) return false;
+    const at = dated.exec(s);
+    // «El curso del 22 de noviembre»: otra fecha, no esta edición.
+    if (at && at[1] !== dm.day) return false;
+    // Inscrita a un evento gratis del mismo mes y sin el día: «la clase de noviembre» puede
+    // ser ese; preguntando el valor, no (el evento es gratis).
+    if (freeSameMonth && !at && !new RegExp(day).test(s) && !ASKS_PRICE.test(s)) return false;
+    return true;
+  });
+};
+
+export const isWorkshopAsk = (text: string | null | undefined, w: OpenWorkshop, opts: WorkshopAskOpts = {}): boolean => {
   const t = foldForSearch(text ?? "");
   const words = titleWords(w.title);
   const has = (x: string) => new RegExp(`\\b${x}\\b`).test(t);
@@ -81,8 +143,11 @@ export const isWorkshopAsk = (text: string | null | undefined, w: OpenWorkshop):
   if (!/\b(taller|talleres|workshop)\b/.test(t)) {
     // Sin «taller»: el título entero («¿cuánto cuesta la sanación con el dinero?»)
     // o la fecha con una pregunta y nada de su proceso. Una palabra sola no
-    // («no tengo dinero para la terapia»).
-    return !HER_PROCESS.test(t) && ((words.length >= 2 && words.every(has)) || (date && INTEREST.test(t)));
+    // («no tengo dinero para la terapia»). O «el curso de noviembre» (Jesmara, arriba).
+    return (
+      (!HER_PROCESS.test(t) && ((words.length >= 2 && words.every(has)) || (date && INTEREST.test(t)))) ||
+      namesEditionAsEvent(t, w, opts)
+    );
   }
   // «taller de X» con una X que no es de este taller: es otro.
   const of = /\btaller(?:es)? de (?:la |el |los |las )?([a-z0-9ñ]+)/.exec(t);
@@ -114,31 +179,55 @@ export const workshopOutreachRecent = (lines: Line[], w: OpenWorkshop, now = Dat
  * «sí» vienen después). También lo último que escribió, junto: Naty mandó «Mi
  * pregunta es, para el 15 de noviembre» y «El taller» en dos mensajes.
  */
-export const workshopAskedRecently = (lines: Line[], w: OpenWorkshop, now = Date.now()): boolean => {
+export const workshopAskedRecently = (lines: Line[], w: OpenWorkshop, now = Date.now(), opts: WorkshopAskOpts = {}): boolean => {
   const recent = (l: Line) => !l.sentAt || l.sentAt.getTime() >= now - 24 * 3600_000;
-  if (lines.some((l) => l.direction === "INBOUND" && recent(l) && isWorkshopAsk(l.body, w))) return true;
+  if (lines.some((l) => l.direction === "INBOUND" && recent(l) && isWorkshopAsk(l.body, w, opts))) return true;
   const tail: string[] = [];
   for (const l of [...lines].reverse()) {
     if (l.direction !== "INBOUND") break;
     if (recent(l) && l.body) tail.unshift(l.body);
   }
-  return tail.length > 1 && isWorkshopAsk(tail.join("\n"), w);
+  return tail.length > 1 && isWorkshopAsk(tail.join("\n"), w, opts);
 };
 
 /** Está en lo del taller: preguntó (24 h) o le escribimos desde la lista de interesadas (3 días). */
-export const workshopLeadActive = (lines: Line[], w: OpenWorkshop, now = Date.now()): boolean =>
-  workshopAskedRecently(lines, w, now) || workshopOutreachRecent(lines, w, now);
+export const workshopLeadActive = (lines: Line[], w: OpenWorkshop, now = Date.now(), opts: WorkshopAskOpts = {}): boolean =>
+  workshopAskedRecently(lines, w, now, opts) || workshopOutreachRecent(lines, w, now);
 
-/** Un mensaje nuestro que habla del taller: «taller», la inscripción, el título o la fecha. */
-const namesWorkshop = (text: string, w: OpenWorkshop): boolean => {
-  const t = foldForSearch(text);
+/**
+ * La respuesta del modelo habla del taller: «taller», una palabra del título o
+ * la fecha. Jesmara (eval 29-oct): a «el curso de noviembre» el modelo le
+ * contestaba lo de un proceso («Dayana te explica las opciones y los valores
+ * en una consulta gratis») sin nombrar el taller; entonces va `workshopReply`.
+ */
+export const replyNamesWorkshop = (text: string | null | undefined, w: OpenWorkshop): boolean => {
+  const t = foldForSearch(text ?? "");
   const dm = dayMonth(w);
   return (
-    /\b(taller|inscri\w*)\b/.test(t) ||
+    /\b(taller|talleres|workshop)\b/.test(t) ||
     titleWords(w.title).some((x) => new RegExp(`\\b${x}\\b`).test(t)) ||
     Boolean(dm && new RegExp(`\\b${dm.day}\\b[^.?!]{0,8}\\b${dm.month}\\b`).test(t))
   );
 };
+/**
+ * ¿La respuesta contesta su pregunta por el taller? Si ella dijo «taller»,
+ * basta con nombrarlo. Si lo llamó de otra forma («el curso de noviembre»), la
+ * respuesta tiene que decir cuál es: el título o la fecha (eval 29-oct: «Dayana
+ * te explica los valores del taller en una llamada de 15 minutos» no le decía
+ * que «el curso de noviembre» es «Tu Sanación con el Dinero», el domingo 15).
+ */
+export const replyAnswersWorkshopAsk = (reply: string | null | undefined, said: string, w: OpenWorkshop): boolean => {
+  if (saysTaller(said)) return replyNamesWorkshop(reply, w);
+  const t = foldForSearch(reply ?? "");
+  const dm = dayMonth(w);
+  return (
+    titleWords(w.title).some((x) => new RegExp(`\\b${x}\\b`).test(t)) ||
+    Boolean(dm && new RegExp(`\\b${dm.day}\\b[^.?!]{0,8}\\b${dm.month}\\b`).test(t))
+  );
+};
+/** Un mensaje nuestro que habla del taller: lo de arriba o la inscripción. */
+const namesWorkshop = (text: string, w: OpenWorkshop): boolean => replyNamesWorkshop(text, w) || /\binscri\w*\b/.test(foldForSearch(text));
+
 /**
  * Los pasos del agendamiento entre la oferta y la hora elegida: el país, la
  * ciudad, la lista de horas (`offerMessage`), «¿Cuál de estas?», «Esa hora ya
@@ -272,8 +361,13 @@ export const mentionsPromo = (text: string): boolean => PROMO.test(foldForSearch
  * 3 días; tras él, «¿desde qué país?» y «Perú» siguen en el taller (revisión:
  * con solo los dos últimos mensajes, el paso del país lo cerraba).
  */
-export const workshopFlowActive = (lines: (Line & { isAutoReply?: boolean })[], w: OpenWorkshop, now = Date.now()): boolean => {
-  if (!workshopLeadActive(lines, w, now)) return false;
+export const workshopFlowActive = (
+  lines: (Line & { isAutoReply?: boolean })[],
+  w: OpenWorkshop,
+  now = Date.now(),
+  opts: WorkshopAskOpts = {}
+): boolean => {
+  if (!workshopLeadActive(lines, w, now, opts)) return false;
   const tail: string[] = [];
   const outs: Line[] = [];
   for (const l of [...lines].reverse()) {
@@ -285,7 +379,7 @@ export const workshopFlowActive = (lines: (Line & { isAutoReply?: boolean })[], 
     if (outs.length === MAX_STEPS) break;
   }
   const said = tail.join("\n");
-  if (isWorkshopAsk(said, w)) return true;
+  if (isWorkshopAsk(said, w, opts)) return true;
   if (OWN_PROCESS.test(foldForSearch(said))) return false;
   const within = (l: Line, ms: number) => !l.sentAt || l.sentAt.getTime() >= now - ms;
   for (const o of outs) {
@@ -360,10 +454,21 @@ export const workshopOfferTemplateMessage = (w: OpenWorkshop): string => {
   return short(`${w.title.slice(0, Math.max(room, 0)).trimEnd()}…`);
 };
 
-/** La línea del prompt cuando pregunta por el taller (solo entonces: el prompt fijo no cambia). */
-export const workshopLine = (w: OpenWorkshop, opts: { upcomingLabel: string | null }): string =>
+/** Dijo «taller» (no lo llamó «curso», «clase»…). */
+export const saysTaller = (text: string | null | undefined): boolean => /\b(taller|talleres|workshop)\b/.test(foldForSearch(text ?? ""));
+
+/**
+ * La línea del prompt cuando pregunta por el taller (solo entonces: el prompt fijo no cambia).
+ * `namedOtherwise`: lo llamó «curso», «clase», «evento»… (Jesmara, 29-oct: el modelo le
+ * contestaba lo de una terapia y la consulta gratis); solo entonces va esa aclaración.
+ */
+export const workshopLine = (w: OpenWorkshop, opts: { upcomingLabel: string | null; namedOtherwise?: boolean }): string =>
   [
-    `PREGUNTA POR EL TALLER: ${workshopFacts(w)}. ${w.cardSummary ? `De qué trata: ${w.cardSummary.trim()} ` : ""}En 2 o 3 frases cortas (unas 50 palabras en total): dile que sí está abierto, cuándo es y, en pocas palabras, de qué trata.`,
+    `PREGUNTA POR EL TALLER: ${workshopFacts(w)}.${
+      opts.namedOtherwise
+        ? " Aunque lo llame curso, clase, evento o jornada, pregunta por este taller: contesta solo lo del taller, nombrándolo (no le hables de terapias, procesos ni de la consulta gratis, ni del webinar)."
+        : ""
+    } ${w.cardSummary ? `De qué trata: ${w.cardSummary.trim()} ` : ""}En 2 o 3 frases cortas (unas 50 palabras en total): dile que sí está abierto, cuándo es y, en pocas palabras, de qué trata.`,
     w.payUrl
       ? opts.upcomingLabel
         ? `Ya tiene su llamada con Dayana (${opts.upcomingLabel}): dile que en esa llamada Dayana le explica todo. No le ofrezcas otra. Si quiere separar su cupo de una vez, usa send_workshop_link.`

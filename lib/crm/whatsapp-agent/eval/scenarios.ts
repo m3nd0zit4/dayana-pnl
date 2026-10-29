@@ -1297,6 +1297,31 @@ export const SCENARIOS: Scenario[] = [
     goal: "Preguntar por el taller es pedir algo: le dice que el taller está abierto, cuándo es y el horario, y le pregunta si separa su cupo de una vez (el enlace de pago, donde ve el valor) o agenda primero una llamada con Dayana. Puede saludarle por el webinar. Sin el valor.",
   },
   {
+    id: "jesmara-curso-de-noviembre",
+    origin:
+      "Jesmara (+58), 24-oct: inscrita al webinar del domingo, escribió «Para el curso de noviembre cuánto es su costo? Soy de Venezuela»; sin «taller» no era una pregunta por el taller y el filtro del webinar le contestó «Te esperamos el domingo» (29-oct)",
+    name: "Jesmara",
+    contactName: "Jesmara",
+    gender: "unknown",
+    stage: "nueva",
+    client: WEBINAR_CLIENT("Jesmara"),
+    freeEvent: WEBINAR,
+    transcript: [
+      webinarConfirmation("Jesmara"),
+      person("Buen dia ya me inscribi"),
+      ai(
+        "Con gusto, Jesmara. Te damos la bienvenida: te esperamos en «Webinar Gratuito» el domingo, 18 de octubre. Te bendigo 🙏\n\nSi en algún momento quieres un proceso personalizado con Dayana, me escribes por aquí."
+      ),
+      person("Para el curso de noviembre cuanto es su costo ? Soy de Venezuela"),
+    ],
+    expect: {
+      outcome: "reply",
+      mustMatch: [/abiert[oa]s?/i, /llamada/i, /cupo/i, /15 de noviembre/i],
+      mustNotMatch: [/no (hay|tenemos)[^.]{0,20}(taller|curso)/i, /\$|\bcop\b|\busd\b|190|dólares/i, /https?:\/\//i],
+    },
+    goal: "«El curso de noviembre» es el taller abierto: le dice que sí está abierto, cuándo es (domingo 15 de noviembre) y de qué trata, y le pregunta si quiere separar su cupo de una vez (el enlace de pago, donde ve el valor) o agendar primero una llamada con Dayana. No le contesta solo que la esperan en el webinar. Todavía no le manda el enlace: no ha elegido. Sin el valor.",
+  },
+  {
     id: "boton-inscribirme-al-taller",
     origin: "El botón «Inscribirme por WhatsApp» de la página del taller manda este texto",
     name: "Gloria",
