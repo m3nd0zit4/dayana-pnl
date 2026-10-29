@@ -406,3 +406,32 @@ const EMERGENCY_ADVICE = new RegExp(
   ].join("|")
 );
 export const givesEmergencyAdvice = (text: string | null | undefined): boolean => Boolean(text) && EMERGENCY_ADVICE.test(foldForSearch(text!));
+
+/**
+ * Ya saludó: no vuelve a saludar (Malka, 28-oct: «Buenas noches, Malka. Te bendigo.
+ * ¿Cómo estás?» y un minuto después «Hola Malka, te bendigo. Claro que sí…»). Si un
+ * mensaje de la asistente (no un envío automático) de las últimas 12 h empezaba con un
+ * saludo, se quita el saludo del comienzo de la respuesta («Buenas noches.», «Hola Malka,
+ * te bendigo.»). Solo si queda algo que decir.
+ */
+const OPENING =
+  /^\s*(?:¡?hola(?:\s+[a-záéíóúñ]+)?\s*[,.!]|buen(?:os|as)\s+(?:d[ií]as|tardes|noches)(?:\s*,?\s*[a-záéíóúñ]+)?\s*[,.!]|te bendigo\s*[,.!])\s*(?:te bendigo\s*[,.!💛🙏]*\s*)?/i;
+const GREETS = /^\s*(¡?hola\b|te bendigo\b|buen(os|as) (d[ií]as|tardes|noches)\b)/i;
+export const withoutRepeatedGreeting = (
+  text: string,
+  lines: { direction: string; body: string | null; isAutoReply?: boolean | null; sentAt?: Date | null; source?: string | null; clientKey?: string | null }[],
+  now: number
+): string => {
+  const greeted = lines.some(
+    (l) =>
+      l.direction === "OUTBOUND" &&
+      Boolean(l.isAutoReply) &&
+      !isAutoSend(l) &&
+      GREETS.test(l.body ?? "") &&
+      (!l.sentAt || now - l.sentAt.getTime() < 12 * 3600_000)
+  );
+  if (!greeted) return text;
+  const rest = text.replace(OPENING, "");
+  if (rest === text || rest.trim().split(/\s+/).length < 3) return text;
+  return rest.charAt(0).toUpperCase() + rest.slice(1);
+};

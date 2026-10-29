@@ -40,8 +40,9 @@ import {
 } from "./chat-payment-link";
 import { saysSelfHarm } from "./pause-rules";
 import { asksForMoreHelp, seriousReply } from "./serious-reply";
+import { familyPaidReply, paidForFamily } from "./family-paid";
 import { insults, RUDE_REPLY, rudeReplied } from "./rude-reply";
-import { answeringDayana, givesEmergencyAdvice, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls, withoutToolText } from "./reply-guards";
+import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls, withoutToolText } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -2338,6 +2339,27 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       };
     }
   }
+  // Pagó por alguien de su familia o esa persona ya empezó con Dayana (Malka, 28-oct: «decidí
+  // pagarle a mi hija primero… tiene su primera cita con usted» y la IA le pidió el pago otra
+  // vez). Dueña: «es una transferencia a Dayana»: se lo pasamos, sin pedirle nada más.
+  const familyPaid =
+    !input.clientMode && !rudeNow && !riskNow && !state.receipt && !lastInboundMedia && paidForFamily(lastInbound);
+  if (familyPaid) {
+    log("family_paid", { auto: true }, { ok: true, replaced: modelOutcome.kind === "reply" ? modelOutcome.message : `escalate:${modelOutcome.category}` });
+    state.slotOffer = null;
+    state.pendingSlots = null;
+    state.pendingBooking = null;
+    state.pendingPayment = null;
+    state.paymentDetails = [];
+    state.paymentLink = null;
+    state.links = [];
+    state.urgentSession = null;
+    state.silentEscalation = {
+      category: "payment",
+      severity: "normal",
+      reason: `Dice que pagó por alguien de su familia o que esa persona ya empezó contigo: «${lastInbound.join(" ").slice(0, 160)}». La IA le dijo que te avisa.`,
+    };
+  }
   const risk = riskNow || (escalated && saysSelfHarm([modelOutcome.reason, ...recentInbound]));
   const clinical = escalated && modelOutcome.category === "clinical";
   const afterCallAsk =
@@ -2355,7 +2377,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     givesEmergencyAdvice(modelOutcome.kind === "reply" ? modelOutcome.message : escalated ? state.holdingReply : null);
   if (emergencyTalk) log("emergency_advice", { auto: true }, { ok: true, note: "El modelo escribió una línea de emergencias o «urgencias»: no sale." });
   const serious =
-    (risk || clinical || afterCallAsk || emergencyTalk) && !otherFallback && !rudeNow
+    (risk || clinical || afterCallAsk || emergencyTalk) && !otherFallback && !rudeNow && !familyPaid
       ? (() => {
           const link = pickPaymentLink(chatLinks, input.memory);
           const reply = seriousReply({
@@ -2402,6 +2424,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   }
   const outcome: BrainOutcome = rudeNow
     ? { kind: "reply", message: state.noReply ? "" : RUDE_REPLY }
+    : familyPaid
+    ? { kind: "reply", message: familyPaidReply(sureFirstName(nameInfo)) }
     : agendaOnly
     ? { kind: "reply", message: URGENT_SESSION_REPLY }
     : chatLinkOnly
@@ -2733,7 +2757,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Lo delicado y la respuesta al insulto salen tal cual (sin horas, enlaces ni el paso del taller).
   const shaped: BrainOutcome =
     answered.kind === "reply"
-      ? { ...answered, message: serious || rudeNow ? answered.message : withAgenda(withWorkshop(reminded(named(replyText(answered.message))!))) }
+      ? {
+          ...answered,
+          // Ya saludó en las últimas 12 h: sin otro «Hola… te bendigo» al empezar (Malka, 28-oct).
+          message: withoutRepeatedGreeting(
+            serious || rudeNow || familyPaid ? answered.message : withAgenda(withWorkshop(reminded(named(replyText(answered.message))!))),
+            input.transcript,
+            now.getTime()
+          ),
+        }
       : answered;
   // Dayana le escribió hace un momento y la persona le contesta a ella: esa
   // conversación es de Dayana (Raquel, 22-oct: a su respuesta al audio de

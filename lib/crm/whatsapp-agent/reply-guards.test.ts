@@ -13,6 +13,7 @@ import {
   typedPaymentData,
   urlKeys,
   withoutInventedUrls,
+  withoutRepeatedGreeting,
   withoutToolText,
   writesAccountNumber,
 } from "./reply-guards";
@@ -289,5 +290,26 @@ describe("givesEmergencyAdvice: la asistente nunca da consejos de emergencia (du
     ]) {
       expect([t, givesEmergencyAdvice(t)]).toEqual([t, false]);
     }
+  });
+});
+
+describe("withoutRepeatedGreeting (Malka, 28-oct)", () => {
+  const now = Date.UTC(2026, 9, 29, 1, 0);
+  const greeted = [{ direction: "OUTBOUND", body: "Buenas noches, Malka. Te bendigo. ¿Cómo estás?", isAutoReply: true, sentAt: new Date(now - 60_000) }];
+  test("ya saludó hace un momento: se quita el saludo", () => {
+    expect(withoutRepeatedGreeting("Hola Malka, te bendigo. Claro que sí, no te preocupes.", greeted, now)).toBe("Claro que sí, no te preocupes.");
+    expect(withoutRepeatedGreeting("Buenas noches. Qué alegría que quieras participar en el taller.", greeted, now)).toBe("Qué alegría que quieras participar en el taller.");
+    expect(withoutRepeatedGreeting("Buenas noches, qué alegría leerte otra vez por aquí.", greeted, now)).toBe("Qué alegría leerte otra vez por aquí.");
+  });
+  test("no saludó, saludó hace más de 12 h, o fue un envío automático: queda igual", () => {
+    expect(withoutRepeatedGreeting("Buenas noches. Qué alegría leerte.", [], now)).toBe("Buenas noches. Qué alegría leerte.");
+    const old = [{ ...greeted[0], sentAt: new Date(now - 13 * 3600_000) }];
+    expect(withoutRepeatedGreeting("Buenas noches. Qué alegría leerte.", old, now)).toBe("Buenas noches. Qué alegría leerte.");
+    const auto = [{ ...greeted[0], source: "recordatorio:cotizacion:1:1" }];
+    expect(withoutRepeatedGreeting("Buenas noches. Qué alegría leerte.", auto, now)).toBe("Buenas noches. Qué alegría leerte.");
+  });
+  test("«Hola, te cuento que…» no es solo un saludo: no se corta la frase", () => {
+    expect(withoutRepeatedGreeting("Hola, te cuento que el taller es el domingo 15.", greeted, now)).toBe("Te cuento que el taller es el domingo 15.");
+    expect(withoutRepeatedGreeting("Buenas noches.", greeted, now)).toBe("Buenas noches.");
   });
 });
