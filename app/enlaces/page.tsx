@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BRAND } from "@/lib/contact";
 import LinktreePage from "@/app/components/enlaces/LinktreePage";
 import { getOpenFreeEvent } from "@/lib/crm/free-webinar";
-import { openWorkshopForAi } from "@/lib/crm/workshop-interests";
+import { openWorkshopForRegistration } from "@/lib/crm/workshop-registration";
 import { workshopRegistrationPath } from "@/lib/crm/workshop-registration-rules";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 
@@ -30,11 +30,11 @@ const Page = async () => {
 
   // El taller con inscripciones abiertas (dueña, 28-oct: «cuando se crea un
   // taller aparezca ahí en la página de enlaces el botón del taller, que diga
-  // "Taller" y abajo del taller el nombre»). Solo, sin ajuste en el CRM: la
-  // misma regla que usa la IA (`openWorkshopForAi`), y lleva al registro.
+  // "Taller" y abajo del taller el nombre»). Solo, sin ajuste en el CRM, y
+  // lleva al registro; desaparece cuando empieza (`isRegistrationOpen`).
   let workshop: { title: string; href: string } | null = null;
   try {
-    const open = await openWorkshopForAi();
+    const open = await openWorkshopForRegistration();
     if (open) workshop = { title: open.title, href: `${workshopRegistrationPath(open.slug)}?ref=enlaces` };
   } catch {
     /* DB down — hide workshop CTA */

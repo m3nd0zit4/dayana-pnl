@@ -42,14 +42,28 @@ export const workshopRegistrationPath = (slug: string): string => `/taller-virtu
 /** El botón de `/enlaces`: el texto de la dueña, en neutro («si estás interesado» → «si te interesa»). */
 export const WORKSHOP_LINK_CTA = { title: "Taller", note: "Si te interesa, regístrate" } as const;
 
+/** «2026-11-15» en la zona del taller (para comparar días). */
+const dayIn = (d: Date, timeZone: string): string =>
+  new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+
 /**
- * ¿Se puede registrar? La misma regla que `openWorkshopForAi` (y el botón de
- * `/enlaces`): publicado, sin terminar y no pasó hace más de un día.
+ * ¿Se puede registrar? Publicado, sin terminar y sin empezar (revisión 28-oct:
+ * con «un día después» como la IA, quien se registraba a las 6 p. m. del día
+ * del taller recibía «separa tu cupo» para algo que ya pasó; «Que la IA le
+ * escriba» y la invitación ya se negaban desde `startsAt`). Con hora: hasta
+ * esa hora. Solo con el día: hasta que termina ese día en la zona del taller.
+ * El botón de Enlaces, la página, la ruta y el envío usan esta misma regla.
  */
 export const isRegistrationOpen = (
-  e: { status: string; endedAt: Date | null; startsAt: Date | null },
+  e: { status: string; endedAt: Date | null; startsAt: Date | null; startsAtHasTime?: boolean; timezone?: string | null },
   now: Date = new Date()
-): boolean => e.status === "OPEN" && !e.endedAt && (!e.startsAt || e.startsAt.getTime() >= now.getTime() - 24 * 3600_000);
+): boolean => {
+  if (e.status !== "OPEN" || e.endedAt) return false;
+  if (!e.startsAt) return true;
+  if (e.startsAtHasTime !== false) return e.startsAt.getTime() > now.getTime();
+  const tz = e.timezone || "America/Bogota";
+  return dayIn(now, tz) <= dayIn(e.startsAt, tz);
+};
 
 // ── El contacto ───────────────────────────────────────────────────────────
 
@@ -152,12 +166,55 @@ export const registrationClientKey = (editionId: string, conversationId: string)
   `taller-registro:${editionId}:${conversationId}`;
 
 /**
- * El formulario es público y la plantilla se paga: un tope por edición, como
- * `EVENT_CONFIRMATION_CAP`, para que un bot con números inventados no la
- * convierta en un gasto. Pasado el tope, la persona queda en «Interesadas» sin
- * el mensaje (con el motivo).
+ * El formulario es público y la plantilla se paga y le llega a un número que
+ * cualquiera puede escribir (revisión 28-oct: un bot con números ajenos
+ * gastaría el tope en media hora y a desconocidos les llegaría un mensaje con
+ * cualquier nombre, y eso son denuncias de spam contra el número de Dayana).
+ * Así que, solo para la plantilla (el texto dentro de las 24 h es gratis y
+ * solo le llega a quien escribió):
+ *
+ * - un tope por hora y por día, contando solo plantillas del registro (no los
+ *   textos ni lo que manda el equipo);
+ * - como mucho `REGISTRATION_TEMPLATES_PER_IP_PER_DAY` por conexión (IP) al día;
+ * - solo a números de los países del público de Dayana (`TEMPLATE_COUNTRIES`).
+ *
+ * Quien queda fuera por un tope no queda sellada: se vuelve a intentar si se
+ * registra otra vez o con «Que la IA le escriba» (`RETRYABLE_STATES`).
  */
-export const WORKSHOP_REGISTRATION_CAP = { perHour: 40, perDay: 300 } as const;
+export const WORKSHOP_REGISTRATION_TEMPLATE_CAP = { perHour: 15, perDay: 100 } as const;
+export const REGISTRATION_TEMPLATES_PER_IP_PER_DAY = 2;
+
+/**
+ * Los países a los que sale la plantilla sola. De dónde vienen sus personas:
+ * de las 534 inscripciones a eventos gratuitos de los últimos 120 días
+ * (producción, 28-oct), 528 (99 %) son de estos países — Colombia 169, Perú
+ * 68, México 51, Ecuador 46, Venezuela 43, EE. UU. 36, Argentina 28, Bolivia
+ * 19, España 17, Guatemala 15, Chile 10, Costa Rica 8, Canadá, República
+ * Dominicana y Panamá 4, El Salvador 2, Honduras, Nicaragua, Paraguay y
+ * Uruguay 1 — más Puerto Rico (hispanohablante, +1). Fuera de ellos (Suiza 3,
+ * Brasil 2, Rusia 1) queda en «Interesadas» con el motivo y Dayana decide.
+ */
+export const TEMPLATE_COUNTRIES: ReadonlySet<string> = new Set([
+  "CO", "PE", "MX", "EC", "VE", "US", "AR", "BO", "ES", "GT", "CL", "CR", "CA", "DO", "PA", "SV", "HN", "NI", "PY", "UY", "PR",
+]);
+export const templateCountryAllowed = (iso: string | null | undefined): boolean => Boolean(iso && TEMPLATE_COUNTRIES.has(iso.toUpperCase()));
+
+/** Lo que dice la página antes del formulario: sin precio no se habla del enlace de pago. */
+export const registrationIntro = (opts: { payable: boolean }): string =>
+  opts.payable
+    ? "Déjanos tus datos y te escribimos por WhatsApp para contarte cómo completar tu inscripción: con el pago en el enlace de inscripción o, si prefieres, con una llamada gratis con Dayana, donde te explica el taller y su valor."
+    : "Déjanos tus datos y te escribimos por WhatsApp para agendar una llamada gratis con Dayana, donde te explica el taller, su valor y cómo inscribirte.";
+
+/**
+ * El «Listo», el mismo para todos (revisión 28-oct: decir «ya pagaste» o «ya
+ * estabas» le contaba a cualquiera si un número o un correo ya pagó). No
+ * promete que el mensaje llegue ya —sin la plantilla aprobada puede tardar—,
+ * así que da cómo avanzar sin esperar.
+ */
+export const registrationThanks = (opts: { payable: boolean }): string =>
+  opts.payable
+    ? "Recibimos tu registro. Te escribimos por WhatsApp para contarte cómo completar tu inscripción. Si prefieres no esperar, separa tu cupo ahora o escríbele a Dayana."
+    : "Recibimos tu registro. Te escribimos por WhatsApp para agendar tu llamada gratis con Dayana. Si prefieres no esperar, escríbele ahora.";
 
 const oneLine = (s: string | null | undefined): string => (s ?? "").replace(/\s+/g, " ").trim();
 
@@ -222,6 +279,8 @@ export const REGISTRATION_STATES = [
   "marketing",
   "sin_precio",
   "tope",
+  "ip",
+  "pais",
   "baja",
   "sin_numero",
   "pagado",
@@ -238,6 +297,20 @@ export type RegistrationState = (typeof REGISTRATION_STATES)[number];
 
 const PAGE_PREFIX = "pagina:";
 export const pageVia = (state: RegistrationState): string => `${PAGE_PREFIX}${state}`;
+
+/**
+ * Lo que no sale ahora pero puede salir después (revisión 28-oct: quien
+ * llegaba pasado el tope quedaba sellada para siempre): la plantilla aún sin
+ * aprobar o pasada a Marketing, el taller sin precio, los topes. Una fila así
+ * se puede volver a reclamar (otro registro, «Que la IA le escriba»).
+ */
+export const RETRYABLE_STATES: readonly RegistrationState[] = ["plantilla", "marketing", "sin_precio", "tope", "ip"];
+
+/** ¿Se puede reclamar para enviar? Sin marca de la página, o con un estado que se reintenta. */
+export const registrationClaimable = (raw: string | null | undefined): boolean => {
+  const p = parsePageVia(raw);
+  return !p.page || RETRYABLE_STATES.includes(p.state);
+};
 
 /** `offered_via` → ¿se registró en la página? y cómo quedó su WhatsApp. Un estado que no se conoce es un fallo. */
 export const parsePageVia = (raw: string | null | undefined): { page: false } | { page: true; state: RegistrationState } => {
@@ -267,7 +340,7 @@ export type RegistrationFacts = {
 
 export type RegistrationSkip = Exclude<
   RegistrationState,
-  "enviando" | "text" | "template" | "plantilla" | "marketing" | "sin_precio" | "tope" | "cerrado" | "fallo"
+  "enviando" | "text" | "template" | "plantilla" | "marketing" | "sin_precio" | "tope" | "ip" | "pais" | "cerrado" | "fallo"
 >;
 
 /**
@@ -305,7 +378,9 @@ export const REGISTRATION_STATE_LABEL: Record<Exclude<RegistrationState, "text" 
   plantilla: `No había escrito en las últimas 24 h y Meta todavía no aprueba la plantilla «${REGISTRATION_TEMPLATE_TITLE}». Escríbele tú o usa «Que la IA le escriba».`,
   marketing: `No había escrito en las últimas 24 h y Meta aprobó la plantilla «${REGISTRATION_TEMPLATE_TITLE}» como Marketing, no como Utilidad: no se envía sola. Revísala en WhatsApp → Plantillas o escríbele tú.`,
   sin_precio: "No había escrito en las últimas 24 h y el taller no tiene precio (la plantilla habla del enlace de pago).",
-  tope: `Tope de mensajes automáticos del registro (${WORKSHOP_REGISTRATION_CAP.perHour} por hora, ${WORKSHOP_REGISTRATION_CAP.perDay} por día): no se le escribió.`,
+  tope: `Tope de plantillas automáticas del registro (${WORKSHOP_REGISTRATION_TEMPLATE_CAP.perHour} por hora, ${WORKSHOP_REGISTRATION_TEMPLATE_CAP.perDay} por día): todavía no se le escribió. Se vuelve a intentar si se registra otra vez; o escríbele tú o usa «Que la IA le escriba».`,
+  ip: `Desde la misma conexión ya salieron ${REGISTRATION_TEMPLATES_PER_IP_PER_DAY} plantillas automáticas hoy (puede ser alguien registrando números ajenos): no se le escribió. Si es real, escríbele tú o usa «Que la IA le escriba».`,
+  pais: "Su número es de un país fuera del público de Dayana: la plantilla no sale sola. Si es real, escríbele tú.",
   baja: "Pidió no recibir WhatsApp.",
   sin_numero: "Su número no es un WhatsApp válido.",
   pagado: "Ya pagó el taller.",
@@ -393,6 +468,9 @@ export const registrationWaStatus = (input: {
   }
   if (state === "marketing") {
     return { kind: "pending", label: "WhatsApp: Meta pasó la plantilla a Marketing", detail: REGISTRATION_STATE_LABEL.marketing, sentAt: null, via: null };
+  }
+  if (state === "tope" || state === "ip") {
+    return { kind: "pending", label: "WhatsApp: pendiente por el tope", detail: REGISTRATION_STATE_LABEL[state], sentAt: null, via: null };
   }
   if (state === "fallo") return { kind: "failed", label: "WhatsApp no salió", detail: REGISTRATION_STATE_LABEL.fallo, sentAt: null, via: null };
   return { kind: "skipped", label: "WhatsApp no enviado", detail: REGISTRATION_STATE_LABEL[state], sentAt: null, via: null };

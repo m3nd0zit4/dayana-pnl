@@ -1,12 +1,15 @@
-import { randomUUID } from "node:crypto";
-import { ContactSource, type Prisma } from "@prisma/client";
+import { createHmac, randomUUID } from "node:crypto";
+import { ContactSource, Prisma } from "@prisma/client";
+import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js";
 
 import { prisma } from "@/lib/db";
 import { MetaWindowError, sendMetaMessage } from "@/lib/meta/send";
 import { resolveWindow } from "@/lib/meta/window";
 import { resolveWhatsAppThreadId } from "@/lib/meta/whatsapp-thread";
 import { personFirstName } from "@/lib/person-name";
-import { whatsAppDigits } from "@/lib/whatsapp-contact";
+import { normalizePhone, normalizePhoneWithCountry } from "@/lib/phone";
+import { foldForSearch } from "./search-normalize";
+import { contactPhoneCandidates, whatsAppDigits } from "@/lib/whatsapp-contact";
 import { PROXIMO_WORKSHOP_SLUG } from "@/lib/workshops";
 
 import { upsertContactByPhone } from "./contacts";
@@ -26,12 +29,16 @@ import {
   PAGE_REGISTRATION_MESSAGE,
   pageVia,
   REGISTRATION_TEMPLATE_KEY,
+  REGISTRATION_TEMPLATES_PER_IP_PER_DAY,
+  registrationClaimable,
   registrationClientKey,
   registrationSkip,
   registrationSourceDetail,
+  RETRYABLE_STATES,
+  templateCountryAllowed,
   WORKSHOP_INTEREST_TAG_LABEL,
   WORKSHOP_INTEREST_TAG_SLUG,
-  WORKSHOP_REGISTRATION_CAP,
+  WORKSHOP_REGISTRATION_TEMPLATE_CAP,
   workshopRegistrationTemplateVars,
   workshopRegistrationText,
   type RegistrationInput,
@@ -45,20 +52,22 @@ import {
  * webinar, pero en este caso para que realice el pago del taller o agende una
  * llamada gratuita»). Reglas y textos en `workshop-registration-rules.ts`.
  *
- * 1. `registerWorkshopInterest`: el contacto (etiqueta `taller-interes`), su
- *    chat de WhatsApp (el que ya tiene ese número, o uno nuevo con
- *    `ensureWhatsAppConversation`, como los envíos) y su fila en «Interesadas».
- *    Quien ya pagó esta edición no se anota: la página le dice que ya tiene
- *    su cupo.
+ * 1. `registerWorkshopInterest`: el contacto del NÚMERO (etiqueta
+ *    `taller-interes`), su chat de WhatsApp (el que ya tiene ese número, o uno
+ *    nuevo con `ensureWhatsAppConversation`, como los envíos) y su fila en
+ *    «Interesadas». El formulario es público: el correo nunca decide de quién
+ *    es el registro ni cambia el teléfono, el correo o el nombre de un contacto
+ *    que ya existe (revisión 28-oct). Quien ya pagó esta edición no se anota.
  * 2. `sendWorkshopRegistrationWhatsApp` (después de responder): el mensaje de
  *    la asistente. Texto dentro de las 24 h; fuera, la plantilla de Utilidad
  *    `taller_registro_pagina` en cuanto Meta la aprueba como Utilidad (se manda
- *    sola a aprobar); mientras tanto, o si Meta la pasa a Marketing, no sale y
- *    queda el motivo. Una vez por persona y
- *    edición (se reclama la fila antes de enviar), con tope por edición, y
- *    nunca a quien pidió la baja, un número personal o ignorado, una clienta
- *    o quien ya pagó. Sale con `source` `asistente:taller:<edición>`: su
- *    respuesta sigue el flujo del taller (el enlace o la llamada) por 3 días.
+ *    sola a aprobar), con topes (por hora, por día, por conexión) y solo a los
+ *    países del público. Una vez por persona y edición (se reclama la fila
+ *    antes de enviar); lo que no sale por un tope o por la plantilla queda para
+ *    reintentar. Nunca a quien pidió la baja, un número personal o ignorado,
+ *    una clienta o quien ya pagó —mirando a TODOS los contactos de ese número—.
+ *    Sale con `source` `asistente:taller:<edición>`: su respuesta sigue el
+ *    flujo del taller (el enlace o la llamada) por 3 días.
  */
 
 // ── El taller ───────────────────────────────────────────────────────────────
@@ -105,6 +114,27 @@ const loadEditionById = async (id: string, now: Date): Promise<RegistrationEditi
   return e && e.slug !== PROXIMO_WORKSHOP_SLUG ? toEdition(e, now) : null;
 };
 
+/**
+ * La edición del botón de Enlaces: la más próxima en la que todavía se puede
+ * registrar (`isRegistrationOpen`, más estricta que `openWorkshopForAi`, que
+ * sigue un día más para contestar preguntas).
+ */
+export const openWorkshopForRegistration = async (now = new Date()): Promise<{ title: string; slug: string } | null> => {
+  const rows = await prisma.workshopEdition.findMany({
+    where: {
+      status: "OPEN",
+      endedAt: null,
+      slug: { not: PROXIMO_WORKSHOP_SLUG },
+      OR: [{ startsAt: null }, { startsAt: { gte: new Date(now.getTime() - 48 * 3600_000) } }],
+    },
+    orderBy: { startsAt: "asc" },
+    take: 5,
+    select: { title: true, slug: true, status: true, endedAt: true, startsAt: true, startsAtHasTime: true, timezone: true },
+  });
+  const found = rows.find((r) => isRegistrationOpen(r, now));
+  return found ? { title: found.title, slug: found.slug } : null;
+};
+
 /** La plantilla del registro tal como la dejó Meta (estado y categoría), o null si nunca se mandó. */
 export const registrationTemplateState = async (): Promise<{ status: string | null; category: string | null } | null> => {
   const t = await prisma.messageTemplate.findFirst({
@@ -127,10 +157,23 @@ const existingChatForPhone = async (phoneE164: string): Promise<{ id: string; co
   });
 };
 
+/** Todas las formas en que puede estar guardado ese número (MX 52/521, AR 54/549, BR con o sin 9). */
+const phoneForms = (phoneE164: string): string[] => [...new Set([phoneE164, ...contactPhoneCandidates(whatsAppDigits(phoneE164))])];
+
 const paidAny = async (contactIds: string[], editionId: string): Promise<boolean> =>
   contactIds.length > 0 &&
   (await prisma.enrollment.count({
     where: { contactId: { in: contactIds }, workshopEditionId: editionId, status: { in: ["ACTIVE", "COMPLETED"] } },
+  })) > 0;
+
+/** ¿Alguno es clienta? Un pago aprobado o una inscripción activa pagada (como `resolveSegment`). */
+const clientAny = async (contactIds: string[]): Promise<boolean> =>
+  contactIds.length > 0 &&
+  (await prisma.enrollment.count({
+    where: {
+      contactId: { in: contactIds },
+      OR: [{ payments: { some: { status: "APPROVED" } } }, { status: { in: ["ACTIVE", "COMPLETED"] }, amountMinor: { gt: 0 } }],
+    },
   })) > 0;
 
 const appendNote = async (contactId: string, line: string): Promise<void> => {
@@ -145,62 +188,103 @@ export type RegisterResult =
       conversationId: string;
       interestId: string;
       phoneE164: string;
-      /** Ya se había registrado en la página para esta edición (no le sale otro WhatsApp). */
+      /** Ya se había registrado en la página para esta edición: sin nota ni aviso al equipo otra vez. */
       alreadyRegistered: boolean;
-      /** El nombre que escribió, si parece un nombre: el único que va en el WhatsApp. */
+      /**
+       * El nombre para el WhatsApp: el que escribió si el contacto es nuevo o
+       * coincide con el que ya tenía; si no, ninguno (el número es de alguien que
+       * pudo no ser quien escribió el formulario).
+       */
       firstName: string | null;
     }
-  /** Ya pagó esta edición: no se anota ni se le escribe. */
+  /** Ya pagó esta edición: no se anota (la página dice lo mismo que a todos). */
   | { status: "enrolled"; contactId: string }
   /** Un número personal de Dayana: ni chat ni fila. */
   | { status: "personal"; contactId: string };
 
-/** Lanza `INVALID_PHONE` (de `upsertContactByPhone`) si el número no sirve. */
+/** Lanza `INVALID_PHONE` si el número no sirve. */
 export const registerWorkshopInterest = async (
   edition: Pick<RegistrationEdition, "id" | "title">,
   input: RegistrationInput,
   deps: { now?: Date } = {}
 ): Promise<RegisterResult> => {
   const now = deps.now ?? new Date();
-  const { contact, phone } = await upsertContactByPhone({
-    phone: input.phone,
-    phoneCountry: input.phoneCountry ?? undefined,
-    firstName: input.firstName,
-    lastName: input.lastName ?? undefined,
-    email: input.email ?? undefined,
-    source: ContactSource.WEB_LEAD_FORM,
-    sourceDetail: registrationSourceDetail(edition.title, input.ref),
-    consentData: true,
-    consentMarketing: input.consentMarketing,
-  });
-  // La etiqueta y la nota son para Dayana; si fallan, el registro sigue.
-  await ensureContactTag(contact.id, WORKSHOP_INTEREST_TAG_SLUG, WORKSHOP_INTEREST_TAG_LABEL).catch((e: unknown) =>
+  const country = (input.phoneCountry ?? "CO") as CountryCode;
+  const normalized = normalizePhoneWithCountry(input.phone, country) ?? normalizePhone(input.phone, country);
+  if (!normalized) throw new Error("INVALID_PHONE");
+  const phoneE164 = normalized.phoneE164;
+
+  // El contacto es el del NÚMERO (a donde va el WhatsApp), nunca el del correo.
+  const forms = phoneForms(phoneE164);
+  const [owners, emailOwner] = await Promise.all([
+    prisma.contact.findMany({ where: { phoneE164: { in: forms } }, select: { id: true, phoneE164: true, firstName: true, email: true } }),
+    input.email ? prisma.contact.findUnique({ where: { email: input.email }, select: { id: true } }) : Promise.resolve(null),
+  ]);
+  const owner = owners.find((o) => o.phoneE164 === phoneE164) ?? owners[0] ?? null;
+  const sourceDetail = registrationSourceDetail(edition.title, input.ref);
+  const typedFirst = personFirstName(input.firstName);
+  let contactId: string;
+  let firstName: string | null;
+  if (!owner) {
+    // Nuevo: con su correo solo si no es de otro contacto (si no, `upsertContactByPhone` lo tomaría por ese).
+    const { contact } = await upsertContactByPhone({
+      phone: phoneE164,
+      phoneCountry: normalized.phoneCountryIso,
+      firstName: input.firstName,
+      lastName: input.lastName ?? undefined,
+      email: input.email && !emailOwner ? input.email : undefined,
+      source: ContactSource.WEB_LEAD_FORM,
+      sourceDetail,
+      consentData: true,
+      consentMarketing: input.consentMarketing,
+    });
+    contactId = contact.id;
+    firstName = typedFirst;
+  } else {
+    // Ya existe: el formulario público no le cambia el teléfono, el correo ni el
+    // nombre a nadie. Solo completa lo que falta y anota los permisos y el origen.
+    const storedFirst = personFirstName(owner.firstName);
+    const nameless = !storedFirst || owner.firstName === owner.phoneE164;
+    await prisma.contact.update({
+      where: { id: owner.id },
+      data: {
+        consentDataAt: now,
+        ...(input.consentMarketing ? { consentMarketingAt: now } : {}),
+        sourceDetail,
+        ...(nameless && input.firstName
+          ? {
+              firstName: input.firstName,
+              lastName: input.lastName,
+              displayName: [input.firstName, input.lastName].filter(Boolean).join(" "),
+            }
+          : {}),
+        ...(input.email && !owner.email && !emailOwner ? { email: input.email } : {}),
+      },
+    });
+    contactId = owner.id;
+    firstName = nameless || (storedFirst && typedFirst && foldForSearch(storedFirst) === foldForSearch(typedFirst)) ? typedFirst : null;
+  }
+  // La etiqueta es para Dayana; si falla, el registro sigue.
+  await ensureContactTag(contactId, WORKSHOP_INTEREST_TAG_SLUG, WORKSHOP_INTEREST_TAG_LABEL).catch((e: unknown) =>
     console.warn("[taller-registro] no se pudo poner la etiqueta", e)
   );
-  const stamp = now.toLocaleDateString("es-CO", { dateStyle: "medium", timeZone: "America/Bogota" });
-  await appendNote(contact.id, `[${stamp}] Se registró en la página del taller «${edition.title}».`).catch(() => undefined);
 
-  const phoneE164 = phone.phoneE164;
-  if (await isIgnoredNumber(whatsAppDigits(phoneE164))) return { status: "personal", contactId: contact.id };
+  if (await isIgnoredNumber(whatsAppDigits(phoneE164))) return { status: "personal", contactId };
 
-  // Con correo, `upsertContactByPhone` puede devolver otro contacto que el dueño del número: se miran los dos.
-  const [existing, owner] = await Promise.all([
-    existingChatForPhone(phoneE164),
-    prisma.contact.findUnique({ where: { phoneE164 }, select: { id: true } }),
-  ]);
-  const people = [...new Set([contact.id, owner?.id, existing?.contactId].filter((x): x is string => Boolean(x)))];
-  if (await paidAny(people, edition.id)) return { status: "enrolled", contactId: contact.id };
+  const existing = await existingChatForPhone(phoneE164);
+  const people = [...new Set([contactId, ...owners.map((o) => o.id), existing?.contactId].filter((x): x is string => Boolean(x)))];
+  if (await paidAny(people, edition.id)) return { status: "enrolled", contactId };
 
   let conversationId: string;
   if (existing) {
     conversationId = existing.id;
-    // Su chat sin contacto queda con este; uno que ya es de otro contacto no se toca.
+    // Su chat sin contacto queda con el dueño del número; uno que ya es de otro contacto no se toca.
     if (!existing.contactId) {
-      await prisma.conversation.updateMany({ where: { id: existing.id, contactId: null }, data: { contactId: contact.id } });
+      await prisma.conversation.updateMany({ where: { id: existing.id, contactId: null }, data: { contactId } });
     }
   } else {
     const name = [input.firstName, input.lastName].filter(Boolean).join(" ").trim() || null;
-    conversationId = (await ensureWhatsAppConversation({ phoneE164, contactId: contact.id, name })).id;
+    conversationId = (await ensureWhatsAppConversation({ phoneE164, contactId, name })).id;
   }
 
   // Una fila por chat y edición. Si ya estaba (preguntó por WhatsApp o se registró
@@ -215,18 +299,23 @@ export const registerWorkshopInterest = async (
           status = CASE WHEN workshop_interests.status = 'descartada' THEN 'nuevo' ELSE workshop_interests.status END,
           updated_at = NOW()
     RETURNING id, offered_via, (xmax = 0) AS inserted`;
-  return {
-    status: "registered",
-    contactId: contact.id,
-    conversationId,
-    interestId: row.id,
-    phoneE164,
-    alreadyRegistered: !row.inserted && (row.offered_via ?? "").startsWith("pagina:"),
-    firstName: personFirstName(input.firstName),
-  };
+  const alreadyRegistered = !row.inserted && (row.offered_via ?? "").startsWith("pagina:");
+  // La nota, solo la primera vez (un registro repetido no llena las notas).
+  if (!alreadyRegistered) {
+    const stamp = now.toLocaleDateString("es-CO", { dateStyle: "medium", timeZone: "America/Bogota" });
+    await appendNote(contactId, `[${stamp}] Se registró en la página del taller «${edition.title}».`).catch(() => undefined);
+  }
+  return { status: "registered", contactId, conversationId, interestId: row.id, phoneE164, alreadyRegistered, firstName };
 };
 
 // ── 2. El WhatsApp ──────────────────────────────────────────────────────────
+
+/**
+ * Cada plantilla automática del registro deja una fila en la auditoría con la
+ * huella de la conexión: es el presupuesto por conexión y el tope por hora y
+ * día (índices por entidad y por fecha). Sin migración.
+ */
+export const IP_BUDGET_ENTITY = "WorkshopRegistrationIp";
 
 export type RegistrationSendResult =
   | { status: "sent"; via: "text" | "template" }
@@ -236,111 +325,168 @@ export type RegistrationSendResult =
 type Deps = {
   send?: typeof sendMetaMessage;
   now?: Date;
+  /** Tope de plantillas (las pruebas lo bajan). */
   cap?: { perHour: number; perDay: number };
+  /** Plantillas por conexión al día (las pruebas lo bajan o suben). */
+  perIp?: number;
   /** Mandar la plantilla a aprobar (en las pruebas, nada: no se llama a 360dialog). */
   ensureTemplates?: (keys: string[]) => Promise<unknown>;
 };
 
-/** Los mensajes del registro que salieron (o se están enviando) en esta edición desde `since`. */
-const sentSince = async (editionId: string, since: Date): Promise<number> => {
-  const [r] = await prisma.$queryRaw<{ n: number }[]>`
-    SELECT COUNT(*)::int AS n FROM workshop_interests
-    WHERE edition_id = ${editionId}
-      AND offered_via IN (${pageVia("text")}, ${pageVia("template")}, ${pageVia("enviando")})
-      AND COALESCE(offered_at, updated_at) >= ${since}`;
-  return r?.n ?? 0;
+/**
+ * Las plantillas automáticas del registro reservadas desde `since` (todas las
+ * ediciones: es lo que se paga). Se cuentan por sus reservas en la auditoría:
+ * ni los textos dentro de las 24 h ni lo que manda el equipo («Que la IA le
+ * escriba») cuentan.
+ */
+const templatesSince = (since: Date): Promise<number> =>
+  prisma.auditLog.count({ where: { entityType: IP_BUDGET_ENTITY, createdAt: { gte: since } } });
+
+/** La conexión, sin guardar la IP: una huella con la clave del sitio. */
+export const registrationIpKey = (ip: string | null | undefined): string =>
+  createHmac("sha256", process.env.AUTH_SECRET?.trim() || "taller-registro")
+    .update(`taller-registro:${(ip ?? "").trim() || "desconocida"}`)
+    .digest("hex")
+    .slice(0, 40);
+
+
+/**
+ * Reserva una plantilla para esta conexión: se apunta primero y luego se
+ * cuenta, así dos registros a la vez no pasan los dos. Devuelve false (y
+ * borra la reserva) si ya no queda.
+ */
+const reserveIpBudget = async (ip: string | null, perIp: number, ref: { editionId: string; interestId: string }, now: Date): Promise<boolean> => {
+  const key = registrationIpKey(ip);
+  const mine = await prisma.auditLog.create({
+    data: { action: "WORKSHOP_REGISTRATION_TEMPLATE", entityType: IP_BUDGET_ENTITY, entityId: key, changes: ref },
+    select: { id: true },
+  });
+  const used = await prisma.auditLog.count({
+    where: { entityType: IP_BUDGET_ENTITY, entityId: key, createdAt: { gte: new Date(now.getTime() - 24 * 3600_000) } },
+  });
+  if (used <= perIp) return true;
+  await prisma.auditLog.delete({ where: { id: mine.id } }).catch(() => undefined);
+  return false;
 };
 
 const isRealPhone = (thread: string) => /^\d{8,15}$/.test(thread);
 
 export const sendWorkshopRegistrationWhatsApp = async (
-  input: { editionId: string; interestId: string; contactId: string; firstName: string | null },
+  input: { editionId: string; interestId: string; contactId: string; firstName: string | null; ip?: string | null },
   deps: Deps = {}
 ): Promise<RegistrationSendResult> => {
   const now = deps.now ?? new Date();
   const send = deps.send ?? sendMetaMessage;
-  const [row] = await prisma.$queryRaw<{ id: string; conversation_id: string }[]>`
-    SELECT id, conversation_id FROM workshop_interests WHERE id = ${input.interestId} AND edition_id = ${input.editionId}`;
+  const [row] = await prisma.$queryRaw<{ id: string; conversation_id: string; offered_via: string | null }[]>`
+    SELECT id, conversation_id, offered_via FROM workshop_interests WHERE id = ${input.interestId} AND edition_id = ${input.editionId}`;
   if (!row) return { status: "failed", error: "La fila de interesadas no existe." };
-  const edition = await loadEditionById(input.editionId, now);
+  // Ya salió, se está enviando o tiene un motivo definitivo: no otra vez.
+  if (!registrationClaimable(row.offered_via)) return { status: "skipped", state: "already" };
 
-  // Tope: freno de gasto, no una cuenta exacta (dos a la vez pueden pasarlo por una).
-  const cap = deps.cap ?? WORKSHOP_REGISTRATION_CAP;
-  const [lastHour, lastDay] = await Promise.all([
-    sentSince(input.editionId, new Date(now.getTime() - 3600_000)),
-    sentSince(input.editionId, new Date(now.getTime() - 24 * 3600_000)),
-  ]);
-  const capped = confirmationCapReason({ lastHour, lastDay }, cap);
-  const first: RegistrationState = !edition?.open ? "cerrado" : capped ? "tope" : "enviando";
-
-  // Reclamo: una vez por persona y edición. Quien ya tiene su registro de la
-  // página (enviado, esperando la plantilla o con su motivo) no recibe otro.
-  const claimed = await prisma.$executeRaw`
-    UPDATE workshop_interests SET offered_via = ${pageVia(first)}, updated_at = NOW()
-    WHERE id = ${row.id} AND (offered_via IS NULL OR offered_via NOT LIKE 'pagina:%')`;
-  if (claimed === 0) return { status: "skipped", state: "already" };
-  if (first !== "enviando" || !edition) return { status: "skipped", state: first === "tope" ? "tope" : "cerrado" };
-
+  const claimable = Prisma.sql`(offered_via IS NULL OR offered_via NOT LIKE 'pagina:%' OR offered_via IN (${Prisma.join(RETRYABLE_STATES.map(pageVia))}))`;
+  /** Anota cómo quedó, solo si nadie la reclamó entre medias. */
+  const stamp = async (state: Exclude<RegistrationState, "text" | "template" | "enviando">): Promise<RegistrationSendResult> => {
+    const n = await prisma.$executeRaw`
+      UPDATE workshop_interests SET offered_via = ${pageVia(state)}, updated_at = NOW() WHERE id = ${row.id} AND ${claimable}`;
+    return n > 0 ? { status: "skipped", state } : { status: "skipped", state: "already" };
+  };
   const finish = (state: RegistrationState) =>
     prisma.$executeRaw`UPDATE workshop_interests SET offered_via = ${pageVia(state)}, updated_at = NOW() WHERE id = ${row.id}`.catch(
       (e: unknown) => console.warn("[taller-registro] no se anotó el estado", state, e)
     );
 
-  try {
-    const conv = await loadOutreachConversation(row.conversation_id);
-    if (!conv || conv.channel !== "WHATSAPP") {
-      await finish("fallo");
-      return { status: "failed", error: "No se encontró su chat de WhatsApp." };
-    }
-    const contactIds = [...new Set([input.contactId, conv.contactId].filter((x): x is string => Boolean(x)))];
-    const [contacts, ignoredNumber, seg, config, contactedToday] = await Promise.all([
-      prisma.contact.findMany({ where: { id: { in: contactIds } }, select: { notifyWhatsapp: true } }),
-      isIgnoredNumber(conv.externalThreadId),
-      computeSegment(conv.id).catch(() => null),
-      getWhatsAppAiConfig(),
-      prisma.conversationMessage.count({
-        where: {
-          conversationId: conv.id,
-          direction: "OUTBOUND",
-          source: workshopOutreachSource(edition),
-          status: { not: "FAILED" },
-          sentAt: { gte: new Date(now.getTime() - 24 * 3600_000) },
-        },
-      }),
-    ]);
-    const [refusal, aiOff, paid] = await Promise.all([
-      seg ? outreachRefusal(conv, { editionId: edition.id, config, now, seg, pastClientsOk: false }) : Promise.resolve(null),
-      outreachAiOff(config),
-      paidAny(contactIds, edition.id),
-    ]);
-    const skip =
-      registrationSkip({
-        optedOut: contacts.some((c) => c.notifyWhatsapp === false),
-        phoneOk: isRealPhone(conv.externalThreadId),
-        paid: paid || refusal?.reason === "paid",
-        ignoredNumber,
-        segment: seg?.segment ?? null,
-        stage: seg?.stage ?? null,
-        segmentReview: seg?.review ?? false,
-        category: conv.category,
-        categorySource: conv.categorySource,
-        aiOff: Boolean(aiOff),
-        aiBlocked: refusal?.reason === "assigned" || refusal?.reason === "blocked",
-        hasUpcomingCall: refusal?.reason === "has_call",
-        contactedToday: contactedToday > 0,
-      }) ??
-      // Sin su estado al día no se sabe si es clienta, por revisar o personal; y lo
-      // que el guardián dice sin decir qué («por revisar, clienta o personal»): no sale.
-      (!seg || refusal ? "revisar" : null);
-    if (skip) {
-      await finish(skip);
-      return { status: "skipped", state: skip };
-    }
+  const edition = await loadEditionById(input.editionId, now);
+  if (!edition?.open) return stamp("cerrado");
+  const conv = await loadOutreachConversation(row.conversation_id);
+  if (!conv || conv.channel !== "WHATSAPP") return stamp("fallo");
 
-    const source = workshopOutreachSource(edition);
-    const clientKey = registrationClientKey(edition.id, conv.id);
+  // Todos los contactos de ese número (en cualquiera de sus formas) y los del registro y el chat:
+  // la baja, la clienta o el pago de uno cuenta para todos (revisión 28-oct).
+  const phoneOwners = isRealPhone(conv.externalThreadId)
+    ? await prisma.contact.findMany({ where: { phoneE164: { in: contactPhoneCandidates(conv.externalThreadId) } }, select: { id: true } })
+    : [];
+  const contactIds = [...new Set([input.contactId, conv.contactId, ...phoneOwners.map((c) => c.id)].filter((x): x is string => Boolean(x)))];
+  const [contacts, ignoredNumber, seg, config, contactedToday, paid, client] = await Promise.all([
+    prisma.contact.findMany({ where: { id: { in: contactIds } }, select: { notifyWhatsapp: true } }),
+    isIgnoredNumber(conv.externalThreadId),
+    computeSegment(conv.id).catch(() => null),
+    getWhatsAppAiConfig(),
+    prisma.conversationMessage.count({
+      where: {
+        conversationId: conv.id,
+        direction: "OUTBOUND",
+        source: workshopOutreachSource(edition),
+        status: { not: "FAILED" },
+        sentAt: { gte: new Date(now.getTime() - 24 * 3600_000) },
+      },
+    }),
+    paidAny(contactIds, edition.id),
+    clientAny(contactIds),
+  ]);
+  const [refusal, aiOff] = await Promise.all([
+    seg ? outreachRefusal(conv, { editionId: edition.id, config, now, seg, pastClientsOk: false }) : Promise.resolve(null),
+    outreachAiOff(config),
+  ]);
+  const skip =
+    registrationSkip({
+      optedOut: contacts.some((c) => c.notifyWhatsapp === false),
+      phoneOk: isRealPhone(conv.externalThreadId),
+      paid: paid || refusal?.reason === "paid",
+      ignoredNumber,
+      segment: client ? "client" : (seg?.segment ?? null),
+      stage: seg?.stage ?? null,
+      segmentReview: seg?.review ?? false,
+      category: conv.category,
+      categorySource: conv.categorySource,
+      aiOff: Boolean(aiOff),
+      aiBlocked: refusal?.reason === "assigned" || refusal?.reason === "blocked",
+      hasUpcomingCall: refusal?.reason === "has_call",
+      contactedToday: contactedToday > 0,
+    }) ??
+    // Sin su estado al día no se sabe si es clienta, por revisar o personal; y lo
+    // que el guardián dice sin decir qué («por revisar, clienta o personal»): no sale.
+    (!seg || refusal ? "revisar" : null);
+  if (skip) return stamp(skip);
+
+  const source = workshopOutreachSource(edition);
+  const clientKey = registrationClientKey(edition.id, conv.id);
+  const windowOpen = resolveWindow("WHATSAPP", conv.lastInboundAt, now).isOpen;
+  let template: Awaited<ReturnType<typeof approvedTemplateFor>> = null;
+  if (!windowOpen) {
+    // La plantilla habla del enlace de pago: sin precio no hay plantilla que sirva.
+    if (!edition.payUrl) return stamp("sin_precio");
+    // Solo a los países de su público: un número de otro lado es más probable que sea ajeno.
+    if (!templateCountryAllowed(parsePhoneNumberFromString(`+${conv.externalThreadId}`)?.country)) return stamp("pais");
+    template = await approvedTemplateFor(REGISTRATION_TEMPLATE_KEY);
+    if (!template?.metaTemplateName) {
+      const r = await stamp("plantilla");
+      // Nunca se mandó a aprobar (o Meta la rechazó): se manda sola, como mucho cada 30 min.
+      await (deps.ensureTemplates ?? ensureTemplatesSubmitted)([REGISTRATION_TEMPLATE_KEY]).catch(() => undefined);
+      return r;
+    }
+    // Se pidió de Utilidad (dueña, 28-oct: «que no sea de marketing ya que la
+    // persona aceptó»); si Meta la aprobó como Marketing, no sale sola como
+    // marketing: queda dicho en «Interesadas» y Dayana decide.
+    if ((template.metaCategory ?? "").toUpperCase() !== "UTILITY") return stamp("marketing");
+    // Topes de plantillas (freno de gasto: dos a la vez pueden pasarlo por una).
+    const cap = deps.cap ?? WORKSHOP_REGISTRATION_TEMPLATE_CAP;
+    const [lastHour, lastDay] = await Promise.all([
+      templatesSince(new Date(now.getTime() - 3600_000)),
+      templatesSince(new Date(now.getTime() - 24 * 3600_000)),
+    ]);
+    if (confirmationCapReason({ lastHour, lastDay }, cap)) return stamp("tope");
+    const perIp = deps.perIp ?? REGISTRATION_TEMPLATES_PER_IP_PER_DAY;
+    if (!(await reserveIpBudget(input.ip ?? null, perIp, { editionId: edition.id, interestId: row.id }, now))) return stamp("ip");
+  }
+
+  // Reclamo: una vez por persona y edición.
+  const claimed = await prisma.$executeRaw`
+    UPDATE workshop_interests SET offered_via = ${pageVia("enviando")}, updated_at = NOW() WHERE id = ${row.id} AND ${claimable}`;
+  if (claimed === 0) return { status: "skipped", state: "already" };
+
+  try {
     let via: "text" | "template";
-    if (resolveWindow("WHATSAPP", conv.lastInboundAt, now).isOpen) {
+    if (!template) {
       await send({
         conversationId: conv.id,
         body: workshopRegistrationText(edition, { firstName: input.firstName }),
@@ -350,31 +496,12 @@ export const sendWorkshopRegistrationWhatsApp = async (
       });
       via = "text";
     } else {
-      // La plantilla habla del enlace de pago: sin precio no hay plantilla que sirva.
-      if (!edition.payUrl) {
-        await finish("sin_precio");
-        return { status: "skipped", state: "sin_precio" };
-      }
-      const template = await approvedTemplateFor(REGISTRATION_TEMPLATE_KEY);
-      if (!template?.metaTemplateName) {
-        await finish("plantilla");
-        // Nunca se mandó a aprobar (o Meta la rechazó): se manda sola, como mucho cada 30 min.
-        await (deps.ensureTemplates ?? ensureTemplatesSubmitted)([REGISTRATION_TEMPLATE_KEY]).catch(() => undefined);
-        return { status: "skipped", state: "plantilla" };
-      }
-      // Se pidió de Utilidad (dueña, 28-oct: «que no sea de marketing ya que la
-      // persona aceptó»); si Meta la aprobó como Marketing, no sale sola como
-      // marketing: queda dicho en «Interesadas» y Dayana decide.
-      if ((template.metaCategory ?? "").toUpperCase() !== "UTILITY") {
-        await finish("marketing");
-        return { status: "skipped", state: "marketing" };
-      }
       const vars = workshopRegistrationTemplateVars(edition, { firstName: input.firstName });
       await send({
         conversationId: conv.id,
         body: fillVars(template.body, vars),
         template: {
-          name: template.metaTemplateName,
+          name: template.metaTemplateName!,
           language: template.metaTemplateLang ?? "es",
           variables: templateParams(template.metaVarNames, vars),
         },
@@ -393,7 +520,7 @@ export const sendWorkshopRegistrationWhatsApp = async (
       WHERE id = ${row.id}`.catch((e: unknown) => console.warn("[taller-registro] no se anotó el envío", e));
     return { status: "sent", via };
   } catch (e) {
-    // La ventana se cerró entre medias: es lo mismo que necesitar la plantilla.
+    // La ventana se cerró entre medias: queda para reintentar, como sin la plantilla.
     if (e instanceof MetaWindowError) {
       await finish("plantilla");
       return { status: "skipped", state: "plantilla" };

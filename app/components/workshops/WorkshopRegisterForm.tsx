@@ -9,13 +9,13 @@ import { getLocalPhonePlaceholder, sanitizeLocalPhoneInput, validateLocalPhone }
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Status = "idle" | "sending" | "done";
-type Outcome = { alreadyEnrolled: boolean; alreadyRegistered: boolean };
 type FieldErrors = { firstName?: string; email?: string; phone?: string; consent?: string };
 
 export type WorkshopRegisterFormProps = {
   slug: string;
-  workshopTitle: string;
   userCountry?: string | null;
+  /** El «Listo» (`registrationThanks`): el mismo para todos, pase lo que pase con el registro. */
+  thanksText: string;
   /** `/pagar/p/<producto>`: «Separar mi cupo ahora». Sin precio, no hay botón. */
   payPath: string | null;
   /** wa.me con el mensaje ya escrito. */
@@ -38,10 +38,11 @@ const secondaryBtn =
  * que oprime ahí en taller se registra y se clasifica como interesada»). Igual
  * que el del evento gratuito: nombre, WhatsApp con país, correo opcional, el
  * permiso de datos y, aparte y sin marcar, el de recibir información de
- * talleres y eventos. Al terminar: «Listo, te escribimos por WhatsApp…» con el
- * botón para separar el cupo de una vez y otro para escribirle a Dayana.
+ * talleres y eventos. Al terminar: «Listo», el mismo para todos (revisión
+ * 28-oct: nunca dice si ese número ya pagó o ya estaba), con el botón para
+ * separar el cupo de una vez (si tiene precio) y otro para escribirle a Dayana.
  */
-const WorkshopRegisterForm = ({ slug, workshopTitle, userCountry, payPath, whatsappHref, refSource = null }: WorkshopRegisterFormProps) => {
+const WorkshopRegisterForm = ({ slug, userCountry, thanksText, payPath, whatsappHref, refSource = null }: WorkshopRegisterFormProps) => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -54,7 +55,6 @@ const WorkshopRegisterForm = ({ slug, workshopTitle, userCountry, payPath, whats
   const [errors, setErrors] = useState<FieldErrors>({});
   const [serverError, setServerError] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
   const doneRef = useRef<HTMLDivElement>(null);
 
   // En el móvil el botón queda abajo y el «Listo» es más corto que el formulario: se lleva a la vista.
@@ -97,12 +97,7 @@ const WorkshopRegisterForm = ({ slug, workshopTitle, userCountry, payPath, whats
           ...(hp ? { hp } : {}),
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as {
-        error?: string;
-        message?: string;
-        alreadyEnrolled?: boolean;
-        alreadyRegistered?: boolean;
-      };
+      const data = (await res.json().catch(() => ({}))) as { error?: string; message?: string };
       if (!res.ok) {
         if (data.error === "invalid_phone") setErrors({ phone: data.message ?? "Número de teléfono inválido." });
         else if (data.error === "rate_limited") setServerError("Demasiados intentos. Espera un momento e inténtalo de nuevo.");
@@ -111,7 +106,6 @@ const WorkshopRegisterForm = ({ slug, workshopTitle, userCountry, payPath, whats
         setStatus("idle");
         return;
       }
-      setOutcome({ alreadyEnrolled: Boolean(data.alreadyEnrolled), alreadyRegistered: Boolean(data.alreadyRegistered) });
       setStatus("done");
     } catch {
       setServerError("Sin conexión. Revisa tu internet e inténtalo de nuevo.");
@@ -119,7 +113,7 @@ const WorkshopRegisterForm = ({ slug, workshopTitle, userCountry, payPath, whats
     }
   };
 
-  if (status === "done" && outcome) {
+  if (status === "done") {
     const name = firstName.trim().split(/\s+/)[0];
     return (
       <div ref={doneRef} role="status" aria-live="polite" data-testid="taller-registro-listo" className="scroll-mt-24">
@@ -129,19 +123,11 @@ const WorkshopRegisterForm = ({ slug, workshopTitle, userCountry, payPath, whats
           </svg>
         </span>
         <h3 className="mt-5 font-[font2] text-2xl uppercase leading-[0.95] lg:text-3xl">
-          {outcome.alreadyEnrolled ? "Ya tienes tu cupo" : name ? `Listo, ${name}` : "Listo"}
+          {name ? `Listo, ${name}` : "Listo"}
         </h3>
-        <p className="mt-4 font-[font1] text-base leading-snug text-black/70">
-          {outcome.alreadyEnrolled
-            ? `Tu pago del taller «${workshopTitle}» ya está registrado: no necesitas registrarte otra vez. Antes del taller te llega el enlace para entrar.`
-            : `${outcome.alreadyRegistered ? "Ya tenías tu registro para este taller. " : ""}Te escribimos por WhatsApp para completar tu inscripción: puedes hacer el pago en el enlace de inscripción o agendar primero una llamada gratis con Dayana, donde te explica el taller y su valor.`}
-        </p>
+        <p className="mt-4 font-[font1] text-base leading-snug text-black/70">{thanksText}</p>
         <div className="mt-6 flex flex-col gap-3">
-          {outcome.alreadyEnrolled ? (
-            <a href={`/taller-virtual/${encodeURIComponent(slug)}`} className={primaryBtn}>
-              Ver el taller
-            </a>
-          ) : payPath ? (
+          {payPath ? (
             <>
               <a href={payPath} className={primaryBtn}>
                 Separar mi cupo ahora
@@ -149,7 +135,8 @@ const WorkshopRegisterForm = ({ slug, workshopTitle, userCountry, payPath, whats
               <p className="-mt-1 text-center font-[font1] text-xs text-black/45">En el enlace ves el valor y pagas en línea.</p>
             </>
           ) : null}
-          <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className={secondaryBtn}>
+          {/* Sin precio, escribirle es el paso: va como el botón principal. */}
+          <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className={payPath ? secondaryBtn : primaryBtn}>
             <MessageCircle className="h-4 w-4" aria-hidden="true" />
             Escribirle a Dayana
           </a>

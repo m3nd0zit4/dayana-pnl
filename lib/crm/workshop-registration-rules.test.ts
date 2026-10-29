@@ -29,7 +29,13 @@ import {
   registrationWaStatus,
   registrationWhen,
   WORKSHOP_LINK_CTA,
-  WORKSHOP_REGISTRATION_CAP,
+  WORKSHOP_REGISTRATION_TEMPLATE_CAP,
+  REGISTRATION_TEMPLATES_PER_IP_PER_DAY,
+  RETRYABLE_STATES,
+  registrationClaimable,
+  registrationIntro,
+  registrationThanks,
+  templateCountryAllowed,
   workshopRegistrationPath,
   workshopRegistrationTemplateVars,
   workshopRegistrationText,
@@ -80,16 +86,29 @@ describe("dónde", () => {
     expect(WORKSHOP_LINK_CTA).toEqual({ title: "Taller", note: "Si te interesa, regístrate" });
   });
 
-  test("abierto: la regla del botón (OPEN, sin terminar, no pasó hace más de un día)", () => {
+  test("abierto: publicado, sin terminar y sin empezar (con hora: hasta esa hora)", () => {
+    // 28-oct, 10:00 a. m. en Bogotá.
     const now = new Date("2026-10-28T15:00:00Z");
-    const open = { status: "OPEN", endedAt: null, startsAt: new Date("2026-11-15T13:30:00Z") };
+    const open = { status: "OPEN", endedAt: null, startsAt: new Date("2026-11-15T13:30:00Z"), startsAtHasTime: true, timezone: "America/Bogota" };
     expect(isRegistrationOpen(open, now)).toBe(true);
     expect(isRegistrationOpen({ ...open, startsAt: null }, now)).toBe(true);
-    expect(isRegistrationOpen({ ...open, startsAt: new Date("2026-10-28T03:00:00Z") }, now)).toBe(true);
-    expect(isRegistrationOpen({ ...open, startsAt: new Date("2026-10-26T15:00:00Z") }, now)).toBe(false);
+    // Empezó hace una hora (revisión 28-oct: antes seguía abierto 24 h más).
+    expect(isRegistrationOpen({ ...open, startsAt: new Date("2026-10-28T14:00:00Z") }, now)).toBe(false);
+    expect(isRegistrationOpen({ ...open, startsAt: new Date("2026-10-28T15:00:01Z") }, now)).toBe(true);
     expect(isRegistrationOpen({ ...open, endedAt: now }, now)).toBe(false);
     expect(isRegistrationOpen({ ...open, status: "CLOSED" }, now)).toBe(false);
     expect(isRegistrationOpen({ ...open, status: "DRAFT" }, now)).toBe(false);
+    // Sin `startsAtHasTime`: se toma como con hora (lo estricto).
+    expect(isRegistrationOpen({ status: "OPEN", endedAt: null, startsAt: new Date("2026-10-28T14:00:00Z") }, now)).toBe(false);
+  });
+
+  test("abierto, solo con el día: hasta que termina ese día en la zona del taller", () => {
+    // El ancla del día (12:00 en Bogotá); el taller es el 28-oct.
+    const day = { status: "OPEN", endedAt: null, startsAt: new Date("2026-10-28T17:00:00Z"), startsAtHasTime: false, timezone: "America/Bogota" };
+    expect(isRegistrationOpen(day, new Date("2026-10-28T22:00:00Z"))).toBe(true); // 5 p. m. del mismo día, después del ancla
+    expect(isRegistrationOpen(day, new Date("2026-10-29T04:59:00Z"))).toBe(true); // 11:59 p. m. en Bogotá
+    expect(isRegistrationOpen(day, new Date("2026-10-29T05:01:00Z"))).toBe(false); // ya es el 29 en Bogotá
+    expect(isRegistrationOpen(day, new Date("2026-10-27T15:00:00Z"))).toBe(true);
   });
 });
 
@@ -211,7 +230,27 @@ describe("el WhatsApp", () => {
 
   test("una por chat y edición; tope por edición como el de los eventos", () => {
     expect(registrationClientKey("ed1", "conv1")).toBe("taller-registro:ed1:conv1");
-    expect(WORKSHOP_REGISTRATION_CAP).toEqual({ perHour: 40, perDay: 300 });
+    // Solo plantillas, más bajo que el de los eventos (revisión 28-oct), y por conexión.
+    expect(WORKSHOP_REGISTRATION_TEMPLATE_CAP).toEqual({ perHour: 15, perDay: 100 });
+    expect(REGISTRATION_TEMPLATES_PER_IP_PER_DAY).toBe(2);
+  });
+
+  test("la plantilla sola solo a los países del público (de dónde vienen sus inscritas)", () => {
+    for (const iso of ["CO", "PE", "MX", "EC", "VE", "US", "AR", "BO", "ES", "GT", "CL", "CR", "CA", "DO", "PA", "PR", "co"]) {
+      expect(templateCountryAllowed(iso)).toBe(true);
+    }
+    for (const iso of ["BR", "CH", "RU", "GB", "IN", "NG", "", null, undefined]) expect(templateCountryAllowed(iso)).toBe(false);
+  });
+
+  test("la página: sin precio no habla del enlace de pago; el «Listo» es el mismo para todos y no promete que ya llegó", () => {
+    expect(registrationIntro({ payable: true })).toContain("enlace de inscripción");
+    expect(registrationIntro({ payable: false })).not.toMatch(/enlace|pago/);
+    expect(registrationThanks({ payable: true })).toContain("separa tu cupo ahora o escríbele a Dayana");
+    expect(registrationThanks({ payable: false })).not.toMatch(/enlace|pago|cupo/);
+    for (const t of [registrationThanks({ payable: true }), registrationThanks({ payable: false })]) {
+      expect(t).not.toMatch(/ya (pagaste|estabas|tienes tu cupo)|registrad[ao]|inscrit[ao]/i);
+      expect(t).toContain("Si prefieres no esperar");
+    }
   });
 });
 
@@ -222,6 +261,16 @@ describe("la marca en «Interesadas» (offered_via)", () => {
     expect(parsePageVia("template")).toEqual({ page: false });
     expect(parsePageVia(null)).toEqual({ page: false });
     expect(parsePageVia("pagina:otra-cosa")).toEqual({ page: true, state: "fallo" });
+  });
+
+  test("se puede volver a reclamar: sin marca, o lo que quedó por un tope o por la plantilla; lo enviado y los motivos definitivos, no", () => {
+    for (const raw of [null, "text", "template", "pagina:plantilla", "pagina:marketing", "pagina:sin_precio", "pagina:tope", "pagina:ip"]) {
+      expect(registrationClaimable(raw)).toBe(true);
+    }
+    for (const s of ["enviando", "text", "template", "baja", "personal", "clienta", "pagado", "pais", "cerrado", "fallo", "ya_escrito"] as const) {
+      expect(registrationClaimable(pageVia(s))).toBe(false);
+    }
+    expect([...RETRYABLE_STATES].sort()).toEqual(["ip", "marketing", "plantilla", "sin_precio", "tope"]);
   });
 });
 
@@ -281,7 +330,11 @@ describe("lo que ve Dayana", () => {
       label: "WhatsApp no enviado",
       detail: "Pidió no recibir WhatsApp.",
     });
-    expect(registrationWaStatus({ state: "tope", message: null, updatedAt: at, now }).detail).toContain("40 por hora");
+    const tope = registrationWaStatus({ state: "tope", message: null, updatedAt: at, now });
+    expect(tope).toMatchObject({ kind: "pending", label: "WhatsApp: pendiente por el tope" });
+    expect(tope.detail).toContain("15 por hora");
+    expect(registrationWaStatus({ state: "ip", message: null, updatedAt: at, now }).detail).toContain("misma conexión");
+    expect(registrationWaStatus({ state: "pais", message: null, updatedAt: at, now })).toMatchObject({ kind: "skipped" });
     expect(registrationWaStatus({ state: "enviando", message: null, updatedAt: new Date(now.getTime() - 60_000), now }).kind).toBe("pending");
     expect(registrationWaStatus({ state: "enviando", message: null, updatedAt: at, now })).toMatchObject({ kind: "failed", label: "WhatsApp: no se sabe si salió" });
     expect(registrationWaStatus({ state: "fallo", message: null, updatedAt: at, now }).kind).toBe("failed");

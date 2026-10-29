@@ -6,7 +6,7 @@ import WorkshopRegisterForm from "@/app/components/workshops/WorkshopRegisterFor
 import { BRAND, buildWhatsAppUrl } from "@/lib/contact";
 import { currentSlugForPrevious } from "@/lib/crm/workshop-editions";
 import { loadRegistrationEdition } from "@/lib/crm/workshop-registration";
-import { registrationWhen, workshopRegistrationPath } from "@/lib/crm/workshop-registration-rules";
+import { registrationIntro, registrationThanks, registrationWhen, workshopRegistrationPath } from "@/lib/crm/workshop-registration-rules";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 
 export const dynamic = "force-dynamic";
@@ -90,10 +90,7 @@ const WorkshopRegistrationPage = async ({ params, searchParams }: PageProps) => 
               </span>
             </div>
 
-            <p className="mt-5 max-w-lg font-[font1] text-sm leading-relaxed text-black/60">
-              Déjanos tus datos y te escribimos por WhatsApp para completar tu inscripción: puedes hacer el pago en el enlace de inscripción o
-              agendar primero una llamada gratis con Dayana, donde te explica el taller y su valor.
-            </p>
+            <p className="mt-5 max-w-lg font-[font1] text-sm leading-relaxed text-black/60">{registrationIntro({ payable: Boolean(edition.payPath) })}</p>
             <a
               href={`/taller-virtual/${encodeURIComponent(edition.slug)}`}
               className="mt-3 inline-flex font-[font1] text-sm text-terracotta underline decoration-terracotta/30 underline-offset-4 transition-colors hover:decoration-terracotta"
@@ -110,7 +107,7 @@ const WorkshopRegistrationPage = async ({ params, searchParams }: PageProps) => 
             <div>
               <WorkshopRegisterForm
                 slug={edition.slug}
-                workshopTitle={edition.title}
+                thanksText={registrationThanks({ payable: Boolean(edition.payPath) })}
                 userCountry={userCountry}
                 payPath={edition.payPath}
                 whatsappHref={whatsappHref}

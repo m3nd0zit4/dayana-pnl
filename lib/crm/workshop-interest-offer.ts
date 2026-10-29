@@ -13,7 +13,13 @@ import { computeSegment } from "./whatsapp-agent/segment-store";
 import { workshopOfferTemplateMessage, workshopOfferText, workshopOutreachSource } from "./whatsapp-agent/workshop-interest";
 import { loadOutreachConversation, outreachAiOff, outreachRefusal } from "./workshop-outreach-guard";
 import { workshopPayUrl } from "./workshop-interests";
-import { pageVia, parsePageVia, REGISTRATION_TEMPLATE_KEY, workshopRegistrationTemplateVars } from "./workshop-registration-rules";
+import {
+  pageVia,
+  parsePageVia,
+  REGISTRATION_TEMPLATE_KEY,
+  registrationClientKey,
+  workshopRegistrationTemplateVars,
+} from "./workshop-registration-rules";
 
 /**
  * «Que la IA le escriba» en la lista de interesadas (dueña, 24-oct: «para que
@@ -117,8 +123,29 @@ export const offerWorkshopCall = async (
   }
   const windowOpen = resolveWindow("WHATSAPP", conv.lastInboundAt, now).isOpen;
   const fromPage = parsePageVia(interest.offered_via).page;
+  // «Recibimos tu registro» una sola vez (revisión 28-oct: con la clave por día,
+  // al día siguiente volvía a salir igual): si ya le llegó —el del registro o un
+  // «Que la IA le escriba» anterior con esa plantilla—, va la de siempre.
+  const registrationDelivered =
+    fromPage && !windowOpen
+      ? Boolean(
+          await prisma.conversationMessage.findFirst({
+            where: {
+              conversationId: conv.id,
+              direction: "OUTBOUND",
+              status: { not: "FAILED" },
+              OR: [
+                { clientKey: registrationClientKey(edition.id, conv.id) },
+                { source, body: { contains: "Recibimos tu registro para el taller" } },
+              ],
+            },
+            select: { id: true },
+          })
+        )
+      : false;
   // Solo aprobada como Utilidad (lo que se pidió): pasada a Marketing, la de siempre.
-  const registrationTemplate = fromPage && !windowOpen ? await approvedUtilityTemplateFor(REGISTRATION_TEMPLATE_KEY) : null;
+  const registrationTemplate =
+    fromPage && !windowOpen && !registrationDelivered ? await approvedUtilityTemplateFor(REGISTRATION_TEMPLATE_KEY) : null;
 
   let via: "text" | "template";
   try {
