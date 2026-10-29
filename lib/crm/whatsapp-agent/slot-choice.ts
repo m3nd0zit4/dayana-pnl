@@ -200,6 +200,9 @@ export const resolveChoice = (text: string, options: OfferedSlot[], ctx: ChoiceC
   return found.length > 1 ? { kind: "many", options: found } : { kind: "none" };
 };
 
+/** ¿Nombra un día o una hora («mañana», «el viernes», «a las 3», «23 de octubre»)? */
+export const namesWhen = (text: string): boolean => hasFilters(filtersOf(foldForSearch(text).replace(/\s+/g, " ").trim()));
+
 /** ¿Lo que confirmó el modelo («tu llamada queda para el viernes 30 a las 9:00 a. m.») es esta opción? Con día u hora, y todo cuadra. */
 export const claimMatches = (claim: string, option: OfferedSlot, ctx: ChoiceContext): boolean => {
   const filters = filtersOf(foldForSearch(claim).replace(/\s+/g, " "));
@@ -302,6 +305,14 @@ export const alreadyMessage = (label: string): string =>
 /** La hora que eligió ya no está libre: estas sí. */
 export const takenMessage = (options: OfferedSlot[]): string =>
   `Esa hora ya no está libre en la agenda de Dayana. Estas sí:\n\n${offerList(options)}`;
+
+/**
+ * Aceptó una hora que le propuso la asistente y esa hora ya no está libre
+ * (Xime, 22-oct: «viernes 8:00 a. m.» ya era de otra persona): se le dice, sin
+ * dejarla creyendo que quedó, y van las horas libres más cercanas a esa.
+ */
+export const agreedTakenMessage = (label: string, options: OfferedSlot[]): string =>
+  `Perdona, el ${label} ya no está libre en la agenda de Dayana. Estas son las horas libres más cercanas:\n\n${offerList(options)}`;
 
 /** La lista que pega el código debajo del mensaje: numerada, en el orden en que se guardó. */
 export const offerList = (options: OfferedSlot[]): string =>

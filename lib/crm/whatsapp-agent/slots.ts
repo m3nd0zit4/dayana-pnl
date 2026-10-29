@@ -250,6 +250,28 @@ export const pickFreeCallSlots = (
 };
 
 /**
+ * Las horas libres más cercanas a una que ya no está (Xime, 22-oct: aceptó
+ * «mañana viernes 8:00 a. m.» y ya era de otra persona; el mensaje de reagendar
+ * le mandó otras horas sueltas sin decirle nada de la suya). Primero las del
+ * mismo día (zona de Dayana), de la más cercana a la más lejana; luego las de
+ * otros días, también por cercanía. Sin días llenos ni la hora misma. En orden
+ * de hora, como cualquier lista.
+ */
+export const nearestFreeCallSlots = (
+  slots: Slot[],
+  p: { around: Date; count: number; timezone: string; fullDays?: Set<string> }
+): Slot[] => {
+  const at = p.around.getTime();
+  const day = getDateKeyInTz(p.around, p.timezone);
+  const open = slots.filter((s) => !p.fullDays?.has(s.dateKey) && new Date(s.startIso).getTime() !== at);
+  const dist = (s: Slot) => Math.abs(new Date(s.startIso).getTime() - at);
+  const byDistance = (a: Slot, b: Slot) => dist(a) - dist(b) || a.startIso.localeCompare(b.startIso);
+  const sameDay = open.filter((s) => s.dateKey === day).sort(byDistance);
+  const others = open.filter((s) => s.dateKey !== day).sort(byDistance);
+  return [...sameDay, ...others].slice(0, Math.max(0, p.count)).sort((a, b) => a.startIso.localeCompare(b.startIso));
+};
+
+/**
  * Cuándo puede la persona (lo que dijo: «solo los martes», «el jueves en la
  * tarde», «la otra semana», «el lunes no puedo»), en SU hora.
  */

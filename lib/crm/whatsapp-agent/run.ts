@@ -44,7 +44,7 @@ import { enrolledInWorkshop, openWorkshopForAi } from "../workshop-interests";
 import { spendLimits } from "./spend";
 import { configWithSpendLevel } from "./spend-store";
 import { handleWaitingRoom } from "./waiting-room";
-import { handleCallFollowUpReply } from "./call-outcome";
+import { handleCallFollowUpReply, noteCallMovedInChat } from "./call-outcome";
 import { pauseHolds } from "./pause-rules";
 import { wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
@@ -320,17 +320,21 @@ export const runWhatsAppAi = async (input: {
 
     // Sala de espera de la llamada gratis: un aviso corto y a tiempo («Dayana
     // está terminando una reunión»), aunque el chat esté en copiloto o en
-    // pausa. A la hora de su llamada, la IA no se pone a conversar.
-    // Si Dayana tomó el chat, lo atiende ella.
+    // pausa. A la hora de su llamada, la IA no se pone a conversar de la
+    // llamada; lo que habla de otra hora sigue ya (Xime, 22-oct: `movingId`) y
+    // otra cosa queda para después de su hora (`free_call_later`, lo retoma
+    // «pendientes»). Si Dayana tomó el chat, lo atiende ella.
+    let movingCallId: string | null = null;
     if (enabled && (head.aiModeOverride !== "MANUAL" || always)) {
       const waiting = await handleWaitingRoom({ config: routeConfig, conversationId, triggerMessageId: input.triggerMessageId });
+      movingCallId = waiting.movingId ?? null;
       if (waiting.quiet) {
         if (!waiting.sent) {
           await prisma.whatsAppAiRun.create({
             data: {
               conversationId,
               status: "SKIPPED",
-              reason: "free_call_now",
+              reason: waiting.later ? "free_call_later" : "free_call_now",
               triggerMessageId: input.triggerMessageId,
               finishedAt: new Date(),
               latencyMs: 0,
@@ -583,10 +587,14 @@ export const runWhatsAppAi = async (input: {
     // En qué punto está con Dayana: lo recién calculado (con el enrutador) o lo que dice la ficha.
     // Con una duda sobre si ya pagó (dice que transfirió, la clasificación
     // cree que es clienta), nada de ofrecerle la llamada gratis.
-    const stage =
+    const computedStage =
       segmentResult && segmentResult.review && segmentResult.segment !== "client"
         ? "por_revisar"
         : (segmentResult?.stage ?? (isStage(dossier?.stage) ? dossier.stage : null));
+    // A la hora de su llamada habla de otra hora (Xime, 22-oct) y la llamada ya pasó su
+    // hora de fin sin resultado: eso cuenta como «tuvo la llamada», pero no la tuvo. En
+    // esta vuelta sigue siendo una llamada por agendar (no «ya la tuviste, paga primero»).
+    const stage = movingCallId && computedStage === "tuvo_llamada" ? "llamada_agendada" : computedStage;
     // El taller abierto: quien preguntó por él (24 h) separa la llamada con
     // Dayana para inscribirse aunque ya haya tenido la suya o ya haya sido
     // clienta (dueña, 24-oct: «para inscribirse toca con llamada a Dayana»).
@@ -612,7 +620,8 @@ export const runWhatsAppAi = async (input: {
       (route.segment === "new_lead" ||
         route.segment === "returning_lead" ||
         route.segment === "free_call_booked" ||
-        (workshopCall && route.segment === "after_call"));
+        // …o la de ahora, que ya pasó su hora sin resultado y habla de otra hora (arriba).
+        ((workshopCall || stage !== computedStage) && route.segment === "after_call"));
     const nameInfo = await chatNameInfo(conversationId);
     const freeCallOn =
       config.salesFlow.enabled && config.booking.enabled && (!(stage && NO_FREE_CALL_STAGES.has(stage)) || workshopCall);
@@ -1106,6 +1115,12 @@ export const runWhatsAppAi = async (input: {
         );
       }
       await finish(run.id, "REPLIED");
+      // A la hora de su llamada pidió otra hora y le mandamos horas (Xime, 22-oct):
+      // esa llamada no va. Queda «no contestó» con las horas ya enviadas, así ni
+      // «¿Pudiste hablar?» ni otras horas de «No contestó» la contradicen.
+      if (movingCallId && result.slotOffer && !result.booking) {
+        await noteCallMovedInChat(movingCallId).catch((e: unknown) => console.warn("[whatsapp-agent] llamada movida a la hora", e));
+      }
       // Le dijo «le paso tu mensaje a Dayana» sin escalar: Dayana se entera igual
       // (Ricky, 17-oct: nunca le llegó nada). Si no, se cierra el «sin responder».
       const alreadyTold = Boolean(result.receipt || result.urgentSession || result.bookingRequest);

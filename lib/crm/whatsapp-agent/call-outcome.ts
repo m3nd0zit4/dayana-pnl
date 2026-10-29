@@ -24,9 +24,13 @@ import {
 } from "./call-outcome-rules";
 import { personZoneFor } from "./booking-time";
 import { isFreeCallAppointment } from "./event-title";
-import { offerFreeCallSlots } from "./free-call";
+import { latestFreeCallOffer, offerFreeCallSlots, upcomingFreeCall } from "./free-call";
 import { slotLabel } from "./free-call-rules";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
+import { DEFAULT_WAITING } from "./waiting-room-rules";
+import { AGREED_MAX_AGE_MS } from "./agreed-time";
+import { bookingTurn } from "./booking-turn";
+import type { BrainResult } from "./brain";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { personFirstName } from "@/lib/person-name";
 import { dayanaPaymentInfoAt } from "./dayana-messages";
@@ -137,10 +141,143 @@ const settle = async (
     })
   ).count > 0;
 
+const MOVED_REASON = "A la hora de su llamada pidió otra hora y se le mandaron horas para reagendar.";
+
+/**
+ * A la hora de su llamada gratis pidió otra hora y la asistente le mandó horas
+ * (`run.ts`, Xime 22-oct): esa llamada no va. Queda «no contestó» (chat) con
+ * las horas ya enviadas, así no le llega «¿Pudiste hablar con Dayana?» ni otro
+ * mensaje de reagendar, y su estado vuelve a ser de quien puede agendar (pasada
+ * la hora, una llamada sin resultado contaba como hecha). Solo si nadie la decidió.
+ */
+export const noteCallMovedInChat = async (appointmentId: string): Promise<boolean> =>
+  (
+    await prisma.calendarAppointment.updateMany({
+      where: { id: appointmentId, callOutcome: null },
+      data: { callOutcome: "no_answer", callOutcomeSource: "chat", callOutcomeReason: MOVED_REASON, callOutcomeAt: new Date(), rescheduleSentAt: new Date() },
+    })
+  ).count > 0;
+
+type ChatReschedule = { kind: "handled" } | { kind: "turn"; turn: BrainResult } | { kind: "hours" };
+
+/**
+ * Antes de mandar horas para reagendar, lo que ya quedó en el chat (Xime,
+ * 22-oct: a las 9:55 pidió reagendar, la asistente le propuso «mañana viernes
+ * 8:00 a. m.», a las 10:18 dijo que sí y a las 10:21 «No contestó» le mandó
+ * otras tres horas sin decirle nada de la suya; creyó que tenía llamada el viernes):
+ *
+ * 1. Ya tiene otra llamada gratis agendada: no se le manda nada.
+ * 2. Lo último es de ella (≤ 12 h) y elige de la última lista o acepta la hora
+ *    que se le propuso: el turno de agenda del código (`bookingTurn`): la
+ *    agenda si está libre o le dice que ya no y le manda las más cercanas.
+ * 3. Ya se le mandaron horas desde su hora (se le contestó en la llamada): no
+ *    sale otra lista distinta.
+ * 4. Si no, las horas de siempre.
+ */
+const rescheduleFromChat = async (
+  appt: Appt,
+  conv: Conv,
+  config: WhatsAppAiConfig,
+  ctx: { now: Date; personTz: string | null; dayanaTz: string }
+): Promise<ChatReschedule> => {
+  const later = await upcomingFreeCall(conv.id, config, ctx.now).catch(() => null);
+  if (later && later.startsAt.getTime() > appt.startsAt.getTime()) return { kind: "handled" };
+  if (config.booking.enabled && config.freeCall.controller) {
+    const messages = await prisma.conversationMessage.findMany({
+      where: { conversationId: conv.id },
+      orderBy: [{ sentAt: "desc" }, { id: "desc" }],
+      take: 30,
+      select: { direction: true, body: true, sentAt: true, kind: true, status: true, attachments: true, isAutoReply: true, source: true, clientKey: true },
+    });
+    const last = messages.find((m) => m.kind !== "system" && m.status !== "FAILED");
+    if (last?.direction === "INBOUND" && ctx.now.getTime() - last.sentAt.getTime() <= AGREED_MAX_AGE_MS) {
+      const sure = await nameOf(appt, conv);
+      const turn = await bookingTurn({
+        config,
+        conversationId: conv.id,
+        contactId: conv.contactId,
+        phone: conv.externalThreadId,
+        firstName: personFirstName(sure) ?? null,
+        name: sure ?? appt.name ?? conv.participantName,
+        personTz: ctx.personTz,
+        dayanaTz: ctx.dayanaTz,
+        messages,
+        now: ctx.now,
+      }).catch((e: unknown) => {
+        console.warn("[seguimiento llamada] no se pudo leer lo que acordó en el chat", e instanceof Error ? e.message : e);
+        return null;
+      });
+      if (turn?.outcome.kind === "reply" && turn.outcome.message.trim()) return { kind: "turn", turn };
+    }
+  }
+  const offer = await latestFreeCallOffer(conv.id, ctx.now).catch(() => null);
+  if (offer && offer.at.getTime() >= appt.startsAt.getTime() - DEFAULT_WAITING.beforeMin * 60_000) return { kind: "handled" };
+  return { kind: "hours" };
+};
+
+/** Lo que salió del turno de agenda (agendada a la hora acordada, o las más cercanas), en lugar del mensaje de horas. */
+const sendChatTurn = async (
+  appt: Appt,
+  conv: Conv,
+  turn: BrainResult,
+  opts: { triggerMessageId?: string | null; notify?: boolean }
+): Promise<RescheduleSend> => {
+  const text = turn.outcome.kind === "reply" ? turn.outcome.message : "";
+  const r = await sendWhatsAppToRecipient({
+    recipient: await recipientFor(appt, conv),
+    text,
+    // Responde a lo que acaba de escribir (≤ 12 h): va como texto. Una plantilla de «no contestó» no diría esto.
+    templateKey: null,
+    source: `recordatorio:no-contesto:${appt.eventId}`,
+    isAutoReply: true,
+    clientKey: `noshow:${appt.eventId}`,
+  }).catch((e: unknown) => ({ status: "failed" as const, error: e instanceof Error ? e.message : String(e) }));
+  const booked = turn.bookingNotice?.label ?? null;
+  if (r.status === "sent") {
+    await prisma.calendarAppointment.update({ where: { id: appt.id }, data: { rescheduleSentAt: new Date() } });
+    // Como lo registra la IA: si es una lista, «1» se agenda por código.
+    await prisma.whatsAppAiRun.create({
+      data: {
+        conversationId: conv.id,
+        status: "REPLIED",
+        reason: "call_no_answer",
+        triggerMessageId: opts.triggerMessageId ?? null,
+        toolCalls: turn.toolCalls as unknown as Prisma.InputJsonValue,
+        finishedAt: new Date(),
+        latencyMs: 0,
+      },
+    });
+  }
+  const who = (await nameOf(appt, conv)) ?? `+${appt.phone ?? conv.externalThreadId}`;
+  // Agendada y el mensaje no salió: Dayana tiene que saberlo aunque lo haya marcado ella.
+  if (opts.notify !== false || (booked && r.status !== "sent")) {
+    fireNotification({
+      eventType: r.status === "sent" ? "WHATSAPP_AI_INFO" : "WHATSAPP_AI_ESCALATED",
+      title: `${who} no contestó la llamada gratis`,
+      body:
+        r.status === "sent"
+          ? booked
+            ? `Ya había quedado en el chat con otra hora: quedó agendada para ${booked}.`
+            : "La hora que acordó en el chat ya no estaba libre: le mandé las más cercanas."
+          : booked
+            ? `Quedó agendada para ${booked} (lo acordó en el chat), pero el mensaje no le salió. Escríbele tú.`
+            : "El mensaje no salió. Revisa el chat.",
+      href: `/admin/whatsapp?conversation=${conv.id}`,
+      entityType: "Conversation",
+      entityId: conv.id,
+      staff: "ALL",
+    });
+  }
+  if (r.status !== "sent") return rescheduleSendOf(r);
+  return booked ? { sent: true, booked } : { sent: true };
+};
+
 /**
  * El mensaje para reagendar, con horas libres de verdad (en su hora y la de
  * Colombia). Devuelve si salió y, si no, por qué (`needs_template`: pasaron
- * más de 24 h desde su último mensaje y la plantilla no está aprobada).
+ * más de 24 h desde su último mensaje y la plantilla no está aprobada;
+ * `handled`: en el chat ya quedó con otra hora o ya se le mandaron horas).
+ * Lo que acordó en el chat va primero (`rescheduleFromChat`).
  * `notify: false` cuando lo pidió Dayana con un toque: ya lo ve en pantalla.
  */
 const sendReschedule = async (
@@ -152,6 +289,12 @@ const sendReschedule = async (
   const triggerMessageId = opts.triggerMessageId;
   const dayanaTz = await getOperationalTimezone();
   const personTz = personZoneOf(conv);
+  // Lo que ya quedó en el chat manda sobre las horas sueltas (Xime, 22-oct: dijo
+  // que sí a «mañana a las 8:00» y este mensaje le mandó otras tres horas).
+  const now = new Date();
+  const chat = await rescheduleFromChat(appt, conv, config, { now, personTz, dayanaTz });
+  if (chat.kind === "handled") return { sent: false, reason: "handled" };
+  if (chat.kind === "turn") return sendChatTurn(appt, conv, chat.turn, { triggerMessageId, notify: opts.notify });
   // Con su zona, las dos horas (la suya y la de Colombia); sin saberla, la de
   // Colombia dicha como tal (`slotLabel`). Así quedan también como ofrecidas.
   const options = (
@@ -442,12 +585,15 @@ export type MarkCallOutcomeResult =
       outcome: CallOutcome;
       /** Salió el mensaje para reagendar (solo con «no contestó»). */
       sent: boolean;
+      /** Ya había quedado en el chat con otra hora: quedó agendada para esta (la etiqueta). */
+      booked?: string;
       /**
        * Por qué no salió: `needs_template` (su último mensaje fue hace más de
        * 24 h y la plantilla «Llamada gratis: no contestó» no está aprobada),
-       * `silenced` (la asistente no escribe en este chat), `failed`.
+       * `silenced` (la asistente no escribe en este chat), `handled` (en el
+       * chat ya tiene otra llamada o ya se le mandaron horas), `failed`.
        */
-      reason?: "needs_template" | "silenced" | "failed";
+      reason?: "needs_template" | "silenced" | "failed" | "handled";
     }
   | { ok: false; error: "not_found" | "not_free" | "not_yet" | "already_decided" };
 
@@ -493,7 +639,7 @@ export const markCallOutcome = async (input: {
     const r: RescheduleSend = conv
       ? await sendReschedule(appt, conv, config, { notify: false })
       : { sent: false, reason: "failed" };
-    result = r.sent ? { ...result, sent: true } : { ...result, reason: r.reason };
+    result = r.sent ? { ...result, sent: true, ...(r.booked ? { booked: r.booked } : {}) } : { ...result, reason: r.reason };
   }
   await writeAuditLog({
     staffUserId: input.staffUserId ?? undefined,
@@ -506,7 +652,7 @@ export const markCallOutcome = async (input: {
 };
 
 export type ChangeCallOutcomeResult =
-  | { ok: true; outcome: CallOutcome; sent: boolean; reason?: "needs_template" | "silenced" | "failed" }
+  | { ok: true; outcome: CallOutcome; sent: boolean; booked?: string; reason?: "needs_template" | "silenced" | "failed" | "handled" }
   | { ok: false; error: "not_found" | "not_changeable" | "same" | "changed_meanwhile" };
 
 /**
@@ -550,7 +696,7 @@ export const changeCallOutcome = async (input: {
   if (plan.send === "silenced") result = { ...result, reason: "silenced" };
   else if (plan.send === "reschedule") {
     const r: RescheduleSend = conv ? await sendReschedule(appt, conv, config, { notify: false }) : { sent: false, reason: "failed" };
-    result = r.sent ? { ...result, sent: true } : { ...result, reason: r.reason };
+    result = r.sent ? { ...result, sent: true, ...(r.booked ? { booked: r.booked } : {}) } : { ...result, reason: r.reason };
   }
   await writeAuditLog({
     staffUserId: input.staffUserId ?? undefined,

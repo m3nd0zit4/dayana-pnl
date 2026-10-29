@@ -9,7 +9,7 @@ import { useCrm } from "../crm/CrmProvider";
 import { ActionButton } from "./chat/ui";
 import { wa } from "./chat/chatTheme";
 
-type Reason = "needs_template" | "silenced" | "failed";
+type Reason = "needs_template" | "silenced" | "failed" | "handled";
 
 /** Por qué no salió el mensaje para reagendar, dicho para Dayana. */
 const NOTICE: Record<Reason, string> = {
@@ -18,6 +18,7 @@ const NOTICE: Record<Reason, string> = {
   silenced:
     "Quedó como no contestada. No se le escribió: la asistente no escribe en este chat (modo manual, chat tomado por ti, clienta o número personal). Escríbele tú para reagendar.",
   failed: "Quedó como no contestada, pero el mensaje para reagendar no salió. Escríbele tú desde aquí o desde tu celular.",
+  handled: "Quedó como no contestada. No se le mandaron horas: en el chat ya quedó con otra hora o la asistente ya le mandó horas.",
 };
 
 /** De dónde salió lo que dice la llamada, dicho corto. */
@@ -79,7 +80,7 @@ const CallOutcomeBar = ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "change_outcome", appointmentId, outcome, sendHours }),
     }).catch(() => null);
-    const data = ((await res?.json().catch(() => ({}))) ?? {}) as { error?: string; sent?: boolean; reason?: Reason };
+    const data = ((await res?.json().catch(() => ({}))) ?? {}) as { error?: string; sent?: boolean; booked?: string; reason?: Reason };
     setBusy(null);
     setEditing(null);
     if (!res?.ok) {
@@ -88,7 +89,7 @@ const CallOutcomeBar = ({
       return;
     }
     if (outcome === "answered") toast("Listo: ahora dice que hablaron.", "success");
-    else if (data.sent) toast("Listo: no contestó. Le mandamos horas para reagendar.", "success");
+    else if (data.sent) toast(data.booked ? `Listo: no contestó. Ya lo había acordado en el chat: quedó para el ${data.booked}.` : "Listo: no contestó. Le mandamos horas para reagendar.", "success");
     else if (sendHours && data.reason) setNotice({ chatId, reason: data.reason });
     else toast("Listo: ahora dice que no contestó (sin mensaje).", "success");
     onChanged();
@@ -101,7 +102,7 @@ const CallOutcomeBar = ({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "outcome", appointmentId, outcome }),
     }).catch(() => null);
-    const data = ((await res?.json().catch(() => ({}))) ?? {}) as { error?: string; sent?: boolean; reason?: Reason };
+    const data = ((await res?.json().catch(() => ({}))) ?? {}) as { error?: string; sent?: boolean; booked?: string; reason?: Reason };
     setBusy(null);
     if (!res?.ok) {
       toast(data.error === "already_decided" ? "Esa llamada ya estaba marcada (puedes cambiarla)." : "No se pudo guardar. Intenta de nuevo.", "error");
@@ -109,7 +110,7 @@ const CallOutcomeBar = ({
       return;
     }
     if (outcome === "answered") toast("Listo: quedó que hablaron. Si te equivocaste, toca «Cambiar».", "success");
-    else if (data.sent) toast("Le mandamos horas para reagendar.", "success");
+    else if (data.sent) toast(data.booked ? `Ya lo había acordado en el chat: quedó para el ${data.booked}.` : "Le mandamos horas para reagendar.", "success");
     else setNotice({ chatId, reason: data.reason ?? "failed" });
     onChanged();
   };

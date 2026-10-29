@@ -9,8 +9,10 @@ import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { readCalendar } from "./calendar";
-import { DEFAULT_WAITING, decideWaiting, waitingMessage, type WaitingDecision } from "./waiting-room-rules";
+import { callWindowReply, DEFAULT_WAITING, decideWaiting, waitingMessage, type WaitingDecision, type WindowReply } from "./waiting-room-rules";
 import { appointmentGreetingName } from "./chat-name";
+import { burstAndAsk, offeredHoursBefore } from "./agreed-time";
+import { foldForSearch } from "../search-normalize";
 
 /**
  * La sala de espera de la llamada gratis, con la base y el calendario. Las
@@ -91,7 +93,9 @@ const noticeFor = async (input: {
   triggerMessageId?: string | null;
   /** El reloj solo avisa «está terminando una reunión» (sin que la persona escriba, «ya le aviso» no tiene sentido). */
   onlyBusy?: boolean;
-}): Promise<{ sent: boolean; decision: WaitingDecision; holdAi: boolean }> => {
+  /** Lo que escribió, si escribió (`callWindowReply`): solo se mira con una cita en su hora. */
+  reply?: () => Promise<WindowReply>;
+}): Promise<{ sent: boolean; decision: WaitingDecision; holdAi: boolean; later?: boolean; movingId?: string }> => {
   const appt = await appointmentNear(input, input.now);
   if (!appt) return { sent: false, decision: { kind: "none", reason: "sin cita cerca" }, holdAi: false };
   const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true, createdAt: true } });
@@ -113,7 +117,14 @@ const noticeFor = async (input: {
     lastDayanaAt: await lastDayanaMessage(input.conversationId),
     notices: { count: appt.waitNoticeCount, lastAt: appt.waitNoticeAt },
   });
-  if (decision.kind === "none") return { sent: false, decision, holdAi: Boolean(decision.holdAi) };
+  if (decision.kind === "none" && !decision.holdAi) return { sent: false, decision, holdAi: false };
+  // Es su hora y escribió algo que no es de esta llamada (Xime, 22-oct: su «sí» a
+  // otra hora se quedó sin respuesta): otra hora se atiende ya (`movingId`: esa
+  // llamada no va); otra cosa, después de su hora. Ni lo uno ni lo otro lleva el aviso.
+  const kind = input.reply ? await input.reply() : "now";
+  if (kind === "move") return { sent: false, decision: { kind: "none", reason: "habla de otra hora" }, holdAi: false, movingId: appt.id };
+  if (kind === "later") return { sent: false, decision: { kind: "none", reason: "otra cosa: después de su hora", holdAi: true }, holdAi: true, later: true };
+  if (decision.kind === "none") return { sent: false, decision, holdAi: true };
   if (input.onlyBusy && decision.kind !== "busy") return { sent: false, decision, holdAi: false };
 
   // Reclamo atómico: dos mensajes seguidos de la persona no mandan dos avisos.
@@ -210,33 +221,55 @@ export const waitingRoomBlocked = async (conv: GuardedConversation, config: What
       conv.dossier?.segment === "ignored" ||
       (await isIgnoredNumber(conv.externalThreadId));
 
+/** Qué escribió (sus mensajes seguidos) a la hora de su llamada: `callWindowReply`. */
+const windowReplyOf = async (conversationId: string, now: Date): Promise<WindowReply> => {
+  const rows = await prisma.conversationMessage.findMany({
+    where: { conversationId },
+    orderBy: [{ sentAt: "desc" }, { id: "desc" }],
+    take: 12,
+    select: { direction: true, body: true, sentAt: true, kind: true, status: true, attachments: true, isAutoReply: true, source: true, clientKey: true },
+  });
+  const { burst } = burstAndAsk(rows);
+  const today = foldForSearch(new Intl.DateTimeFormat("es-CO", { timeZone: await getOperationalTimezone(), weekday: "long" }).format(now));
+  return callWindowReply({
+    text: burst.map((m) => m.body ?? "").join(" "),
+    offeredHours: offeredHoursBefore(rows, now),
+    todayWeekdays: [today],
+  });
+};
+
 /**
  * Cuando la persona escribe. `sent`: se le mandó el aviso. `quiet`: es la hora
  * de su llamada gratis: la IA no se pone a conversar (Dayana está por llamarla).
+ * `later`: lo que escribió no es de la llamada: se le contesta pasada su hora
+ * (el reloj de «pendientes» lo retoma). `movingId`: habla de otra hora (Xime,
+ * 22-oct): la vuelta sigue ya, como un turno de agenda, y esa llamada no va.
  */
 export const handleWaitingRoom = async (input: {
   config: WhatsAppAiConfig;
   conversationId: string;
   triggerMessageId: string;
   now?: Date;
-}): Promise<{ sent: boolean; quiet: boolean }> => {
+}): Promise<{ sent: boolean; quiet: boolean; later?: boolean; movingId?: string }> => {
   const none = { sent: false, quiet: false };
   if (!input.config.waitingRoom.enabled) return none;
   const conv = await prisma.conversation.findUnique({ where: { id: input.conversationId }, select: GUARD_SELECT });
   if (!conv || (await waitingRoomBlocked(conv, input.config))) return none;
+  const now = input.now ?? new Date();
   const r = await noticeFor({
     config: input.config,
     conversationId: input.conversationId,
     contactId: conv.contactId,
     phone: conv.externalThreadId,
     name: conv.contact?.firstName ?? conv.participantName,
-    now: input.now ?? new Date(),
+    now,
     triggerMessageId: input.triggerMessageId,
+    reply: () => windowReplyOf(input.conversationId, now),
   }).catch((e: unknown) => {
     console.warn("[sala de espera] no se pudo revisar", e);
-    return { sent: false, holdAi: false };
+    return { sent: false, holdAi: false, later: false, movingId: undefined };
   });
-  return { sent: r.sent, quiet: r.sent || r.holdAi };
+  return { sent: r.sent, quiet: r.sent || r.holdAi, later: Boolean(r.later), movingId: r.movingId };
 };
 
 /** El reloj: a quien ya es su hora y Dayana sigue ocupada, aunque no haya escrito (ventana abierta). */

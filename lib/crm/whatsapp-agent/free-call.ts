@@ -17,7 +17,7 @@ import {
   type UpcomingFreeCall,
 } from "./free-call-rules";
 import { resolveConversations } from "./pending";
-import { hasWish, matchesWish, pickFreeCallSlots, relaxedWishes, type SlotWish, type WishStep } from "./slots";
+import { hasWish, matchesWish, nearestFreeCallSlots, pickFreeCallSlots, relaxedWishes, type SlotWish, type WishStep } from "./slots";
 
 /**
  * La llamada gratis de 15 minutos: el único objetivo de la asistente con una
@@ -168,6 +168,39 @@ export const offerFreeCallSlotsFor = async (input: {
     return { options: [], matchedWish: false, closest: "any" };
   }
   return { options: pick(slots).map(label), matchedWish: null };
+};
+
+/**
+ * ¿Esa hora está libre de verdad en la agenda de Dayana (y su día con cupo)?
+ * Y las horas libres más cercanas (`nearestFreeCallSlots`). Para la hora que
+ * escribió el modelo y la persona aceptó (Xime, 22-oct): sin `offer_free_call_slots`
+ * no hay respaldo, así que solo se agenda si está entre las horas libres.
+ */
+export const freeCallSlotsAround = async (input: {
+  config: WhatsAppAiConfig;
+  personTz: string;
+  dayanaTz: string;
+  around: Date;
+  now?: Date;
+}): Promise<{ free: boolean; options: FreeCallOption[] }> => {
+  const now = input.now ?? new Date();
+  const service = freeCallService(input.config);
+  const [slots, fullDays] = await Promise.all([
+    (calendarDeps.available ?? availableSlots)({
+      config: input.config.booking,
+      durationMin: service.minutes,
+      timezone: input.dayanaTz,
+      now,
+      limit: 2000,
+    }),
+    fullFreeCallDays(input.config, input.dayanaTz, now).catch(() => new Set<string>()),
+  ]);
+  const at = input.around.getTime();
+  const free = slots.some((s) => new Date(s.startIso).getTime() === at && !fullDays.has(s.dateKey));
+  const options = nearestFreeCallSlots(slots, { around: input.around, count: input.config.freeCall.offer, timezone: input.dayanaTz, fullDays }).map(
+    (s) => ({ startIso: s.startIso, label: dualZoneLabel(s.startIso, input.personTz, input.dayanaTz) })
+  );
+  return { free, options };
 };
 
 export const offerFreeCallSlots = async (input: {

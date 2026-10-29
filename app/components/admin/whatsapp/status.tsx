@@ -50,6 +50,7 @@ export const SKIP_LABEL: Record<string, string> = {
   personal_number: "Número personal: la IA no responde",
   ignored_segment: "Personal, equipo o empresa: la IA no responde",
   free_call_now: "Es la hora de su llamada gratis: la IA no conversa",
+  free_call_later: "Escribió otra cosa a la hora de su llamada gratis: se le contesta pasada su hora",
   customer: "Es clienta: la atiendes tú",
   after_call: "Ya tuvo la llamada gratis: la atiendes tú",
   no_model_key: "Falta la clave del modelo",

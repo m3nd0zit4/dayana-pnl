@@ -19,8 +19,12 @@ import { runWhatsAppAi } from "./run";
  * el botón «Contestar pendientes».
  */
 
-/** Por qué una vuelta anterior no contestó y vale la pena volver a intentarlo (las reglas cambiaron). */
-const RETRYABLE_SKIPS = ["paused", "human_replied", "known_contact", "disabled", "owner_hours"];
+/**
+ * Por qué una vuelta anterior no contestó y vale la pena volver a intentarlo (las reglas cambiaron).
+ * `free_call_later`: escribió otra cosa a la hora de su llamada gratis; pasada su hora se le contesta
+ * (Xime, 22-oct: lo que llegaba en esa media hora se perdía).
+ */
+const RETRYABLE_SKIPS = ["paused", "human_replied", "known_contact", "disabled", "owner_hours", "free_call_later"];
 
 export type PendingChat = { conversationId: string; triggerMessageId: string; name: string; lastInboundAt: Date };
 

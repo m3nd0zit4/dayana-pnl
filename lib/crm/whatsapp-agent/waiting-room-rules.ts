@@ -1,5 +1,7 @@
 import { isFreeCallAppointment } from "./event-title";
 import { personFirstName } from "@/lib/person-name";
+import { foldForSearch } from "../search-normalize";
+import { timesIn } from "./promise-guard";
 
 /**
  * La sala de espera de la llamada gratis (pedido de la dueña), en reglas
@@ -90,6 +92,57 @@ export const decideWaiting = (input: {
   if (busyNow) return { kind: "busy", reason: "Dayana está en otra cita o reunión" };
   if (now >= start - 2 * 60_000) return { kind: "not_started", reason: "ya es la hora y Dayana no ha empezado" };
   return { kind: "none", reason: "todavía no es la hora" };
+};
+
+/**
+ * Lo que escribe a la hora de su llamada gratis (Xime, 22-oct). La sala de
+ * espera callaba TODO lo que llegara en esa media hora (`free_call_now`): su
+ * «si mañana esta perfecto a esa hora» —el sí a otra hora que le propuso la
+ * asistente— no tuvo respuesta, y después el mensaje de «no contestó» le mandó
+ * otras horas. Ahora:
+ *
+ * - `move`: habla de OTRA hora (pide reagendar, nombra otro día u otra hora,
+ *   dice que sí o elige de las horas que le acabamos de ofrecer). Se atiende ya
+ *   como un turno de agenda: esperar solo le quita la hora y Dayana no la va a
+ *   encontrar en esta llamada.
+ * - `now`: es de la llamada de ahora («ya estoy lista», «¿me va a llamar?»,
+ *   «¿sigues ahí?», un saludo, «ok», «gracias»). Como siempre: el aviso de la
+ *   sala de espera o nada, la IA no conversa.
+ * - `later`: otra cosa (una pregunta que no es de la llamada). No se contesta
+ *   encima de la llamada: queda para cuando pase su hora («pendientes» del
+ *   reloj la retoma si nadie le contestó).
+ *
+ * `offeredHours`: lo último nuestro antes de lo que escribió le ofrecía horas
+ * (`offeredHoursBefore`). `todayWeekdays`: el día de hoy («jueves»), que no es «otro día».
+ */
+export type WindowReply = "move" | "now" | "later";
+
+const MOVE_WORDS =
+  /\b(reagend\w*|re agend\w*|reprogram\w*|posponer|pospon\w*|aplazar|aplac\w*|otro dia|otra (hora|fecha)|otro horario|otro momento|imprevisto|cambiar (la|mi|de|el) (cita|llamada|hora|fecha|dia|horario)|mover (la|mi) (cita|llamada)|no (voy|vamos) a (poder|estar|alcanzar)|no (podre|podria|alcanzo|alcanzare|estare)|se me (complico|presento|atraveso|cruzo))\b/;
+const DAY_WORDS = /\b(pasado manana|la (otra|proxima) semana|\d{1,2} de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre))\b|(?<!\b(?:la|pasado|esta)\s)\bmanana\b/;
+const WEEKDAY_WORDS = /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/g;
+/** De la llamada de ahora: está lista o esperando, pregunta si la llaman, algo de la conexión. */
+const CALL_NOW =
+  /\b(llam\w*|marc\w*|esper\w*|list[ao]s?|conect\w*|disponible|ahi|aqui|aca|whatsapp|videollamada|contest\w*|timbr\w*|escucho|escuchas|se corto|se cayo|ya voy|ya casi|en camino|un momento|un minuto|un ratito|cinco minutos|\d+ minutos|ya estoy|ya es la hora|ya son las|salgo|llego|cita)\b/;
+/** Un saludo, un «ok», un «gracias», un «amén», emojis: nada que contestar fuera de la llamada. */
+const COURTESY = new Set(
+  "hola holi buenas buenos buen dia dias tardes tarde noches noche ok okey okay oki vale gracias mil muchas listo si sii perfecto perfecta bueno amen dios bendiciones bendigo te le dale claro genial excelente super ya muy y senora dayana doctora dra".split(
+    " "
+  )
+);
+const YES_OR_CHOICE = /^(si+|ok+|okey|okay|vale|dale|listo|perfect[oa]|claro|bueno|de acuerdo|esta bien|me sirve|me queda|[1-9]|la [1-9]|opcion [1-9])\b|\b(primera|segunda|tercera|ultima|si+|perfect[oa]|me sirve|me queda bien|de acuerdo)\b/;
+
+export const callWindowReply = (input: { text: string; offeredHours: boolean; todayWeekdays?: string[] }): WindowReply => {
+  const t = foldForSearch(input.text).replace(/[^\p{L}\p{N}:?¿\s]/gu, " ").replace(/\s+/g, " ").trim();
+  if (!t) return "now";
+  const today = new Set(input.todayWeekdays ?? []);
+  const otherWeekday = [...t.matchAll(WEEKDAY_WORDS)].some((m) => !today.has(m[1]));
+  if (MOVE_WORDS.test(t) || DAY_WORDS.test(t) || otherWeekday) return "move";
+  if (CALL_NOW.test(t)) return "now";
+  if (input.offeredHours && YES_OR_CHOICE.test(t)) return "move";
+  if (timesIn(t).length > 0) return "move";
+  if (t.split(" ").every((w) => COURTESY.has(w))) return "now";
+  return "later";
 };
 
 const firstName = (name: string | null | undefined) => personFirstName(name) ?? "";

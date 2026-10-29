@@ -84,7 +84,7 @@ import {
 } from "./workshop-interest";
 import { enrolledInWorkshop, openWorkshopForAi } from "../workshop-interests";
 import { asksHowToPay, quotePayReply, quotePromptLine, quoteSituation, withQuoteReminder } from "./quote-follow-up-rules";
-import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
+import { agreedTakenMessage, bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
   afterFreeCallBooked,
@@ -93,11 +93,16 @@ import {
   dualZoneLabel,
   FreeCallError,
   freeCallService,
+  freeCallSlotsAround,
   moveFreeCall,
   offeredFreeCallSlots,
   offerFreeCallSlotsFor,
   upcomingFreeCall,
 } from "./free-call";
+import { agreedProposal } from "./agreed-time";
+
+/** Escaladas que, ante un «sí» a la hora que propuso la asistente, son en realidad agendar (Xime, 22-oct). */
+const AGREED_ESCALATIONS = new Set<string>(["reschedule", "other", "unknown"]);
 
 /**
  * El asistente de WhatsApp: lee el chat, decide y, si hace falta, usa
@@ -2747,6 +2752,69 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     const entry = toolCalls.at(-1);
     if (entry?.tool === "offer_free_call_slots") entry.input = { ...(entry.input as object), auto: true };
   }
+  // Dijo que sí a la hora que la asistente le propuso sola, sin la agenda (Xime, 22-oct:
+  // «si mañana esta perfecto a esa hora»; el modelo escaló «Déjame consultarlo con Dayana»
+  // y nadie la agendó). En vivo lo agenda antes el código (`agreedTimeTurn`); si llega
+  // aquí (o en la evaluación), lo mismo: si esa hora sigue libre en la agenda, se agenda
+  // como con book_free_call; si no, «ya no está libre» y las libres más cercanas («1» se
+  // agenda). Una hora del modelo nunca se agenda sin estar libre. Nunca la misma que ya
+  // tiene ni una llamada que puso Dayana.
+  const agreedNow =
+    salesOn &&
+    !autoOffered &&
+    !guestEvent &&
+    !serious &&
+    !workshopSpot &&
+    outcome === modelOutcome &&
+    (outcome.kind === "reply" || Boolean(blockedBy) || (outcome.kind === "escalate" && AGREED_ESCALATIONS.has(outcome.category))) &&
+    !state.slotOffer &&
+    !state.booking &&
+    !state.pendingBooking &&
+    !state.bookingNotice &&
+    !state.bookingRequest &&
+    !state.keepsCall &&
+    !state.urgentSession &&
+    !state.receipt &&
+    upcomingCall?.source !== "calendar" &&
+    !toolCalls.some((c) => c.tool === "offer_free_call_slots" || c.tool === "book_free_call") &&
+    personTz()
+      ? agreedProposal(
+          [...input.transcript].reverse().map((l) => ({ ...l, sentAt: l.sentAt ?? now, attachments: l.attachment ? [l.attachment] : [] })),
+          { personTz: personTz()!, dayanaTz: timezone, now }
+        )
+      : null;
+  /** La hora acordada que ya no está libre (su etiqueta): el mensaje se lo dice antes de las más cercanas. */
+  let agreedTaken: string | null = null;
+  if (agreedNow && new Date(agreedNow.startIso).getTime() > now.getTime() && upcomingCall?.startsAt.toISOString() !== agreedNow.startIso) {
+    const tz = personTz()!;
+    const agreedLabel = dualZoneLabel(agreedNow.startIso, tz, timezone);
+    const around = await freeCallSlotsAround({ config, personTz: tz, dayanaTz: timezone, around: new Date(agreedNow.startIso), now }).catch(() => null);
+    // Sigue libre: se agenda (o se mueve la que tiene) por el mismo camino que la herramienta
+    // (solo si agenda sola; si no, las horas para que Dayana las apruebe).
+    const triedBooking = Boolean(around?.free && autoBook);
+    if (triedBooking) {
+      offeredNow.add(agreedNow.startIso);
+      log("agreed_time", { startIso: agreedNow.startIso, said: agreedNow.said }, { free: true, label: agreedLabel });
+      const book = (tools as unknown as Record<string, { execute?: (args: { startIso: string }, options: { toolCallId: string; messages: [] }) => Promise<unknown> } | undefined>)
+        .book_free_call;
+      await book?.execute?.({ startIso: agreedNow.startIso }, { toolCallId: "agreed-time", messages: [] }).catch(() => undefined);
+    }
+    if (!state.bookingNotice && !state.booking && !state.pendingBooking) {
+      const options = around?.free && !autoBook
+        ? [{ startIso: agreedNow.startIso, label: agreedLabel }, ...around.options].slice(0, Math.max(1, config.freeCall.offer)).sort((a, b) => a.startIso.localeCompare(b.startIso))
+        : (around?.options ?? []).filter((o) => o.startIso !== agreedNow.startIso);
+      if (options.length) {
+        options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
+        const taken = !around?.free || triedBooking;
+        state.slotOffer = { options, matchedWish: !taken };
+        // Con su etiqueta en el rastro: el freno de promesas la ve respaldada al nombrarla.
+        log("agreed_time", { startIso: agreedNow.startIso, said: agreedNow.said }, { free: !taken, label: agreedLabel });
+        log("offer_free_call_slots", { auto: true, agreed: agreedNow.startIso }, { ok: true, options });
+        if (taken) agreedTaken = agreedLabel;
+      }
+    }
+    if (state.bookingNotice || state.slotOffer) autoOffered = true;
+  }
   // Agendada o movida: la confirmación del código, con la hora de la reserva.
   // Horas ofrecidas: la frase del modelo y debajo la lista numerada del código.
   // (No se vuelve a listar horas si en esta vuelta agendar dijo que ya tiene
@@ -2755,7 +2823,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     state.bookingNotice
       ? state.bookingNotice.text
       : state.slotOffer && !state.booking && !state.pendingBooking && !state.keepsCall
-        ? offerMessage(autoOffered ? leadBeforeHours(text) : text, state.slotOffer.options, state.slotOffer.matchedWish)
+        ? agreedTaken
+          ? agreedTakenMessage(agreedTaken, state.slotOffer.options)
+          : offerMessage(autoOffered ? leadBeforeHours(text) : text, state.slotOffer.options, state.slotOffer.matchedWish)
         : text;
   // Preguntó por el taller y contesta el modelo: siempre «abierto» y la llamada
   // para inscribirse (dueña, 24-oct; el modelo daba la información y se las saltaba);
