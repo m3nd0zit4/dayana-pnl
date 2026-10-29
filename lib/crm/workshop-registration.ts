@@ -135,14 +135,7 @@ export const openWorkshopForRegistration = async (now = new Date()): Promise<{ t
   return found ? { title: found.title, slug: found.slug } : null;
 };
 
-/** La plantilla del registro tal como la dejó Meta (estado y categoría), o null si nunca se mandó. */
-export const registrationTemplateState = async (): Promise<{ status: string | null; category: string | null } | null> => {
-  const t = await prisma.messageTemplate.findFirst({
-    where: { key: REGISTRATION_TEMPLATE_KEY, metaTemplateName: { not: null } },
-    select: { metaApprovalStatus: true, metaCategory: true },
-  });
-  return t ? { status: t.metaApprovalStatus, category: t.metaCategory } : null;
-};
+// El estado de la plantilla del registro en Meta lo lee `listWorkshopTemplates` (`workshop-templates.ts`, 29-oct).
 
 // ── 1. El registro ──────────────────────────────────────────────────────────
 

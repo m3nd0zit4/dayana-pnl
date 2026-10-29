@@ -33,6 +33,7 @@ export const INVITE_WINDOW_DAYS = 60;
 export const INVITE_SEND_KIND = "invitacion_taller";
 /** La plantilla de Marketing para quien no escribió en las últimas 24 h (se manda sola a aprobar). */
 export const INVITE_TEMPLATE_KEY = "taller_invitacion_inscritas";
+export const INVITE_TEMPLATE_TITLE = "Taller: invitación a inscritas de eventos gratuitos";
 /**
  * Una invitación por CHAT y edición: la misma clave nunca sale dos veces
  * (`sendMetaMessage` devuelve el mensaje que ya existe). Por chat y no por

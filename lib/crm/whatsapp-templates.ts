@@ -16,7 +16,7 @@ import {
 import { scheduleVars } from "./event-schedule";
 import { EVENT_ACCESS_BODY, EVENT_INVITATION_BODY } from "./event-template-vars";
 import { toMetaBody } from "./whatsapp-template-rules";
-import { INVITE_TEMPLATE_BODY, INVITE_TEMPLATE_EXAMPLE, INVITE_TEMPLATE_KEY } from "./workshop-invite-rules";
+import { INVITE_TEMPLATE_BODY, INVITE_TEMPLATE_EXAMPLE, INVITE_TEMPLATE_KEY, INVITE_TEMPLATE_TITLE } from "./workshop-invite-rules";
 import {
   REGISTRATION_TEMPLATE_BODY,
   REGISTRATION_TEMPLATE_EXAMPLE,
@@ -266,7 +266,7 @@ export const STARTER_TEMPLATES: StarterTemplate[] = [
   // Dice por qué le escribimos y que es de pago: es de Marketing.
   {
     key: INVITE_TEMPLATE_KEY,
-    title: "Taller: invitación a inscritas de eventos gratuitos",
+    title: INVITE_TEMPLATE_TITLE,
     category: "MARKETING",
     body: INVITE_TEMPLATE_BODY,
     example: INVITE_TEMPLATE_EXAMPLE,

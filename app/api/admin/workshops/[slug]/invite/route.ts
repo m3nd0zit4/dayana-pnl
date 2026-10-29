@@ -59,7 +59,7 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
   if (!canBroadcastNotifications(staff.role)) return apiError("forbidden", 403, { message: "Solo la dueña puede enviar la invitación." });
 
   if (body.action === "submit_template") {
-    const result = await submitInviteTemplate();
+    const result = await submitInviteTemplate({}, { staffId: staff.id, editionId: edition.id });
     if (result.status === "failed") return apiError("template_failed", 502, { message: `Meta no recibió la plantilla: ${result.error}` });
     return NextResponse.json(result);
   }

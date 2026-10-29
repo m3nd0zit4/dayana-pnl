@@ -89,7 +89,6 @@ const WorkshopInterestsPanel = ({
   timeZone,
   open,
   payable,
-  registrationNotice = null,
 }: {
   slug: string;
   rows: InterestRowView[];
@@ -98,8 +97,6 @@ const WorkshopInterestsPanel = ({
   open: boolean;
   /** Tiene precio (enlace de pago): la IA pregunta cupo o llamada; si no, solo la llamada. */
   payable: boolean;
-  /** Cómo está en Meta la plantilla del registro en la página (`registrationTemplateNotice`). */
-  registrationNotice?: { tone: "ok" | "warn" | "info"; text: string } | null;
 }) => {
   const { toast, confirm } = useCrm();
   const [rows, setRows] = useState(initialRows);
@@ -186,14 +183,6 @@ const WorkshopInterestsPanel = ({
             ? "Llámalas tú o deja que la IA les escriba: les pregunta si separan su cupo con el enlace de pago o agendan una llamada con Dayana."
             : "Llámalas tú o deja que la IA les ofrezca la llamada con Dayana para inscribirse."}
         </p>
-        {registrationNotice ? (
-          <p
-            className={`mt-1 text-xs ${registrationNotice.tone === "warn" ? "text-warning" : registrationNotice.tone === "ok" ? "text-success" : "text-muted-foreground"}`}
-            data-testid="taller-registro-plantilla"
-          >
-            {registrationNotice.text}
-          </p>
-        ) : null}
       </div>
       {rows.length === 0 ? (
         <CrmEmptyState

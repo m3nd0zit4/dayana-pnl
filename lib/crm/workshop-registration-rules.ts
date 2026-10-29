@@ -394,29 +394,8 @@ export const REGISTRATION_STATE_LABEL: Record<Exclude<RegistrationState, "text" 
   fallo: "WhatsApp no lo aceptó.",
 };
 
-/**
- * Cómo está la plantilla del registro en Meta, para la cabecera de
- * «Interesadas»: Dayana ve de un vistazo si los registros de quien no escribió
- * en 24 h reciben el WhatsApp. Meta decide la categoría al aprobarla: si la
- * pasa a Marketing, se dice claro (y no sale sola).
- */
-export const registrationTemplateNotice = (
-  t: { status: string | null; category: string | null } | null
-): { tone: "ok" | "warn" | "info"; text: string } => {
-  const name = `«${REGISTRATION_TEMPLATE_TITLE}»`;
-  const status = (t?.status ?? "").toUpperCase();
-  if (!t || !status) return { tone: "info", text: `Plantilla ${name}: se manda sola a aprobar (como Utilidad) con el primer registro de alguien que no escribió en 24 h.` };
-  if (status === "APPROVED") {
-    return (t.category ?? "").toUpperCase() === "UTILITY"
-      ? { tone: "ok", text: `Plantilla ${name}: aprobada como Utilidad. A quien no escribió en 24 h le llega con ella.` }
-      : {
-          tone: "warn",
-          text: `Plantilla ${name}: Meta la aprobó como ${t.category ? (t.category.toUpperCase() === "MARKETING" ? "Marketing" : t.category) : "otra categoría"}, no como Utilidad. No se envía sola: revísala en WhatsApp → Plantillas.`,
-        };
-  }
-  if (status.startsWith("REJECTED")) return { tone: "warn", text: `Plantilla ${name}: Meta la rechazó. Se vuelve a mandar sola a aprobar con el próximo registro.` };
-  return { tone: "info", text: `Plantilla ${name}: en revisión de Meta. Mientras tanto, a quien no escribió en 24 h no le llega el WhatsApp (queda anotado).` };
-};
+// Cómo está la plantilla del registro en Meta: desde el 29-oct lo dice el bloque
+// «Plantillas de WhatsApp del taller» (`workshop-templates-rules.ts`), con las dos del taller.
 
 /** Un «se está enviando» de hace más que esto es que la invocación se cortó. */
 const STUCK_MS = 5 * 60_000;
