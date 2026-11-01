@@ -7,7 +7,7 @@ import { linkConversationToContact, replyToConversation } from "../conversations
 import { ClientContactError, ensureConversationContact } from "../whatsapp-client-contact";
 import { closeAttention } from "./attention";
 import { isPaymentAck } from "./receipt-ack";
-import { webPaymentForReceipt } from "./receipt-web-payment";
+import { likelySamePayment, samePersonContactIds, webPaymentForReceipt } from "./receipt-web-payment";
 
 /**
  * Dayana confirma o descarta un comprobante de pago que llegó por WhatsApp
@@ -79,7 +79,7 @@ export const decideReceipt = async (input: {
   staffUserId: string | null;
   /** Lo que se le envía a la persona (vacío = nada). */
   message?: string | null;
-  via?: "button" | "chat";
+  via?: "button" | "chat" | "auto";
   /**
    * La misma persona pagó por la página poco antes y Dayana dice que la captura
    * es de ese pago («Es ese mismo pago»): se enlaza a él. false: es otro pago.
@@ -115,9 +115,17 @@ export const decideReceipt = async (input: {
   let contactName: string | null = null;
   // El pago ya entró solo por la página (Gina, 25-oct): el chat se vincula a esa ficha
   // (también sin número) y el comprobante queda enlazado a ese pago: no se registra otra vez.
-  // Por la misma persona (sin referencia) solo si Dayana dijo que es ese pago.
+  // Por la misma persona (sin referencia): con el botón, si Dayana dijo que es ese pago; desde el
+  // celular («recibido») no hay a quién preguntarle, así que cuenta si nada en el comprobante lo
+  // contradice (Victorino, 26-oct: pagó por PayPal y quedó también una «Transferencia» encima).
   const found = input.decision === "confirm" ? await webPaymentForReceipt(receipt).catch(() => null) : null;
-  const web = found && (found.match === "reference" || input.sameAsWeb) ? found : null;
+  const web =
+    found && (found.match === "reference" || input.sameAsWeb || (via !== "button" && likelySamePayment(receipt, found))) ? found : null;
+  // La IA solo confirma lo que ya entró por el enlace; cualquier otro comprobante lo confirma Dayana.
+  if (via === "auto" && !web) {
+    await release();
+    return { contactId: conversation.contactId, contactName: null, sent: false, alreadyRegistered: false };
+  }
   if (web) {
     try {
       if (!conversation.contactId) await linkConversationToContact(conversation.id, web.contactId, input.staffUserId);
@@ -130,7 +138,12 @@ export const decideReceipt = async (input: {
       const contact = await prisma.contact.findUnique({ where: { id: contactId }, select: { firstName: true, lastName: true } });
       contactName = [contact?.firstName, contact?.lastName].filter(Boolean).join(" ") || null;
       await setManualCategory(conversation.id, "cliente", input.staffUserId);
-      await prisma.whatsAppPaymentReceipt.update({ where: { id: receipt.id }, data: { paymentId: web.paymentId } });
+      // Un pago, un comprobante: si otro se lo llevó mientras tanto, éste vuelve a por confirmar.
+      const taken = await prisma.whatsAppPaymentReceipt.count({ where: { paymentId: web.paymentId, id: { not: receipt.id } } });
+      const linked = taken
+        ? { count: 0 }
+        : await prisma.whatsAppPaymentReceipt.updateMany({ where: { id: receipt.id, paymentId: null }, data: { paymentId: web.paymentId } });
+      if (linked.count === 0) throw new ReceiptError("payment_taken");
     } catch (e) {
       await release();
       throw e;
@@ -239,7 +252,15 @@ export const confirmReceiptFromChat = async (conversationId: string, externalMes
     fireNotification({
       eventType: "WHATSAPP_AI_INFO",
       title: `Confirmaste el pago de ${result.contactName ?? "una clienta"} en el chat`,
-      body: [r.summary, "Ya es clienta y está en el CRM. Falta registrar el pago (con tu código)."].filter(Boolean).join(" · ").slice(0, 200),
+      body: [
+        r.summary,
+        result.alreadyRegistered
+          ? "Ya es clienta. Ese pago ya había entrado por el enlace y está registrado: no hay que registrarlo otra vez."
+          : "Ya es clienta y está en el CRM. Falta registrar el pago (con tu código).",
+      ]
+        .filter(Boolean)
+        .join(" · ")
+        .slice(0, 200),
       href: `/admin/whatsapp?conversation=${conversationId}`,
       entityType: "Conversation",
       entityId: conversationId,
@@ -273,7 +294,9 @@ export const linkReceiptPayment = async (input: { receiptId: string; paymentId: 
   // El pago de la página quedó en la ficha temporal del checkout: pasa a la de este chat («Es ese mismo pago»).
   if (receipt.contactId && payment.enrollment.contactId !== receipt.contactId) {
     const adopted = await adoptPlaceholderContact(payment.enrollment.contactId, receipt.contactId, input.staffUserId);
-    if (!adopted) throw new ReceiptError("other_contact");
+    // O es la ficha del checkout con el mismo número (Diana Ochoa): mismo pago, otra ficha.
+    const samePerson = !adopted && (await samePersonContactIds(receipt.contactId, null)).includes(payment.enrollment.contactId);
+    if (!adopted && !samePerson) throw new ReceiptError("other_contact");
   }
   const updated = await prisma.whatsAppPaymentReceipt.updateMany({
     where: { id: receipt.id, paymentId: null },

@@ -14,6 +14,7 @@ import { parseCheckoutReference } from "./checkout-reference";
 import { markEnrollmentPaid } from "./enrollments";
 import { formatMoneyMinor } from "./money";
 import { PAYMENT_PROVIDER_LONG_LABEL as PROVIDER_LABEL } from "./payment-labels";
+import { linkEnrollmentToWorkshopEdition } from "./workshop-pricing";
 
 const contactName = (contact: {
   displayName: string | null;
@@ -128,6 +129,13 @@ export const recordPayment = async (
   if (input.status === PaymentStatus.APPROVED) {
     const enrollment = await markEnrollmentPaid(input.enrollmentId);
     const who = contactName(enrollment.contact);
+
+    // Pagar un taller es quedar inscrita en SU edición, venga el pago de donde
+    // venga. Antes sólo lo hacía el checkout de la página: un pago manual
+    // (transferencia, Nequi) activaba la matrícula pero sin edición, y la
+    // persona no salía entre las inscritas ni recibía los recordatorios (Ever,
+    // 1-nov: Nequi 190.000 COP del taller registrado y «no inscrito»).
+    await linkEnrollmentToWorkshopEdition(input.enrollmentId, enrollment.productId);
 
     fireNotification({
       eventType: "PAYMENT_APPROVED",
@@ -255,6 +263,48 @@ export const recordPayment = async (
   }
 
   return payment;
+};
+
+/**
+ * El pago aprobado con el que esta persona ya tiene ese taller, o null.
+ *
+ * Un taller se paga una vez. Victorino (26-oct) lo pagó por PayPal con el
+ * enlace y, al confirmar su captura por WhatsApp, quedó además una
+ * «Transferencia 190.000 COP» manual sobre la misma inscripción: el mismo
+ * dinero contado dos veces. Antes de registrar un pago manual de un taller se
+ * mira si ya hay uno aprobado de la misma persona, en esa matrícula u otra del
+ * mismo producto o de la misma edición. Solo talleres: terapias y cursos sí se
+ * pagan por partes o cada mes.
+ */
+export const paidWorkshopPaymentFor = async (
+  enrollmentId: string
+): Promise<{ id: string; provider: PaymentProvider; amountMinor: number; currency: string; paidAt: Date | null } | null> => {
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    select: { contactId: true, productId: true, workshopEditionId: true, product: { select: { kind: true } } },
+  });
+  if (!enrollment || enrollment.product.kind !== "WORKSHOP") return null;
+  // Un producto compartido heredado (`workshop-virtual`) cobró varias ediciones:
+  // haberlo pagado antes no dice nada de ésta. Solo el producto propio de UNA edición.
+  const editions = await prisma.workshopEdition.findMany({
+    where: { productId: enrollment.productId },
+    select: { id: true },
+    take: 2,
+  });
+  const ownProduct = editions.length === 1;
+  const edition = enrollment.workshopEditionId ?? (ownProduct ? editions[0].id : null);
+  if (!edition) return null;
+  return prisma.payment.findFirst({
+    where: {
+      status: PaymentStatus.APPROVED,
+      enrollment: {
+        contactId: enrollment.contactId,
+        OR: [{ workshopEditionId: edition }, ...(ownProduct ? [{ productId: enrollment.productId }] : [])],
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    select: { id: true, provider: true, amountMinor: true, currency: true, paidAt: true },
+  });
 };
 
 /**

@@ -4,7 +4,7 @@ import { requireManualPaymentStaff } from "@/lib/auth/api-staff";
 import { consumePaymentOtp, peekPaymentOtp } from "@/lib/auth/payment-otp";
 import { fireAuditLog } from "@/lib/crm/audit";
 import { prisma } from "@/lib/db";
-import { recordPayment } from "@/lib/crm/payments";
+import { paidWorkshopPaymentFor, recordPayment } from "@/lib/crm/payments";
 import { manualPaymentSchema } from "@/lib/validations/admin";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +33,10 @@ export async function POST(req: NextRequest) {
   });
   if (!enrollment) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+  if (!parsed.data.allowDuplicate) {
+    const paid = await paidWorkshopPaymentFor(parsed.data.enrollmentId);
+    if (paid) return NextResponse.json({ error: "ALREADY_PAID", paidWith: paid }, { status: 409 });
   }
   if (
     enrollment.amountMinor != null &&

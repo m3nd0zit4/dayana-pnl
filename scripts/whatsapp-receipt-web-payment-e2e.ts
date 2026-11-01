@@ -14,14 +14,28 @@
  * 4. Sin referencia (Victorino): la misma persona pagó por la página hace 5 min;
  *    la tarjeta avisa, «Es otro pago» no enlaza y «Es ese mismo pago» sí.
  * 5. Pago en la ficha temporal y chat con ficha real (Allison): la inscripción pasa a la real.
+ * 6. Dayana dice «recibido» desde el celular a una captura sin monto de quien
+ *    acaba de pagar por el enlace: queda enlazada sola, sin registro manual
+ *    (dueña, 1-nov). Un Nequi con su propia referencia sigue pidiendo registro,
+ *    y la IA nunca confirma un comprobante que no es del enlace.
+ * 7. El pago web quedó en la ficha del checkout y el chat en otra con el mismo
+ *    número en otra forma (MX 52/521; Diana Ochoa): se reconoce igual.
+ * 8. Pago manual de un taller (Ever, 1-nov): la matrícula queda en su edición.
+ * 9. Un segundo pago manual del mismo taller se frena (`paidWorkshopPaymentFor`);
+ *    una terapia no.
  */
 export {};
 
 const main = async () => {
   if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
+  // Nada sale de verdad: `recordPayment` (paso 8) emite a Inngest fuera de producción.
+  delete process.env.INNGEST_EVENT_KEY;
+  delete process.env.INNGEST_SIGNING_KEY;
+  process.env.INNGEST_DEV = "http://127.0.0.1:9";
   const { prisma } = await import("@/lib/db");
   const { listReceipts } = await import("@/lib/crm/whatsapp-agent/payment-info");
   const { decideReceipt } = await import("@/lib/crm/whatsapp-agent/receipts");
+  const { paidWorkshopPaymentFor, recordPayment } = await import("@/lib/crm/payments");
 
   const failures: string[] = [];
   const check = (name: string, ok: boolean, detail?: unknown) => {
@@ -152,6 +166,114 @@ const main = async () => {
       anaResult.alreadyRegistered && anaResult.contactId === ana.id && enrAfter?.contactId === ana.id && tempLeft === null,
       { anaResult, enrAfter, tempLeft }
     );
+
+    // 6. «Recibido» desde el celular a una captura sin monto, 5 min después de pagar por el enlace.
+    const fer = await prisma.contact.create({ data: { phoneE164: `+57301${run}3`, firstName: "Fernanda", email: `e2e-fer-${run}@example.com` } });
+    extra.contacts.push(fer.id);
+    const ferEnr = await prisma.enrollment.create({ data: { contactId: fer.id, productId: product.id, status: "ACTIVE" } });
+    extra.enrollments.push(ferEnr.id);
+    const ferPay = await prisma.payment.create({
+      data: {
+        enrollmentId: ferEnr.id,
+        provider: "PAYPAL",
+        providerPaymentId: `E2E${run}FER`,
+        status: "APPROVED",
+        currency: "USD",
+        amountMinor: 6374,
+        createdAt: new Date(Date.now() - 5 * 60_000),
+      },
+    });
+    extra.payments.push(ferPay.id);
+    const ferConv = await prisma.conversation.create({
+      data: { channel: "WHATSAPP", externalThreadId: `57301${run}3`, metaAccountId: "test-phone-id", participantName: "Fernanda", contactId: fer.id },
+    });
+    extra.conversations.push(ferConv.id);
+    const nequi = await prisma.whatsAppPaymentReceipt.create({
+      data: { conversationId: ferConv.id, status: "pending", method: "Nequi", reference: "890811", amountMinor: 190000, currency: "COP" },
+    });
+    const nequiResult = await decideReceipt({ receiptId: nequi.id, decision: "confirm", staffUserId: null, message: null, via: "chat" });
+    check("6. «recibido» a un Nequi con su propia referencia: sigue pidiendo registrarlo", !nequiResult.alreadyRegistered, nequiResult);
+    const shot = await prisma.whatsAppPaymentReceipt.create({ data: { conversationId: ferConv.id, status: "pending", payerName: "Fernanda" } });
+    const shotResult = await decideReceipt({ receiptId: shot.id, decision: "confirm", staffUserId: null, message: null, via: "chat" });
+    const shotAfter = await prisma.whatsAppPaymentReceipt.findUnique({ where: { id: shot.id }, select: { paymentId: true } });
+    check(
+      "   «recibido» a una captura sin monto de quien pagó por el enlace: enlazada sola, sin registro manual",
+      shotResult.alreadyRegistered && shotAfter?.paymentId === ferPay.id,
+      { shotResult, shotAfter }
+    );
+
+    // 6b. La IA (via «auto») con un comprobante que NO es del pago del enlace: sigue por confirmar.
+    const otherShot = await prisma.whatsAppPaymentReceipt.create({
+      data: { conversationId: ferConv.id, status: "pending", method: "Bancolombia", amountMinor: 190000, currency: "COP" },
+    });
+    const autoResult = await decideReceipt({ receiptId: otherShot.id, decision: "confirm", staffUserId: null, via: "auto" });
+    const otherAfter = await prisma.whatsAppPaymentReceipt.findUnique({ where: { id: otherShot.id }, select: { status: true, paymentId: true } });
+    check(
+      "   la IA no confirma un comprobante que no es del enlace: sigue por confirmar para Dayana",
+      !autoResult.alreadyRegistered && otherAfter?.status === "pending" && otherAfter.paymentId === null,
+      { autoResult, otherAfter }
+    );
+
+    // 7. Diana Ochoa: el pago en la ficha del checkout (+521…), el chat en otra ficha (+52…).
+    const mxWeb = await prisma.contact.create({ data: { phoneE164: `+521551${run}4`, firstName: "Diana", email: `e2e-diana-web-${run}@example.com` } });
+    const mxChat = await prisma.contact.create({ data: { phoneE164: `+52551${run}4`, firstName: "Diana Ochoa", email: `e2e-diana-wa-${run}@example.com` } });
+    extra.contacts.push(mxWeb.id, mxChat.id);
+    const mxEnr = await prisma.enrollment.create({ data: { contactId: mxWeb.id, productId: product.id, status: "ACTIVE" } });
+    extra.enrollments.push(mxEnr.id);
+    const mxPay = await prisma.payment.create({
+      data: {
+        enrollmentId: mxEnr.id,
+        provider: "PAYPAL",
+        providerPaymentId: `E2E${run}MX`,
+        status: "APPROVED",
+        currency: "USD",
+        amountMinor: 37030,
+        createdAt: new Date(Date.now() - 30 * 60_000),
+      },
+    });
+    extra.payments.push(mxPay.id);
+    const mxConv = await prisma.conversation.create({
+      data: { channel: "WHATSAPP", externalThreadId: `52551${run}4`, metaAccountId: "test-phone-id", participantName: "Diana Ochoa", contactId: mxChat.id },
+    });
+    extra.conversations.push(mxConv.id);
+    const mxReceipt = await prisma.whatsAppPaymentReceipt.create({
+      data: { conversationId: mxConv.id, status: "pending", amountMinor: 37000, currency: "USD", summary: "Pago de 370 USD por enlace" },
+    });
+    const mxCard = (await listReceipts(mxConv.id)).find((r) => r.id === mxReceipt.id);
+    check("7. el pago web en otra ficha con el mismo número (MX 52/521): se reconoce", mxCard?.webPayment?.paymentId === mxPay.id, mxCard?.webPayment);
+
+    // 8. Ever (1-nov): Nequi del taller registrado a mano → inscrito en la edición.
+    const editions = await prisma.workshopEdition.findMany({ where: { productId: product.id }, select: { id: true }, take: 2 });
+    if (editions.length !== 1) throw new Error(`El producto ${product.id} no es de UNA edición en desarrollo.`);
+    const ever = await prisma.contact.create({ data: { phoneE164: `+57310${run}7`, firstName: "Ever", email: `e2e-ever-${run}@example.com` } });
+    extra.contacts.push(ever.id);
+    const everEnr = await prisma.enrollment.create({ data: { contactId: ever.id, productId: product.id, status: "PENDING_PAYMENT" } });
+    extra.enrollments.push(everEnr.id);
+    check("9. antes de pagar, nada frena el registro", (await paidWorkshopPaymentFor(everEnr.id)) === null);
+    await recordPayment({
+      enrollmentId: everEnr.id,
+      provider: "MANUAL",
+      providerPaymentId: `manual-e2e-${run}`,
+      providerOrderId: "Nequi · Ref. 890811",
+      status: "APPROVED",
+      currency: "COP",
+      amountMinor: 190000,
+      paidAt: new Date(),
+    });
+    const everAfter = await prisma.enrollment.findUnique({ where: { id: everEnr.id }, select: { status: true, workshopEditionId: true } });
+    check("8. pago manual de un taller: activo y en su edición", everAfter?.status === "ACTIVE" && everAfter.workshopEditionId === editions[0].id, everAfter);
+
+    // 9. «Otro paquete → el taller» otra vez: matrícula nueva, mismo taller ya pagado.
+    const again = await prisma.enrollment.create({ data: { contactId: ever.id, productId: product.id, status: "PENDING_PAYMENT" } });
+    extra.enrollments.push(again.id);
+    const blocked = await paidWorkshopPaymentFor(again.id);
+    check("9. un segundo pago manual del mismo taller se frena", blocked?.provider === "MANUAL" && blocked.amountMinor === 190000, blocked);
+    const therapy = await prisma.product.findFirst({ where: { kind: "THERAPY" }, select: { id: true } });
+    if (therapy) {
+      const th = await prisma.enrollment.create({ data: { contactId: ever.id, productId: therapy.id, status: "PENDING_PAYMENT" } });
+      extra.enrollments.push(th.id);
+      check("   una terapia no se frena", (await paidWorkshopPaymentFor(th.id)) === null);
+    }
   } finally {
     for (const id of extra.conversations) await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversationId: id } });
     for (const id of extra.conversations) await prisma.conversation.delete({ where: { id } }).catch(() => undefined);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireManualPaymentStaff } from "@/lib/auth/api-staff";
 import { requestPaymentOtp } from "@/lib/auth/payment-otp";
+import { paidWorkshopPaymentFor } from "@/lib/crm/payments";
 import { prisma } from "@/lib/db";
 import { requestPaymentOtpSchema } from "@/lib/validations/admin";
 
@@ -22,6 +23,12 @@ export async function POST(req: NextRequest) {
   });
   if (!enrollment) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
+  // Antes de mandar el código: ese taller ya está pagado (por el enlace, casi siempre).
+  if (!parsed.data.allowDuplicate) {
+    const paid = await paidWorkshopPaymentFor(enrollment.id);
+    if (paid) return NextResponse.json({ error: "ALREADY_PAID", paidWith: paid }, { status: 409 });
   }
 
   const result = await requestPaymentOtp({

@@ -25,10 +25,13 @@ export const manualPaymentSchema = z.object({
   reference: z.string().max(120).optional(),
   providerPaymentId: z.string().max(120).optional(),
   code: z.string().min(4).max(8),
+  /** Dayana dijo que es OTRO pago aunque ese taller ya figure pagado. */
+  allowDuplicate: z.boolean().optional(),
 });
 
 export const requestPaymentOtpSchema = z.object({
   enrollmentId: z.string().min(1),
+  allowDuplicate: z.boolean().optional(),
 });
 
 export const broadcastSchema = z.object({

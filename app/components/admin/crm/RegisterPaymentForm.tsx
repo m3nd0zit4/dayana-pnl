@@ -7,7 +7,8 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from "@/app/components/u
 import { Label } from "@/app/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/app/components/ui/toggle-group";
 import { useCrm } from "./CrmProvider";
-import { majorToMinor, minorToMajor } from "@/lib/crm/money";
+import { formatMoneyMinor, majorToMinor, minorToMajor } from "@/lib/crm/money";
+import { paymentProviderLabel } from "@/lib/crm/payment-labels";
 
 const PAYMENT_METHODS = [
   { id: "transfer", label: "Transferencia" },
@@ -67,6 +68,18 @@ export type PaymentPrefill = {
   note?: string;
 };
 
+/** El pago con el que ese taller ya figura pagado (lo devuelve el servidor con `ALREADY_PAID`). */
+type PaidWith = { provider: string; amountMinor: number; currency: string; paidAt: string | null };
+
+const paidWithLabel = (p: PaidWith): string =>
+  [
+    paymentProviderLabel(p.provider),
+    `${formatMoneyMinor(p.amountMinor, p.currency)} ${p.currency}`,
+    p.paidAt ? new Date(p.paidAt).toLocaleDateString("es-CO", { day: "numeric", month: "short" }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
 export const formatMajor = (minor: number, currency: string) => {
   const major = minorToMajor(minor, currency);
   return currency === "COP" ? String(Math.round(major)) : major.toFixed(2);
@@ -112,6 +125,9 @@ const RegisterPaymentForm = ({
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState("");
   const [sendingCode, setSendingCode] = useState(false);
+  // Ese taller ya está pagado: no se registra salvo que Dayana diga que es otro pago.
+  const [alreadyPaid, setAlreadyPaid] = useState<PaidWith | null>(null);
+  const [allowDuplicate, setAllowDuplicate] = useState(false);
 
   const quickAmounts = useMemo(() => {
     const fallback = currency === "COP" ? FALLBACK_AMOUNTS_COP : FALLBACK_AMOUNTS_USD;
@@ -124,7 +140,7 @@ const RegisterPaymentForm = ({
     return [...set].sort((a, b) => a - b).slice(0, 6);
   }, [suggestedAmountMinor, currency]);
 
-  const requestCode = async () => {
+  const requestCode = async (duplicateOk = allowDuplicate) => {
     setSendingCode(true);
     let id = enrollmentId;
     if (!id && ensureEnrollment) {
@@ -143,11 +159,15 @@ const RegisterPaymentForm = ({
     const res = await fetch("/api/admin/payments/manual/request-code", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ enrollmentId: id }),
+      body: JSON.stringify({ enrollmentId: id, ...(duplicateOk ? { allowDuplicate: true } : {}) }),
     });
     setSendingCode(false);
 
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    const data = (await res.json().catch(() => ({}))) as { error?: string; paidWith?: PaidWith };
+    if (data.error === "ALREADY_PAID" && data.paidWith) {
+      setAlreadyPaid(data.paidWith);
+      return;
+    }
     if (!res.ok) {
       toast(
         data.error === "rate_limited"
@@ -158,6 +178,8 @@ const RegisterPaymentForm = ({
       return;
     }
 
+    // «Es otro pago» cuenta solo cuando el código salió: si falló, el aviso sigue ahí.
+    if (duplicateOk) setAllowDuplicate(true);
     setOtpSent(true);
     setOtpCode("");
     toast("Código enviado — revisa el correo de verificación");
@@ -188,6 +210,7 @@ const RegisterPaymentForm = ({
         amountMinor: majorToMinor(amount, currency),
         reference: ref,
         code: otpCode.trim(),
+        ...(allowDuplicate ? { allowDuplicate: true } : {}),
       }),
     });
     setBusy(false);
@@ -196,7 +219,15 @@ const RegisterPaymentForm = ({
       error?: string;
       maxAmountMinor?: number;
       payment?: RegisteredPayment;
+      paidWith?: PaidWith;
     };
+
+    if (data.error === "ALREADY_PAID" && data.paidWith) {
+      setAlreadyPaid(data.paidWith);
+      setOtpSent(false);
+      setOtpCode("");
+      return;
+    }
 
     if (!res.ok) {
       const messages: Record<string, string> = {
@@ -247,6 +278,30 @@ const RegisterPaymentForm = ({
           </p>
         )}
       </div>
+
+      {alreadyPaid && !allowDuplicate ? (
+        <div role="alert" className="space-y-2 rounded-xl border border-warning/40 bg-warning/10 p-3">
+          <p className="font-medium">Este taller ya está pagado</p>
+          <p className="text-xs text-muted-foreground">
+            {contactName || "Esta persona"} ya lo pagó ({paidWithLabel(alreadyPaid)}) y está inscrita. Si el comprobante es de
+            ese mismo pago, no hay nada que registrar.
+          </p>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void requestCode(true)}
+              disabled={sendingCode}
+            >
+              Es otro pago: registrarlo igual
+            </Button>
+            <Button type="button" size="sm" onClick={onCancel}>
+              Es el mismo: no registrar
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       {allowCurrencyChoice && !otpSent ? (
         <div>
@@ -373,7 +428,7 @@ const RegisterPaymentForm = ({
         ) : (
           <Button
             onClick={() => void requestCode()}
-            disabled={sendingCode || !amountInput.trim()}
+            disabled={sendingCode || !amountInput.trim() || (alreadyPaid !== null && !allowDuplicate)}
           >
             {sendingCode ? "Enviando código…" : "Enviar código de verificación"}
           </Button>

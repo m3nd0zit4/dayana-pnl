@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { contactPhoneCandidates } from "@/lib/whatsapp-contact";
 
 /**
  * El comprobante que llega por WhatsApp de un pago que ya entró solo por la
@@ -25,6 +26,8 @@ export type WebPayment = {
   /** La ficha es la temporal del checkout (sin nombre ni teléfono todavía). */
   placeholder: boolean;
   product: string | null;
+  /** WORKSHOP, THERAPY, COURSE… (para decir «tu cupo en el taller»). */
+  productKind: string | null;
   /** «reference»: la referencia del comprobante es el id del pago. «person»: misma persona, poco antes (a confirmar). */
   match: "reference" | "person";
 };
@@ -50,7 +53,7 @@ const PAYMENT_SELECT = {
   enrollment: {
     select: {
       contactId: true,
-      product: { select: { title: true } },
+      product: { select: { title: true, kind: true } },
       contact: { select: { firstName: true, lastName: true, phoneE164: true } },
     },
   },
@@ -64,7 +67,7 @@ type PaymentRow = {
   createdAt: Date;
   enrollment: {
     contactId: string;
-    product: { title: string } | null;
+    product: { title: string; kind: string } | null;
     contact: { firstName: string; lastName: string | null; phoneE164: string };
   };
 };
@@ -82,8 +85,27 @@ const toWebPayment = (payment: PaymentRow, match: WebPayment["match"]): WebPayme
     contactName: placeholder ? null : [c.firstName, c.lastName].filter(Boolean).join(" ") || null,
     placeholder,
     product: payment.enrollment.product?.title ?? null,
+    productKind: payment.enrollment.product?.kind ?? null,
     match,
   };
+};
+
+/**
+ * La ficha del chat y las demás con el mismo número (en cualquiera de sus
+ * formas: MX 52/521…). Quien paga por la página queda en una ficha creada por
+ * el checkout y quien escribe por WhatsApp en otra (Diana Ochoa y ULDA, 29/30-oct:
+ * pagaron por PayPal, mandaron la captura y el pago no se reconoció porque
+ * estaba en la otra ficha).
+ */
+export const samePersonContactIds = async (contactId: string | null, threadId: string | null): Promise<string[]> => {
+  const phone =
+    threadId ??
+    (contactId ? ((await prisma.contact.findUnique({ where: { id: contactId }, select: { phoneE164: true } }))?.phoneE164 ?? null) : null);
+  const phones = phone ? contactPhoneCandidates(phone) : [];
+  const byPhone = phones.length
+    ? (await prisma.contact.findMany({ where: { phoneE164: { in: phones } }, select: { id: true }, take: 5 })).map((c) => c.id)
+    : [];
+  return [...new Set([...(contactId ? [contactId] : []), ...byPhone])];
 };
 
 /** Ya enlazado a otro comprobante: no cuenta (un pago, un comprobante). */
@@ -118,18 +140,17 @@ export const webPaymentForReceipt = async (
     });
     if (byRef && !(await takenByOther(byRef.id, receipt.id))) return toWebPayment(byRef, "reference");
   }
-  const contactId =
-    receipt.contactId ??
-    (receipt.conversationId
-      ? ((await prisma.conversation.findUnique({ where: { id: receipt.conversationId }, select: { contactId: true } }))?.contactId ?? null)
-      : null);
-  if (!contactId) return null;
+  const conversation = receipt.conversationId
+    ? await prisma.conversation.findUnique({ where: { id: receipt.conversationId }, select: { contactId: true, externalThreadId: true } })
+    : null;
+  const contactIds = await samePersonContactIds(receipt.contactId ?? conversation?.contactId ?? null, conversation?.externalThreadId ?? null);
+  if (!contactIds.length) return null;
   const at = (receipt.createdAt ?? now).getTime();
   const candidates = await prisma.payment.findMany({
     where: {
       status: "APPROVED",
       provider: { in: ["PAYPAL", "MERCADO_PAGO"] },
-      enrollment: { contactId },
+      enrollment: { contactId: { in: contactIds } },
       createdAt: { gte: new Date(at - SAME_PERSON_BEFORE_MS), lte: new Date(at + SAME_PERSON_AFTER_MS) },
     },
     orderBy: { createdAt: "desc" },
@@ -138,6 +159,31 @@ export const webPaymentForReceipt = async (
   });
   for (const p of candidates) if (!(await takenByOther(p.id, receipt.id))) return toWebPayment(p, "person");
   return null;
+};
+
+/** Lo que separa un pago de la página de lo que se cobra por fuera (Nequi, Bancolombia, Western Union…). */
+const WEB_RAIL = /paypal|mercado\s*pago|mercadopago|\bpse\b|tarjeta/i;
+
+/**
+ * ¿El comprobante es, con lo que se ve en él, el mismo pago que entró por la
+ * página? La referencia lo dice seguro. Por la misma persona (dueña, 1-nov:
+ * «si hizo el pago a través del link no debe pedir registro manual porque ya
+ * está registrado»), cuando nada en el comprobante lo contradice: sin monto
+ * (Victorino: la captura no se leía) o el mismo monto con el margen de la
+ * comisión (Natividad: «60 USD» y PayPal cobró 63.74), y el medio, si se ve,
+ * es el de la página. Otro medio (Nequi, Bancolombia…), otra moneda o un monto
+ * que no cuadra es otro pago: eso lo decide Dayana.
+ */
+export const likelySamePayment = (
+  receipt: { method: string | null; amountMinor: number | null; currency: string | null; reference: string | null },
+  web: Pick<WebPayment, "match" | "amountMinor" | "currency">
+): boolean => {
+  if (web.match === "reference") return true;
+  // Nequi, Bancolombia, Western Union…: otro medio, otro pago.
+  if (receipt.method?.trim() && !WEB_RAIL.test(receipt.method)) return false;
+  if (receipt.amountMinor == null) return true;
+  if (!receipt.currency || receipt.currency !== web.currency) return false;
+  return Math.abs(receipt.amountMinor - web.amountMinor) <= web.amountMinor * 0.12;
 };
 
 /** «Mercado Pago», «PayPal»: para la tarjeta del chat. */

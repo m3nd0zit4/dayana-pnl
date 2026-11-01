@@ -16,7 +16,10 @@ import { lastInboundSeen } from "../whatsapp-pending-rules";
 import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
-import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt } from "./payment-info";
+import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt, toMinor } from "./payment-info";
+import { formatMoneyMinor } from "../money";
+import { alreadyPaidReply, alreadyPaidToolNote } from "./receipt-already-paid";
+import { likelySamePayment, providerLabel, webPaymentForReceipt } from "./receipt-web-payment";
 import { dayanaOfferedSlot, saidPartOfDay, spreadSlots, wishFromWords, type WishStep } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
@@ -193,6 +196,11 @@ export type BrainResult = {
     payerName: string | null;
     problem: string | null;
     confirmMessage: string | null;
+    /**
+     * Es de un pago que ya entró por el enlace de la página (`likelySamePayment`):
+     * no hay nada que confirmar ni registrar; `run.ts` lo enlaza a ese pago.
+     */
+    alreadyPaid: { paymentId: string; product: string | null; productKind: string | null } | null;
   } | null;
   /** La persona quiere agendar: se le avisa a Dayana para que ella agende. */
   bookingRequest: { service: string; when: string | null; note: string } | null;
@@ -1193,7 +1201,24 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 ),
             }),
             execute: async (args) => {
+              // ¿Ya entró por el enlace? (Victorino, 26-oct: la captura de su PayPal acabó registrada dos veces.)
+              const currency = args.currency?.trim().toUpperCase().slice(0, 3) || null;
+              const found = input.conversationId
+                ? await webPaymentForReceipt(
+                    { id: "", reference: args.reference ?? null, conversationId: input.conversationId, contactId: input.contactId },
+                    now
+                  ).catch(() => null)
+                : null;
+              const paid =
+                found &&
+                likelySamePayment(
+                  { method: args.method ?? null, amountMinor: toMinor(args.amount, currency), currency, reference: args.reference ?? null },
+                  found
+                )
+                  ? found
+                  : null;
               state.receipt = {
+                alreadyPaid: paid ? { paymentId: paid.paymentId, product: paid.product, productKind: paid.productKind } : null,
                 summary: args.summary,
                 method: args.method ?? null,
                 amount: args.amount ?? null,
@@ -1204,6 +1229,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 problem: args.problem ?? null,
                 confirmMessage: args.confirmMessage ?? null,
               };
+              if (paid) {
+                const label = [providerLabel(paid.provider), formatMoneyMinor(paid.amountMinor, paid.currency) + " " + paid.currency, paid.product]
+                  .filter(Boolean)
+                  .join(" · ");
+                return log("register_payment_receipt", args, { ok: true, alreadyPaid: paid.paymentId, note: alreadyPaidToolNote(label) });
+              }
               return log("register_payment_receipt", args, { ok: true, note: "Dayana recibe el aviso. Contesta corto que lo revisa; nunca confirmes el pago." });
             },
           }),
@@ -2755,8 +2786,20 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // No le alcanza y el modelo escaló: sale lo más económico (lo escribe `replyText`), no «Déjame consultarlo».
   const answered: BrainOutcome = (autoOffered || cheaperOnly) && outcome.kind === "escalate" ? { kind: "reply", message: "" } : outcome;
   // Lo delicado y la respuesta al insulto salen tal cual (sin horas, enlaces ni el paso del taller).
-  const shaped: BrainOutcome =
-    answered.kind === "reply"
+  // El comprobante es de un pago que ya entró por el enlace: «ya quedó registrado», tal cual
+  // (sin enlaces ni datos de pago, sin el paso del taller). No encima de lo que no es una
+  // respuesta normal: una escalación (queja, factura…) sigue a Dayana, y el apoyo, el insulto
+  // o el pago por un familiar salen como siempre (el comprobante se enlaza igual en run.ts).
+  const paidByLink =
+    state.receipt?.alreadyPaid && answered.kind === "reply" && !serious && !rudeNow && !familyPaid ? state.receipt.alreadyPaid : null;
+  if (paidByLink) {
+    state.paymentDetails = [];
+    state.paymentLink = null;
+    state.links = [];
+  }
+  const shaped: BrainOutcome = paidByLink
+    ? { kind: "reply", message: alreadyPaidReply(sureFirstName(nameInfo), paidByLink) }
+    : answered.kind === "reply"
       ? {
           ...answered,
           // Ya saludó en las últimas 12 h: sin otro «Hola… te bendigo» al empezar (Malka, 28-oct).

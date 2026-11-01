@@ -280,11 +280,16 @@ const FlowBody = ({
     : choice !== OTHER_PRODUCT
       ? (enrollments ?? []).find((en) => en.id === choice) ?? null
       : null;
-  // Un servicio pendiente del mismo paquete se reutiliza en vez de duplicarlo.
+  // Un servicio pendiente del mismo paquete se reutiliza en vez de duplicarlo. Un taller se
+  // paga una vez: si ya lo tiene activo, se usa ése y el servidor avisa «ya está pagado» sin
+  // dejar una matrícula pendiente de más.
+  const pickedWorkshop = products.find((p) => p.id === productId)?.kind === "WORKSHOP";
   const reusable =
     !givenEnrollment && choice === OTHER_PRODUCT
       ? (enrollments ?? []).find(
-          (en) => en.productId === productId && REUSABLE_STATUSES.has(en.status),
+          (en) =>
+            en.productId === productId &&
+            (REUSABLE_STATUSES.has(en.status) || (pickedWorkshop && (en.status === "ACTIVE" || en.status === "COMPLETED"))),
         ) ?? null
       : null;
   const target = givenEnrollment ?? existing ?? reusable;
