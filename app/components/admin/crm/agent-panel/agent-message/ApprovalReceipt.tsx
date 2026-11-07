@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
  */
 export const ApprovalReceipt = ({ part, isLive }: { part: ToolPartLike; isLive: boolean }) => {
   const status = approvalStatus(part, isLive);
+  // While it waits, the activity row above already says «Esperando tu aprobación».
+  if (status === "pending" && isLive) return null;
   const label = stepDoneLabel(part.toolName);
   const { icon: Icon, text, className } =
     status === "pending"

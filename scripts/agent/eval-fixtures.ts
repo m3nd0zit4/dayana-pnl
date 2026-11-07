@@ -24,6 +24,8 @@ export const FIXTURE = {
   email: "valentina.eval@example.com",
   name: "Valentina Prueba Eval",
   createdContactPhone: "+573005550101",
+  /** Created by the panel screenshots (`scripts/dev/agent-panel-screenshots.ts`). */
+  screenshotContactPhone: "+573005550102",
   promoCode: "EVALTEST10",
 } as const;
 
@@ -31,7 +33,7 @@ const DAY = 24 * 3600_000;
 
 const clean = async () => {
   const contacts = await prisma.contact.findMany({
-    where: { phoneE164: { in: [FIXTURE.phone, FIXTURE.createdContactPhone] } },
+    where: { phoneE164: { in: [FIXTURE.phone, FIXTURE.createdContactPhone, FIXTURE.screenshotContactPhone] } },
     select: { id: true },
   });
   const ids = contacts.map((c) => c.id);

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { dedupeBlocks, deltaInfo, formatAxisValue, formatCell, formatChartValue } from "./display-format";
+import { dedupeBlocks, deltaInfo, formatAxisValue, formatCell, formatChartLabel, formatChartValue } from "./display-format";
 
 describe("formatChartValue", () => {
   test("money in minor units: COP whole pesos, USD cents", () => {
@@ -43,5 +43,13 @@ describe("blocks", () => {
   test("cells", () => {
     expect(formatCell(1234.5)).toBe("1.234,5");
     expect(formatCell("Ana")).toBe("Ana");
+  });
+});
+
+describe("formatChartLabel", () => {
+  test("days and months read as Spanish dates", () => {
+    expect(formatChartLabel("2026-10-09")).toBe("9 oct");
+    expect(formatChartLabel("2026-01")).toBe("ene 2026");
+    expect(formatChartLabel("Primer Paso")).toBe("Primer Paso");
   });
 });

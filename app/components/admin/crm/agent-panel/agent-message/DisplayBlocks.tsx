@@ -3,7 +3,7 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import type { DisplayBlock } from "@/agent/lib/display";
-import { deltaInfo, formatAxisValue, formatCell, formatChartValue } from "@/lib/agent-ui/display-format";
+import { deltaInfo, formatAxisValue, formatCell, formatChartLabel, formatChartValue } from "@/lib/agent-ui/display-format";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/app/components/ui/chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/app/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -57,7 +57,7 @@ const KpiTiles = ({ block }: { block: Kpis }) => (
 
 const ChartBlock = ({ block }: { block: Chart }) => {
   const config = { value: { label: block.title, color: "var(--chart-1)" } } satisfies ChartConfig;
-  const data = block.points.map((p) => ({ label: p.label, value: p.value }));
+  const data = block.points.map((p) => ({ label: formatChartLabel(p.label), value: p.value }));
   const axis = {
     tick: { fill: "var(--muted-foreground)", fontSize: 11 },
     axisLine: false,
@@ -105,13 +105,12 @@ const ChartBlock = ({ block }: { block: Chart }) => {
 };
 
 const TableDisplay = ({ block }: { block: TableBlock }) => {
-  const numeric = block.columns.map(
-    (_, col) => block.rows.length > 0 && block.rows.every((row) => typeof row[col] === "number")
-  );
+  // Every column but the first holds figures («570.000 COP», «40 %», 3): right-aligned, never wrapped.
+  const numeric = block.columns.map((_, col) => col > 0);
   return (
     <figure data-testid="agent-display-table">
       <BlockTitle>{block.title}</BlockTitle>
-      <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-card">
         <Table className="text-xs">
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -126,7 +125,10 @@ const TableDisplay = ({ block }: { block: TableBlock }) => {
             {block.rows.map((row, r) => (
               <TableRow key={r}>
                 {row.map((cell, c) => (
-                  <TableCell key={c} className={cn("px-2.5 py-1.5", numeric[c] && "text-right tabular-nums")}>
+                  <TableCell
+                    key={c}
+                    className={cn("px-2.5 py-1.5", numeric[c] ? "text-right tabular-nums" : "whitespace-normal break-words")}
+                  >
                     {formatCell(cell)}
                   </TableCell>
                 ))}

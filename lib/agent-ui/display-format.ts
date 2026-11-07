@@ -62,3 +62,14 @@ export const dedupeBlocks = (blocks: readonly DisplayBlock[]): DisplayBlock[] =>
 /** A table cell, numbers in the Colombian format. */
 export const formatCell = (value: string | number): string =>
   typeof value === "number" ? value.toLocaleString("es-CO", { maximumFractionDigits: 2 }) : value;
+
+const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+/** Chart axis label: «2026-10-09» → «9 oct», «2026-10» → «oct 2026»; anything else as is. */
+export const formatChartLabel = (label: string): string => {
+  const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(label);
+  if (day) return `${Number(day[3])} ${MONTHS[Number(day[2]) - 1] ?? day[2]}`;
+  const month = /^(\d{4})-(\d{2})$/.exec(label);
+  if (month) return `${MONTHS[Number(month[2]) - 1] ?? month[2]} ${month[1]}`;
+  return label;
+};

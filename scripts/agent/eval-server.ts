@@ -25,7 +25,8 @@ writeFileSync(".eve/eval-token", JSON.stringify({ token, url: `http://127.0.0.1:
 const child = spawn(process.execPath.includes("bun") ? "node" : process.execPath, ["node_modules/eve/bin/eve.js", "dev", "--no-ui", "--port", port, "--host", "127.0.0.1"], {
   stdio: "inherit",
   env: {
-    ...process.env,
+    // The shared .env has broken EVE_* values (a stray backtick, e.g. "`/eve/v1"): drop those.
+    ...Object.fromEntries(Object.entries(process.env).filter(([key, value]) => !(key.startsWith("EVE_") && value?.includes("`")))),
     NODE_ENV: "development",
     CRM_AGENT_EVAL_TOKEN: token,
     CRM_AGENT_EVAL_STAFF_EMAIL: process.env.CRM_AGENT_EVAL_STAFF_EMAIL ?? "owner.dev@example.com",
