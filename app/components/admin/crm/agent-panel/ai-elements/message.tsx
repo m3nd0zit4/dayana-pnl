@@ -87,9 +87,23 @@ export const MessageAction = ({
 
 export type MessageResponseProps = ComponentProps<typeof Streamdown>;
 
+/**
+ * Markdown tables the model writes: Streamdown's own cells are padded for a
+ * full-width page (px-4, text-sm), which in a w-96 panel wraps every number.
+ * Tighter cells, small type, tabular figures; the wrapper already scrolls
+ * sideways when a table is still too wide.
+ */
+const TABLE_CLASSES =
+  "[&_[data-streamdown=table-wrapper]]:my-2 [&_[data-streamdown=table-wrapper]]:gap-1 [&_[data-streamdown=table-wrapper]]:p-1 " +
+  "[&_[data-streamdown=table-header-cell]]:px-2.5 [&_[data-streamdown=table-header-cell]]:py-1.5 [&_[data-streamdown=table-header-cell]]:text-xs [&_[data-streamdown=table-header-cell]]:whitespace-nowrap " +
+  "[&_[data-streamdown=table-cell]]:px-2.5 [&_[data-streamdown=table-cell]]:py-1.5 [&_[data-streamdown=table-cell]]:text-xs [&_[data-streamdown=table-cell]]:tabular-nums";
+
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
-    <Streamdown className={cn("size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0", className)} {...props} />
+    <Streamdown
+      className={cn("size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0", TABLE_CLASSES, className)}
+      {...props}
+    />
   ),
   (prevProps, nextProps) =>
     prevProps.children === nextProps.children && nextProps.isAnimating === prevProps.isAnimating

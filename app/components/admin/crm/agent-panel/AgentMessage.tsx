@@ -1,135 +1,37 @@
 "use client";
 
-import Link from "next/link";
+import { memo, useState } from "react";
 import type { EveDynamicToolPart, EveMessage, EveMessagePart } from "eve/react";
-import { ChevronDown, ChevronRight, Copy, FileIcon, ThumbsDown, ThumbsUp } from "lucide-react";
-import { useState } from "react";
+import { Copy, ExternalLink, FileIcon, ThumbsDown, ThumbsUp } from "lucide-react";
+import { displayBlocksOf, type DisplayBlock } from "@/agent/lib/display";
+import { isQuestionPart } from "@/lib/agent-ui/approval";
+import { dedupeBlocks } from "@/lib/agent-ui/display-format";
+import { dedupeRefs, extractRefs, type EntityRef } from "@/lib/agent-ui/refs";
+import { buildActivity, formatDuration, isApprovalToolPart, latestPlan, type TurnTiming } from "@/lib/agent-ui/steps";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
-import { APPROVAL_OPTION_LABELS, isFrameworkApprovalGate } from "./agent-message/framework-approval";
-import { groupToolParts } from "./agent-message/group-tool-parts";
+import { ActivityRow, type ReasoningSummary } from "./agent-message/ActivityRow";
+import { ApprovalReceipt } from "./agent-message/ApprovalReceipt";
+import { DisplayBlocks } from "./agent-message/DisplayBlocks";
+import { PlanChecklist } from "./agent-message/PlanChecklist";
+import { RefChips } from "./agent-message/RefChips";
 import { sanitizePromptText } from "./agent-message/sanitize-text";
-import { TOOL_LABELS } from "./agent-message/tool-labels";
-import { ToolStepsGroup } from "./agent-message/ToolStepsGroup";
 import { Message, MessageAction, MessageActions, MessageContent, MessageResponse } from "./ai-elements/message";
 import { Reasoning, ReasoningContent, ReasoningTrigger } from "./ai-elements/reasoning";
-import { Tool, ToolContent, ToolHeader, ToolInput, ToolOutput } from "./ai-elements/tool";
-import { extractRefs, type EntityRef } from "./extract-refs";
-import { refTypeIcon } from "./ref-icons";
+import { Shimmer } from "./ai-elements/shimmer";
 
-const collectMessageRefs = (message: EveMessage): EntityRef[] => {
-  const out: EntityRef[] = [];
-  for (const part of message.parts) {
-    if (part.type === "dynamic-tool" && "output" in part) {
-      for (const ref of extractRefs(part.output)) {
-        if (!out.some((r) => r.href === ref.href)) out.push(ref);
-      }
-    }
-  }
-  return out;
-};
+type TextPart = Extract<EveMessagePart, { type: "text" }>;
+type ReasoningPart = Extract<EveMessagePart, { type: "reasoning" }>;
 
-const RefChips = ({ refs }: { refs: EntityRef[] }) => {
-  if (refs.length === 0) return null;
-  return (
-    <div className="flex flex-wrap gap-1.5 pt-1">
-      {refs.map((ref) => {
-        const Icon = refTypeIcon(ref.type);
-        return (
-          <Link
-            key={ref.href}
-            href={ref.href}
-            target="_blank"
-            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs text-foreground transition-colors hover:bg-accent"
-          >
-            <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-            {ref.label ?? ref.type}
-            <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
-          </Link>
-        );
-      })}
-    </div>
-  );
-};
+const toolParts = (message: EveMessage): EveDynamicToolPart[] =>
+  message.parts.filter((p): p is EveDynamicToolPart => p.type === "dynamic-tool");
 
-const ToolPart = ({ part }: { part: EveDynamicToolPart }) => {
-  const label = TOOL_LABELS[part.toolName] ?? part.toolName;
+const outputOf = (part: EveDynamicToolPart): unknown => ("output" in part ? part.output : undefined);
 
-  return (
-    <Tool>
-      <ToolHeader state={part.state} title={label} toolName={part.toolName} />
-      <ToolContent>
-        <ToolInput input={"input" in part ? part.input : undefined} />
-        <ToolOutput
-          output={"output" in part ? part.output : undefined}
-          errorText={"errorText" in part ? part.errorText : undefined}
-        />
-      </ToolContent>
-    </Tool>
-  );
-};
+const collectRefs = (parts: EveDynamicToolPart[]): EntityRef[] =>
+  dedupeRefs(parts.flatMap((p) => (outputOf(p) === undefined ? [] : extractRefs(outputOf(p)))));
 
-/**
- * Renders any blocking input request the agent needs from a human — both the
- * model's own `ask_question` calls and the framework's non-bypassable
- * write-tool approval gate — through one consistent chat-native look: plain
- * prose, no `Tool` card chrome. The framework gate arrives with English
- * defaults (`display: "confirmation"`, options `[{id:"approve"},{id:"deny"}]`,
- * prompt `"Approve tool call: X"` — see
- * node_modules/eve/dist/src/harness/input-extraction.js) so its prompt is
- * overridden in Spanish via `isFrameworkApprovalGate`; a genuine
- * `ask_question` already arrives in Spanish per agent/instructions.md and is
- * rendered as-is. The answer controls themselves (option buttons / freeform
- * field) render separately, docked above the composer — see
- * `agent-message/PendingInputBar.tsx` — so they stay reachable without
- * scrolling back to wherever this message sits in the conversation.
- */
-const InputRequestPrompt = ({ part, isLastMessage }: { part: EveDynamicToolPart; isLastMessage: boolean }) => {
-  const request = part.toolMetadata?.eve?.inputRequest;
-  if (!request) return null;
-
-  const isGate = isFrameworkApprovalGate(request);
-  const prompt = isGate
-    ? `Confirmar: ${TOOL_LABELS[part.toolName] ?? part.toolName}`
-    : sanitizePromptText(request.prompt);
-
-  const response = part.toolMetadata?.eve?.inputResponse;
-  const answeredOption = request.options?.find((opt) => opt.id === response?.optionId);
-  const answeredLabel = isGate
-    ? response?.optionId
-      ? APPROVAL_OPTION_LABELS[response.optionId as "approve" | "deny"]
-      : response?.text
-    : (answeredOption?.label ?? response?.text);
-
-  // A live pause can only ever be the last part of the last message (the run
-  // can't emit anything further until it's resolved) — restricting to that
-  // matches `findPendingInputPart` and keeps a long-answered ask_question
-  // (whose resolution eve's event log has no way to record) from showing the
-  // "responde abajo" hint forever after reopening an old thread.
-  const isPending = part.state === "approval-requested" && isLastMessage;
-  const toolInput = "input" in part ? part.input : undefined;
-
-  return (
-    <div className="flex flex-col gap-2">
-      <MessageResponse>{prompt}</MessageResponse>
-
-      {isGate && toolInput != null && (
-        <Collapsible className="group">
-          <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-            <ChevronDown className="size-3.5 transition-transform group-data-open:rotate-180" />
-            Ver detalles técnicos
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <ToolInput input={toolInput} />
-          </CollapsibleContent>
-        </Collapsible>
-      )}
-
-      {isPending && <p className="text-xs text-muted-foreground">Responde abajo ↓</p>}
-      {answeredLabel && <p className="text-xs text-muted-foreground">→ {answeredLabel}</p>}
-    </div>
-  );
-};
+const collectBlocks = (parts: EveDynamicToolPart[]): DisplayBlock[] =>
+  dedupeBlocks(parts.flatMap((p) => displayBlocksOf(outputOf(p))));
 
 const formatBytes = (size: number | undefined): string | undefined => {
   if (size === undefined) return undefined;
@@ -138,25 +40,16 @@ const formatBytes = (size: number | undefined): string | undefined => {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-/**
- * A sent/received attachment — eve's own scaffold (`web-template.d.ts`'s
- * default agent-message.tsx) renders these the same way: a thumbnail for
- * images, a generic file chip otherwise. Without this the chat silently
- * dropped every attachment from the transcript — the message still sent
- * (and the model still saw it), there was just no `case "file"` here, so
- * nothing showed the operator that a file had gone out at all.
- */
+/** A sent attachment: a thumbnail for images, a file chip otherwise. */
 const AttachmentPart = ({ part }: { part: Extract<EveMessagePart, { type: "file" }> }) => {
   const label = part.filename ?? "Adjunto";
   const detail = [part.mediaType, formatBytes(part.size)].filter(Boolean).join(" · ");
   const isImage = part.mediaType.startsWith("image/") && part.url !== undefined;
 
   const body = (
-    <span className="flex max-w-sm items-center gap-3 rounded-md border border-border bg-background/60 p-2 text-sm">
+    <span className="flex max-w-sm items-center gap-3 rounded-md border border-border bg-background/60 p-2 text-sm text-foreground">
       {isImage ? (
-        // part.url is often a data: URI (inlined attachments never touch
-        // Blob storage, see AgentPanel.tsx's handleSubmit) — next/image
-        // can't optimize that, so a plain <img> is the right call here.
+        // Usually a data: URI (attachments are inlined, never uploaded) — next/image can't optimize that.
         // eslint-disable-next-line @next/next/no-img-element
         <img alt={label} className="size-12 shrink-0 rounded-sm object-cover" src={part.url} />
       ) : (
@@ -180,85 +73,93 @@ const AttachmentPart = ({ part }: { part: Extract<EveMessagePart, { type: "file"
   );
 };
 
-const AgentMessagePart = ({
-  part,
-  showCaret,
-  isLastMessage,
-  isUser,
-}: {
-  part: EveMessagePart;
-  showCaret: boolean;
-  isLastMessage: boolean;
-  isUser: boolean;
-}) => {
-  switch (part.type) {
-    case "step-start":
-      return null;
-    case "text":
-      // What the operator typed is not markdown — running it through
-      // Streamdown means a raw pasted URL (or any text GFM autolinks) goes
-      // through its link-safety button component, which has no max-width of
-      // its own. Combined with this bubble's `w-fit` sizing, an unbroken
-      // string sized wider than the panel doesn't wrap, it just grows the
-      // bubble past the panel edge — the text renders, just off-screen.
-      // Assistant replies keep Streamdown: they legitimately contain
-      // markdown and links the tools returned (Calendar/Meet URLs, etc.).
-      if (isUser) {
-        return (
-          <p className="w-full min-w-0 [overflow-wrap:anywhere] whitespace-pre-wrap">
-            {part.text}
-          </p>
-        );
-      }
-      return (
-        <MessageResponse caret={showCaret ? "block" : undefined} isAnimating={showCaret}>
-          {part.text}
-        </MessageResponse>
-      );
-    case "reasoning":
-      return (
-        <Reasoning defaultOpen isStreaming={part.state === "streaming"}>
-          <ReasoningTrigger />
-          <ReasoningContent>{part.text}</ReasoningContent>
-        </Reasoning>
-      );
-    case "file":
-      return <AttachmentPart part={part} />;
-    case "dynamic-tool":
-      if (part.state === "approval-requested" || part.state === "approval-responded") {
-        return <InputRequestPrompt part={part} isLastMessage={isLastMessage} />;
-      }
-      return <ToolPart part={part} />;
-    default:
-      return null;
-  }
+/** The model's own clarifying question, as prose; the answer controls are docked above the composer. */
+const QuestionPrompt = ({ part, isLive }: { part: EveDynamicToolPart; isLive: boolean }) => {
+  const request = part.toolMetadata?.eve?.inputRequest;
+  if (!request) return null;
+  const response = part.toolMetadata?.eve?.inputResponse;
+  const answered = request.options?.find((o) => o.id === response?.optionId)?.label ?? response?.text;
+  return (
+    <div className="flex flex-col gap-1" data-testid="agent-question">
+      <MessageResponse>{sanitizePromptText(request.prompt)}</MessageResponse>
+      {isLive && part.state === "approval-requested" && <p className="text-xs text-muted-foreground">Responde abajo</p>}
+      {answered && <p className="text-xs text-muted-foreground">Tu respuesta: {answered}</p>}
+    </div>
+  );
 };
 
-const AgentMessage = ({
-  message,
-  isStreaming,
-  isLastMessage,
-}: {
-  message: EveMessage;
-  isStreaming: boolean;
-  isLastMessage: boolean;
-}) => {
-  const { toast } = useCrm();
-  const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
-  const isUser = message.role === "user";
-
-  const lastTextIndex = message.parts.reduce(
-    (last, part, index) => (part.type === "text" ? index : last),
-    -1
+const AuthorizationPrompt = ({ part }: { part: Extract<EveMessagePart, { type: "authorization" }> }) =>
+  part.state === "completed" ? (
+    <p className="text-xs text-muted-foreground">
+      {part.outcome === "authorized" ? `${part.displayName} quedó conectado.` : `${part.displayName}: no se pudo conectar.`}
+    </p>
+  ) : (
+    <div className="flex flex-col gap-1.5 rounded-lg border border-border bg-card p-3 text-sm">
+      <p className="text-foreground">{part.description}</p>
+      {part.authorization?.userCode && <code className="text-xs">{part.authorization.userCode}</code>}
+      {part.authorization?.url && (
+        <a
+          href={part.authorization.url}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Conectar {part.displayName} <ExternalLink className="size-3.5" />
+        </a>
+      )}
+    </div>
   );
 
+const UserMessage = ({ message }: { message: EveMessage }) => (
+  <Message from="user" data-optimistic={message.metadata?.optimistic ? "true" : undefined}>
+    <MessageContent>
+      {message.parts.map((part, index) =>
+        part.type === "text" ? (
+          // Not markdown: a pasted URL through Streamdown grows the bubble past the panel edge.
+          <p key={index} className="w-full min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">
+            {part.text}
+          </p>
+        ) : part.type === "file" ? (
+          <AttachmentPart key={index} part={part} />
+        ) : null
+      )}
+    </MessageContent>
+  </Message>
+);
+
+type AssistantProps = {
+  message: EveMessage;
+  isStreaming: boolean;
+  /** The tool call the run is blocked on right now, if it's in this message. */
+  pendingCallId: string | null;
+  timing?: TurnTiming;
+};
+
+const AssistantMessage = ({ message, isStreaming, pendingCallId, timing }: AssistantProps) => {
+  const { toast } = useCrm();
+  const [feedback, setFeedback] = useState<"up" | "down" | null>(null);
+
+  const tools = toolParts(message);
+  const activity = buildActivity(message.parts, pendingCallId);
+  const reasoningParts = message.parts.filter((p): p is ReasoningPart => p.type === "reasoning");
+  const reasoning: ReasoningSummary | null =
+    reasoningParts.length > 0
+      ? {
+          text: reasoningParts.map((p) => p.text).join("\n\n"),
+          streaming: isStreaming && reasoningParts.some((p) => p.state === "streaming"),
+          ms: timing?.reasoningMs || undefined,
+        }
+      : null;
+  const plan = latestPlan(message.parts);
+  const blocks = collectBlocks(tools);
+  const refs = collectRefs(tools);
+  const lastTextIndex = message.parts.reduce((last, part, index) => (part.type === "text" ? index : last), -1);
   const textContent = message.parts
-    .filter((p) => p.type === "text")
+    .filter((p): p is TextPart => p.type === "text")
     .map((p) => p.text)
     .join("\n\n");
-
-  const renderItems = groupToolParts(message.parts);
-  const refs = isUser ? [] : collectMessageRefs(message);
+  const thinkingNow = Boolean(reasoning?.streaming) && !activity.running;
+  const nothingYet = isStreaming && lastTextIndex === -1 && activity.steps.length === 0 && !reasoning;
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(textContent);
@@ -267,29 +168,78 @@ const AgentMessage = ({
 
   const handleFeedback = (value: "up" | "down") => {
     setFeedback(value);
-    toast(value === "up" ? "Gracias por tu feedback" : "Gracias, lo tendremos en cuenta", "info");
+    toast(value === "up" ? "Gracias por tu opinión" : "Gracias, lo tendremos en cuenta", "info");
   };
 
   return (
-    <Message from={message.role} data-optimistic={message.metadata?.optimistic ? "true" : undefined}>
+    <Message from="assistant" data-testid="agent-message">
       <MessageContent>
-        {renderItems.map((item, index) =>
-          item.type === "tool-group" ? (
-            <ToolStepsGroup key={`group-${index}`} parts={item.parts} />
-          ) : (
-            <AgentMessagePart
-              key={index}
-              part={item.part}
-              showCaret={isStreaming && !isUser && message.parts.indexOf(item.part) === lastTextIndex}
-              isLastMessage={isLastMessage}
-              isUser={isUser}
+        {activity.steps.length > 0 ? (
+          <ActivityRow
+            activity={activity}
+            reasoning={reasoning}
+            thinkingNow={thinkingNow}
+            durationMs={isStreaming ? undefined : timing?.totalMs}
+          />
+        ) : reasoning ? (
+          <Reasoning
+            defaultOpen={false}
+            isStreaming={reasoning.streaming}
+            duration={reasoning.ms ? Math.max(1, Math.round(reasoning.ms / 1000)) : undefined}
+            className="mb-0"
+            data-testid="agent-reasoning"
+          >
+            <ReasoningTrigger
+              getThinkingMessage={(streaming, duration) =>
+                streaming ? (
+                  <Shimmer>Pensando…</Shimmer>
+                ) : (
+                  <span>{duration ? `Pensó ${formatDuration(duration * 1000)}` : "Pensó unos segundos"}</span>
+                )
+              }
             />
-          )
-        )}
+            <ReasoningContent className="mt-2 text-xs">{reasoning.text}</ReasoningContent>
+          </Reasoning>
+        ) : null}
+
+        {nothingYet && <Shimmer className="text-sm">Pensando…</Shimmer>}
+
+        {plan && <PlanChecklist items={plan} />}
+
+        {message.parts.map((part, index) => {
+          switch (part.type) {
+            case "text":
+              return (
+                <MessageResponse
+                  key={index}
+                  caret={isStreaming && index === lastTextIndex ? "block" : undefined}
+                  isAnimating={isStreaming && index === lastTextIndex}
+                >
+                  {part.text}
+                </MessageResponse>
+              );
+            case "file":
+              return <AttachmentPart key={index} part={part} />;
+            case "authorization":
+              return <AuthorizationPrompt key={index} part={part} />;
+            case "dynamic-tool":
+              if (isQuestionPart(part)) {
+                return <QuestionPrompt key={part.toolCallId} part={part} isLive={part.toolCallId === pendingCallId} />;
+              }
+              if (isApprovalToolPart(part)) {
+                return <ApprovalReceipt key={part.toolCallId} part={part} isLive={part.toolCallId === pendingCallId} />;
+              }
+              return null;
+            default:
+              return null;
+          }
+        })}
+
+        <DisplayBlocks blocks={blocks} />
         <RefChips refs={refs} />
       </MessageContent>
 
-      {!isUser && textContent && (
+      {textContent && !isStreaming && (
         <MessageActions>
           <MessageAction tooltip="Copiar" onClick={handleCopy}>
             <Copy className="size-3.5" />
@@ -314,4 +264,7 @@ const AgentMessage = ({
   );
 };
 
-export default AgentMessage;
+const AgentMessage = (props: AssistantProps) =>
+  props.message.role === "user" ? <UserMessage message={props.message} /> : <AssistantMessage {...props} />;
+
+export default memo(AgentMessage);

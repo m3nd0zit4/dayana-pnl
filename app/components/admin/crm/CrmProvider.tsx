@@ -1,6 +1,7 @@
 "use client";
 
 import type { StaffRole } from "@prisma/client";
+import type { AgentId } from "@/agent/lib/catalog";
 import { useRouter } from "next/navigation";
 import { toast as sonnerToast } from "sonner";
 import {
@@ -30,8 +31,10 @@ export type ToastOptions = {
 
 /** What the agent panel should do the next time it (re)mounts a session. */
 export type PendingAgentAction =
-  | { type: "message"; value: string; files?: File[] }
-  | { type: "thread"; value: string };
+  | { type: "message"; value: string; files?: File[]; agent?: AgentId }
+  | { type: "thread"; value: string }
+  /** A fresh conversation with this agent; `keepIfSame` keeps the open one if it's already that agent's. */
+  | { type: "new"; agent: AgentId; keepIfSame?: boolean };
 
 type CrmContextValue = {
   role: StaffRole | "PREVIEW";
@@ -61,8 +64,13 @@ type CrmContextValue = {
   /** Acción pendiente para el panel: sembrar un mensaje nuevo o cambiar a un hilo existente. */
   pendingAgentAction: PendingAgentAction | null;
   clearPendingAgentAction: () => void;
-  /** Abre el panel del agente y envía este mensaje en una conversación nueva. */
-  askAgent: (message: string, files?: File[]) => void;
+  /**
+   * Abre el panel del agente y envía este mensaje en una conversación nueva:
+   * con `agent` si se pasa, si no con el asistente general ("auto"), que reparte.
+   */
+  askAgent: (message: string, files?: File[], options?: { agent?: AgentId }) => void;
+  /** Abre el panel en una conversación nueva con ese agente (con `keepIfSame`, deja la abierta si ya es suya). */
+  startAgentConversation: (agent: AgentId, options?: { keepIfSame?: boolean }) => void;
   /** Abre el panel del agente sobre un hilo existente (p.ej. desde la lista del sidebar). */
   openAgentThread: (threadId: string) => void;
   toast: {
@@ -132,8 +140,13 @@ const CrmProvider = ({
   const [agentPanelExpanded, setAgentPanelExpanded] = useState(false);
   const [pendingAgentAction, setPendingAgentAction] = useState<PendingAgentAction | null>(null);
 
-  const askAgent = useCallback((message: string, files?: File[]) => {
-    setPendingAgentAction({ type: "message", value: message, files });
+  const askAgent = useCallback((message: string, files?: File[], options?: { agent?: AgentId }) => {
+    setPendingAgentAction({ type: "message", value: message, files, agent: options?.agent });
+    setAgentPanelOpen(true);
+  }, []);
+
+  const startAgentConversation = useCallback((agent: AgentId, options?: { keepIfSame?: boolean }) => {
+    setPendingAgentAction({ type: "new", agent, keepIfSame: options?.keepIfSame });
     setAgentPanelOpen(true);
   }, []);
 
@@ -196,6 +209,7 @@ const CrmProvider = ({
       pendingAgentAction,
       clearPendingAgentAction,
       askAgent,
+      startAgentConversation,
       openAgentThread,
       toast,
       dismissToast,
@@ -214,6 +228,7 @@ const CrmProvider = ({
       pendingAgentAction,
       clearPendingAgentAction,
       askAgent,
+      startAgentConversation,
       openAgentThread,
       toast,
       dismissToast,

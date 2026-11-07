@@ -1,133 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronDown, SquarePen, Trash2, X } from "lucide-react";
-import { Button } from "@/app/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
-import { Drawer, DrawerContent, DrawerHeader } from "@/app/components/ui/drawer";
+import { useEffect, type ReactNode } from "react";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/app/components/ui/drawer";
 import { useSidebar } from "@/app/components/ui/sidebar";
-import { AgentPanelSession } from "./AgentPanel";
-import type { AgentThread } from "./thread-store";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: string;
-  threads: AgentThread[];
-  onThreadsMenuOpen: () => void;
-  threadId: string;
-  seed: string | undefined;
-  seedFiles?: File[];
-  onTitleChange: (title: string) => void;
-  onNewThread: () => void;
-  onSwitchThread: (thread: AgentThread) => void;
-  onDeleteThread: (id: string) => void;
+  /** The same `AgentPanelHeader` the desktop aside uses (picker, history, new). */
+  header: ReactNode;
+  /** The same `AgentPanelSession`: every feature of the desktop panel. */
+  children: ReactNode;
 };
 
 /**
  * Full-screen bottom sheet — the mobile counterpart to `AgentPanel`'s desktop
  * `<aside>`. Binary open/closed (no snap points): a phone-width sheet opened
- * to (nearly) full height already IS the "expanded" state, so there's no
- * `ChevronsLeftRight` expand toggle here the way the desktop header has one.
+ * to full height already IS the "expanded" state, so there's no expand
+ * toggle here.
  */
-const AgentPanelMobile = ({
-  open,
-  onOpenChange,
-  title,
-  threads,
-  onThreadsMenuOpen,
-  threadId,
-  seed,
-  seedFiles,
-  onTitleChange,
-  onNewThread,
-  onSwitchThread,
-  onDeleteThread,
-}: Props) => {
-  const [threadsMenuOpen, setThreadsMenuOpen] = useState(false);
+const AgentPanelMobile = ({ open, onOpenChange, header, children }: Props) => {
   const { setOpenMobile } = useSidebar();
 
-  // The nav Sidebar's own Sheet (hamburger, or a thread tapped from its
-  // "Conversaciones del agente" section) has no knowledge of this sheet —
-  // without this, both can end up open/stacked at once (blurred nav behind
-  // the chat sheet, no way back to other sections without closing both).
+  // The nav Sidebar's own Sheet knows nothing of this one — without this both
+  // can end up stacked (blurred nav behind the chat, no way back).
   useEffect(() => {
     if (open) setOpenMobile(false);
   }, [open, setOpenMobile]);
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
-      <DrawerContent className="[--drawer-height:100svh] bg-popover text-popover-foreground">
+      <DrawerContent
+        className="[--drawer-height:100svh] bg-popover text-popover-foreground"
+        data-testid="agent-panel"
+        data-mobile="true"
+      >
         <DrawerHeader className="flex-row items-center gap-1 border-b border-border p-2 pb-2">
-          <DropdownMenu
-            open={threadsMenuOpen}
-            onOpenChange={(next) => {
-              setThreadsMenuOpen(next);
-              if (next) onThreadsMenuOpen();
-            }}
-          >
-            <DropdownMenuTrigger
-              className="flex min-w-0 flex-1 items-center gap-1 rounded-md px-1.5 py-1 text-sm font-medium hover:bg-accent"
-              render={<button type="button" />}
-            >
-              <span className="min-w-0 truncate">{title}</span>
-              <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              {threads.length === 0 && (
-                <p className="px-2 py-1.5 text-xs text-muted-foreground">Sin conversaciones aún</p>
-              )}
-              {threads.map((t) => (
-                <DropdownMenuItem key={t.id} onClick={() => onSwitchThread(t)} className="justify-between">
-                  <span className="min-w-0 flex-1 truncate">{t.title}</span>
-                  <button
-                    type="button"
-                    aria-label="Eliminar conversación"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteThread(t.id);
-                    }}
-                    className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
-                  >
-                    <Trash2 className="size-3.5" />
-                  </button>
-                </DropdownMenuItem>
-              ))}
-              {threads.length > 0 && <DropdownMenuSeparator />}
-              <DropdownMenuItem onClick={onNewThread}>Nueva conversación</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Nueva conversación" onClick={onNewThread}>
-            <SquarePen className="size-4" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-8 shrink-0"
-            aria-label="Cerrar"
-            onClick={() => onOpenChange(false)}
-          >
-            <X className="size-4" />
-          </Button>
+          <DrawerTitle className="sr-only">Asistente del CRM</DrawerTitle>
+          {header}
         </DrawerHeader>
-
-        {open && (
-          <AgentPanelSession
-            key={threadId}
-            threadId={threadId}
-            seedMessage={seed}
-            seedFiles={seedFiles}
-            onTitleChange={onTitleChange}
-          />
-        )}
+        {open && children}
       </DrawerContent>
     </Drawer>
   );

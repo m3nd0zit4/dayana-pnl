@@ -17,19 +17,19 @@ const SUGGESTIONS = [
 ];
 
 /**
- * «Hablar con la IA» usa el mismo asistente del CRM (el panel de siempre, con
- * sus hilos, voz, adjuntos y botones de aprobar), que ahora tiene herramientas
- * para supervisar y configurar la IA de WhatsApp. Si el asistente del CRM está
- * apagado, queda el chat propio de la sección.
+ * «Hablar con la IA» usa el panel del asistente del CRM (hilos, voz, adjuntos
+ * y botones de aprobar) con el especialista de WhatsApp: abre una
+ * conversación con él, o deja la abierta si ya es suya. Si el asistente del
+ * CRM está apagado, queda el chat propio de la sección.
  */
 const WhatsAppAgentLauncher = () => {
-  const { agentEnabled, askAgent, setAgentPanelOpen, setAgentPanelExpanded } = useCrm();
+  const { agentEnabled, askAgent, startAgentConversation, setAgentPanelExpanded } = useCrm();
 
   useEffect(() => {
     if (!agentEnabled) return;
-    setAgentPanelOpen(true);
+    startAgentConversation("whatsapp", { keepIfSame: true });
     setAgentPanelExpanded(true);
-  }, [agentEnabled, setAgentPanelOpen, setAgentPanelExpanded]);
+  }, [agentEnabled, startAgentConversation, setAgentPanelExpanded]);
 
   if (!agentEnabled) return <WhatsAppAssistantClient />;
 
@@ -39,8 +39,8 @@ const WhatsAppAgentLauncher = () => {
         <Sparkles className="mx-auto size-8 text-[#128c4a]" />
         <h1 className="text-xl font-semibold">Hablar con la IA de WhatsApp</h1>
         <p className="mx-auto max-w-lg text-sm text-muted-foreground">
-          Es el mismo asistente del CRM. Pregúntale cómo va WhatsApp, enséñale reglas o pídele
-          cambios; cada cambio te pide aprobación antes de aplicarse.
+          Es el especialista de WhatsApp del asistente del CRM. Pregúntale cómo va WhatsApp,
+          enséñale reglas o pídele cambios; cada cambio te pide aprobación antes de aplicarse.
         </p>
         <div className="flex flex-wrap justify-center gap-2">
           {SUGGESTIONS.map((s) => (
@@ -49,7 +49,7 @@ const WhatsAppAgentLauncher = () => {
               type="button"
               onClick={() => {
                 setAgentPanelExpanded(true);
-                askAgent(s);
+                askAgent(s, undefined, { agent: "whatsapp" });
               }}
               className="rounded-full border border-border px-3 py-1.5 text-xs hover:bg-muted"
             >
@@ -59,7 +59,7 @@ const WhatsAppAgentLauncher = () => {
         </div>
         <Button
           onClick={() => {
-            setAgentPanelOpen(true);
+            startAgentConversation("whatsapp", { keepIfSame: true });
             setAgentPanelExpanded(true);
           }}
           className="bg-[#128c4a] hover:bg-[#0f7a40]"

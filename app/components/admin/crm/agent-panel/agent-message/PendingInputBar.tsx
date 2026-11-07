@@ -1,61 +1,133 @@
 "use client";
 
 import { useState } from "react";
-import type { EveDynamicToolPart, EveMessage } from "eve/react";
-import { X } from "lucide-react";
+import type { EveDynamicToolPart } from "eve/react";
+import { ChevronDown, PencilLine, Send, ShieldAlert, X } from "lucide-react";
+import { APPROVAL_OPTION_LABELS, isApprovalPart } from "@/lib/agent-ui/approval";
+import { summarizeApproval } from "@/lib/agent-ui/approval-summary";
+import { Button } from "@/app/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/app/components/ui/collapsible";
 import { Input } from "@/app/components/ui/input";
-import { ConfirmationAction, ConfirmationActions } from "../ai-elements/confirmation";
-import { APPROVAL_OPTION_LABELS, isFrameworkApprovalGate } from "./framework-approval";
+import { cn } from "@/lib/utils";
+import { CodeBlock } from "../ai-elements/code-block";
 import { sanitizePromptText } from "./sanitize-text";
-import { TOOL_LABELS } from "./tool-labels";
 
 export type InputResponse = { optionId?: string; text?: string };
 export type InputResponder = (requestId: string, response: InputResponse) => void;
 
+type Props = {
+  part: EveDynamicToolPart;
+  canRespond: boolean;
+  onRespond: InputResponder;
+  /** id → label seen earlier in the thread, so the card can say who receives it. */
+  names: Readonly<Record<string, string>>;
+};
+
 /**
- * Finds the single input request the agent is genuinely blocked on right
- * now. A live pause can only ever be the last part of the last message — the
- * run structurally cannot emit anything further until it's resolved — so we
- * only look there. This matters because eve's persisted event log has no
- * "resolved" event for a plain `ask_question` (unlike approval-gated write
- * tools, which get a correlating `action.result`); reopening an old thread
- * replays that stale request forever stuck in `approval-requested` state.
- * Restricting to the last message means a long-answered question buried
- * earlier in history is never mistaken for a live one.
+ * The one approval card: what the tool is about to do, in words, with
+ * «Cancelar» / «Aprobar». Execute-level tools (a message a real person gets,
+ * money, a public price) get the warning tone and always name who receives
+ * it. The conversation only shows a one-line receipt for it.
  */
-export const findPendingInputPart = (messages: readonly EveMessage[]): EveDynamicToolPart | null => {
-  const lastMessage = messages[messages.length - 1];
-  if (!lastMessage) return null;
-  for (let j = lastMessage.parts.length - 1; j >= 0; j--) {
-    const part = lastMessage.parts[j];
-    if (part.type === "dynamic-tool" && part.state === "approval-requested") {
-      return part;
-    }
-  }
-  return null;
+const ApprovalCard = ({ part, canRespond, onRespond, names }: Props) => {
+  const request = part.toolMetadata?.eve?.inputRequest;
+  if (!request) return null;
+  const input = "input" in part ? part.input : undefined;
+  const summary = summarizeApproval(part.toolName, input, { names });
+  const isExecute = summary.access === "execute";
+  const Icon = isExecute ? ShieldAlert : PencilLine;
+
+  return (
+    <section
+      data-testid="agent-approval-card"
+      data-access={summary.access}
+      aria-label={`Aprobar: ${summary.title}`}
+      className={cn(
+        "flex flex-col gap-2.5 rounded-xl border p-3 shadow-sm",
+        isExecute ? "border-destructive/40 bg-destructive/5" : "border-border bg-card"
+      )}
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className={cn(
+            "flex size-7 shrink-0 items-center justify-center rounded-md",
+            isExecute ? "bg-destructive/10 text-destructive" : "bg-muted text-foreground"
+          )}
+        >
+          <Icon className="size-4" aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-medium text-foreground">{summary.title}</p>
+          <p className="text-xs text-muted-foreground">
+            {isExecute ? "Sale del CRM: revisa antes de aprobar" : "Necesita tu aprobación"}
+          </p>
+        </div>
+      </div>
+
+      <div className="max-h-[40vh] space-y-2 overflow-y-auto">
+        {summary.recipient && (
+          <p className="text-sm">
+            <span className="text-muted-foreground">Para: </span>
+            <span className="font-medium text-foreground" data-testid="agent-approval-recipient">
+              {summary.recipient}
+            </span>
+          </p>
+        )}
+        {summary.lines.length > 0 && (
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+            {summary.lines.map((line, i) => (
+              <div key={`${i}-${line.label}`} className="contents">
+                <dt className="text-muted-foreground">{line.label}</dt>
+                <dd className="min-w-0 whitespace-pre-wrap text-foreground [overflow-wrap:anywhere]">{line.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {summary.note && <p className="text-xs text-muted-foreground">{summary.note}</p>}
+        {input !== undefined && (
+          <Collapsible className="group/tech">
+            <CollapsibleTrigger className="flex items-center gap-1 rounded text-xs text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50">
+              <ChevronDown className="size-3 transition-transform group-data-open/tech:rotate-180" />
+              Ver detalles técnicos
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-1.5 rounded-md bg-muted/50">
+              <CodeBlock code={JSON.stringify(input, null, 2)} />
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!canRespond}
+          onClick={() => onRespond(request.requestId, { optionId: "deny" })}
+          data-testid="agent-approval-deny"
+        >
+          {APPROVAL_OPTION_LABELS.deny}
+        </Button>
+        <Button
+          size="sm"
+          disabled={!canRespond}
+          onClick={() => onRespond(request.requestId, { optionId: "approve" })}
+          data-testid="agent-approval-approve"
+        >
+          {APPROVAL_OPTION_LABELS.approve}
+        </Button>
+      </div>
+    </section>
+  );
 };
 
 const optionButtonVariant = (style: "danger" | "primary" | "default" | undefined) =>
   style === "danger" ? "destructive" : style === "primary" ? "default" : "outline";
 
-/** Sticky bar docked above the composer with the answer controls (option buttons and/or a freeform field) for whatever input request is currently pending — always reachable without scrolling back through the conversation. The question/confirmation text itself still renders inline in the message via `InputRequestPrompt`. */
-export const PendingInputBar = ({
-  part,
-  canRespond,
-  onRespond,
-}: {
-  part: EveDynamicToolPart;
-  canRespond: boolean;
-  onRespond: InputResponder;
-}) => {
+/** The model's own `ask_question`: its options and/or a free answer. The question text also shows in the conversation. */
+const QuestionBar = ({ part, canRespond, onRespond }: Omit<Props, "names">) => {
   const request = part.toolMetadata?.eve?.inputRequest;
   const [freeformValue, setFreeformValue] = useState("");
   if (!request) return null;
-
-  const isGate = isFrameworkApprovalGate(request);
-  const prompt = isGate
-    ? `Confirmar: ${TOOL_LABELS[part.toolName] ?? part.toolName}`
-    : sanitizePromptText(request.prompt);
   const hasOptions = (request.options?.length ?? 0) > 0;
 
   const submitFreeform = () => {
@@ -65,49 +137,42 @@ export const PendingInputBar = ({
     setFreeformValue("");
   };
 
-  // Sends a real (if terse) answer through the normal response channel — the
-  // model sees an explicit decline instead of the question just vanishing,
-  // so it can react and stop pursuing whatever it was asking about.
+  // A real (if terse) answer: the model sees an explicit decline instead of
+  // the question vanishing, so it stops pursuing it.
   const dismiss = () => {
     if (!canRespond) return;
     onRespond(request.requestId, { text: "Cancelar, no quiero continuar con esto por ahora." });
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl shrink-0 flex-col gap-2 border-t border-border px-3 pt-2.5 pb-1">
+    <section
+      data-testid="agent-question-bar"
+      aria-label="Pregunta del asistente"
+      className="flex flex-col gap-2 rounded-xl border border-border bg-card p-3 shadow-sm"
+    >
       <div className="flex items-start justify-between gap-2">
-        <p className="flex-1 text-sm text-foreground">{prompt}</p>
-        <button
-          type="button"
-          aria-label="Cerrar pregunta"
-          disabled={!canRespond}
-          onClick={dismiss}
-          className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
-        >
-          <X className="size-4" />
-        </button>
+        <p className="flex-1 text-sm text-foreground">{sanitizePromptText(request.prompt)}</p>
+        <Button variant="ghost" size="icon-xs" aria-label="Cerrar pregunta" disabled={!canRespond} onClick={dismiss}>
+          <X className="size-3.5" />
+        </Button>
       </div>
       {hasOptions && (
-        <ConfirmationActions className="justify-start">
+        <div className="flex flex-wrap gap-2">
           {(request.options ?? []).map((opt) => (
-            <ConfirmationAction
+            <Button
               key={opt.id}
               size="sm"
               disabled={!canRespond}
               variant={optionButtonVariant(opt.style)}
               onClick={() => onRespond(request.requestId, { optionId: opt.id })}
             >
-              {isGate ? APPROVAL_OPTION_LABELS[opt.id as "approve" | "deny"] : opt.label}
-            </ConfirmationAction>
+              {opt.label}
+            </Button>
           ))}
-        </ConfirmationActions>
+        </div>
       )}
-      {/* Wraps because at phone width the hint + a max-w-xs field + the send
-          button overflow the sheet horizontally; the field keeps a floor so
-          it stays usable once it drops onto its own line. */}
       {request.allowFreeform && (
-        <div className="flex flex-wrap items-center gap-2">
-          {hasOptions && <span className="text-xs text-muted-foreground">o escribe tu respuesta</span>}
+        <div className="flex items-center gap-2">
           <Input
             value={freeformValue}
             onChange={(e) => setFreeformValue(e.target.value)}
@@ -115,14 +180,26 @@ export const PendingInputBar = ({
               if (e.key === "Enter") submitFreeform();
             }}
             disabled={!canRespond}
-            placeholder="Escribe tu respuesta…"
-            className="min-w-40 flex-1 sm:max-w-xs"
+            placeholder={hasOptions ? "O escribe tu respuesta…" : "Escribe tu respuesta…"}
+            className="min-w-0 flex-1"
           />
-          <ConfirmationAction size="sm" disabled={!canRespond || !freeformValue.trim()} onClick={submitFreeform}>
-            Enviar
-          </ConfirmationAction>
+          <Button
+            size="icon-sm"
+            aria-label="Enviar respuesta"
+            disabled={!canRespond || !freeformValue.trim()}
+            onClick={submitFreeform}
+          >
+            <Send className="size-3.5" />
+          </Button>
         </div>
       )}
-    </div>
+    </section>
   );
 };
+
+/** Docked above the composer for whatever the run is blocked on, so it's reachable without scrolling back. */
+export const PendingInputBar = (props: Props) => (
+  <div className="mx-auto w-full max-w-2xl shrink-0 px-2.5 pt-2">
+    {isApprovalPart(props.part) ? <ApprovalCard {...props} /> : <QuestionBar {...props} />}
+  </div>
+);

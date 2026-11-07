@@ -1,37 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { UserContent } from "ai";
-import { defaultMessageReducer } from "eve/client";
-import { useEveAgent } from "eve/react";
-import {
-  Check,
-  ChevronDown,
-  ChevronsLeftRight,
-  Lightbulb,
-  Mic,
-  Paperclip,
-  Send,
-  Square,
-  SquarePen,
-  Trash2,
-  UserRound,
-  X,
-} from "lucide-react";
+import { defaultMessageReducer, type HandleMessageStreamEvent } from "eve/client";
+import { useEveAgent, type EveMessage } from "eve/react";
+import { Check, ChevronDown, ChevronsLeftRight, Lightbulb, Mic, Paperclip, Send, Square, UserRound, X } from "lucide-react";
+import type { AgentId } from "@/agent/lib/catalog";
+import { agentPlaceholder } from "@/lib/agent-ui/agents";
+import { isApprovalPart } from "@/lib/agent-ui/approval";
+import { describeAgentError, lastFailureMessage } from "@/lib/agent-ui/errors";
+import { collectNames } from "@/lib/agent-ui/refs";
+import { findPendingCallId, turnTimings, type TurnTiming } from "@/lib/agent-ui/steps";
+import { splitSessions } from "@/lib/agent-ui/threads";
 import { useIsMobile } from "@/app/hooks/use-mobile";
 import { Button } from "@/app/components/ui/button";
 import { ButtonGroup, ButtonGroupSeparator } from "@/app/components/ui/button-group";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/app/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/app/components/ui/dropdown-menu";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { DayanaAiLogo } from "@/app/components/admin/crm/DayanaAiLogo";
 import AgentMessage from "./AgentMessage";
-import { findPendingInputPart, PendingInputBar } from "./agent-message/PendingInputBar";
+import { AgentEmptyState } from "./AgentEmptyState";
+import { AgentPanelHeader } from "./AgentPanelHeader";
+import { ErrorBubble } from "./agent-message/ErrorBubble";
+import { PendingInputBar } from "./agent-message/PendingInputBar";
 import AgentPanelMobile from "./AgentPanelMobile";
 import { Conversation, ConversationContent, ConversationScrollButton } from "./ai-elements/conversation";
 import {
@@ -46,7 +37,8 @@ import {
   PromptInputTools,
   type PromptInputMessage,
 } from "./ai-elements/prompt-input";
-import { deleteThread, deriveTitle, getThread, listThreads, upsertThread, type AgentThread } from "./thread-store";
+import { Shimmer } from "./ai-elements/shimmer";
+import { DEFAULT_THREAD_TITLE, deleteThread, deriveTitle, getThread, upsertThread, type AgentThread } from "./thread-store";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
 import { VoiceBars } from "./VoiceBars";
 
@@ -86,7 +78,7 @@ type SubPanel = "mention" | "skills" | null;
 /**
  * Root "+" menu content — just three items. Selecting Mención/Skills closes
  * this menu normally (default `closeOnClick`) and opens a SEPARATE, plain
- * `Popover` (see `SubPanelContent` below) rather than swapping this same
+ * popover (see `SubPanelContent` below) rather than swapping this same
  * menu's content in place. Base UI `Menu.Item` has a documented "press +
  * drag to item + release" gesture path that force-closes the menu and
  * ignores `closeOnClick={false}` once a mousedown on the trigger goes
@@ -185,48 +177,62 @@ const SubPanelContent = ({
   );
 };
 
+type HistoryItem = { key: string; message: EveMessage; timing?: TurnTiming };
+
+/**
+ * Prior turns render from a static snapshot instead of being fed to
+ * `useEveAgent` as `initialEvents`: eve numbers turns from zero in every
+ * backend session and keys messages by turn id alone, so a resumed thread
+ * whose session had died (a failed turn resets it) would merge the new
+ * session's turn_0 into the old bubble. The live store only ever sees this
+ * mount's turns; the stored log is split per session (`splitSessions`) and
+ * each piece reduced on its own, keys prefixed so they never collide.
+ */
+const reduceHistory = (events: readonly HandleMessageStreamEvent[]): HistoryItem[] =>
+  splitSessions(events).flatMap((segment, i) => {
+    const reducer = defaultMessageReducer();
+    let data = reducer.initial();
+    for (const event of segment) data = reducer.reduce(data, event);
+    const timings = turnTimings(segment);
+    return data.messages.map((message) => ({
+      key: `past-${i}-${message.id}`,
+      message,
+      timing: message.metadata?.turnId ? timings.get(message.metadata.turnId) : undefined,
+    }));
+  });
+
+const toolOutputs = (messages: readonly EveMessage[]): unknown[] =>
+  messages.flatMap((m) => m.parts.flatMap((p) => (p.type === "dynamic-tool" && "output" in p ? [p.output] : [])));
+
+type SendPayload = string | UserContent;
+
 export const AgentPanelSession = ({
   threadId,
+  agent: agentId,
   seedMessage,
   seedFiles,
   onTitleChange,
 }: {
   threadId: string;
+  agent: AgentId;
   seedMessage?: string;
   seedFiles?: File[];
   onTitleChange: (title: string) => void;
 }) => {
   const existing = useMemo(() => getThread(threadId), [threadId]);
-  const titleRef = useRef(existing?.title ?? "Nueva conversación");
-  // Prior turns render from this static snapshot instead of being fed to
-  // `useEveAgent` as `initialEvents`. Reason: eve parks a session on
-  // `session.waiting` between turns and keeps its `sessionId` — the normal
-  // case, where reopening the thread resumes it cleanly. But a turn that
-  // ended in `session.completed`/`session.failed` (any failed send, mainly)
-  // makes eve's own client reset the persisted session state to blank (see
-  // `advanceSession` in eve/client) — sessionId gone. Handing that blank
-  // state to `useEveAgent` makes it silently start a brand-new backend
-  // session on the next send, whose turn numbering restarts at turn_0 — and
-  // if the old turn_0 were also sitting in the live store's `initialEvents`,
-  // it would collide (eve keys messages by turn id alone, not
-  // session-scoped): the real reply gets merged into the stale old bubble
-  // instead of appearing, which reads as "the agent never responds" for any
-  // reopened thread whose last turn failed. Keeping history entirely out of
-  // the live store's turn-id space sidesteps the collision unconditionally
-  // — the live store only ever sees turns from *this* mount, so there is
-  // nothing for a fresh turn_0 to collide with, whether or not the resumed
-  // session turned out to still be alive.
-  const pastMessages = useMemo(() => {
-    if (!existing || existing.events.length === 0) return [];
-    const reducer = defaultMessageReducer();
-    let data = reducer.initial();
-    for (const event of existing.events) data = reducer.reduce(data, event);
-    return data.messages;
-  }, [existing]);
+  const titleRef = useRef(existing?.title ?? DEFAULT_THREAD_TITLE);
+  // Events from before this mount's live store: the stored thread, plus any
+  // live turns archived when a retry had to open a fresh session.
+  const [history, setHistory] = useState<readonly HandleMessageStreamEvent[]>(() => existing?.events ?? []);
+  const pastItems = useMemo(() => reduceHistory(history), [history]);
   const [input, setInput] = useState("");
   const [subPanel, setSubPanel] = useState<SubPanel>(null);
+  const [retrying, setRetrying] = useState(false);
+  // Mirrors lastSentRef for rendering: the retry button only exists once something was sent.
+  const [canRetry, setCanRetry] = useState(false);
   const subPanelRef = useRef<HTMLDivElement>(null);
   const sentSeedRef = useRef(false);
+  const lastSentRef = useRef<SendPayload | null>(null);
   // Text already in the box when dictation starts — live transcript is appended
   // after it and replaced wholesale on every recognition event (interim included),
   // rather than accumulated, so partial words correct themselves as you speak.
@@ -252,46 +258,42 @@ export const AgentPanelSession = ({
 
   const agent = useEveAgent({
     initialSession: existing?.session,
+    // The server pins the session to this agent at its first turn; sending it
+    // on every request keeps a fresh session (after a retry) on the same one.
+    headers: { "x-crm-agent": agentId },
     onFinish: (snapshot) => {
-      const firstUserText = snapshot.data.messages
+      const firstUserText = [...pastItems.map((i) => i.message), ...snapshot.data.messages]
         .find((m) => m.role === "user")
         ?.parts.find((p) => p.type === "text")?.text;
-      if (firstUserText && titleRef.current === "Nueva conversación") {
+      if (firstUserText && titleRef.current === DEFAULT_THREAD_TITLE) {
         titleRef.current = deriveTitle(firstUserText);
         onTitleChange(titleRef.current);
       }
       // A run that fails before eve confirms anything finishes with zero
-      // events. Persisting that produced a thread whose title was the
-      // operator's question but whose transcript was empty on reopen — worse
-      // than no thread at all, since it looks like the message was saved.
+      // events: saving it would leave a titled thread with an empty transcript.
       if (snapshot.events.length === 0) return;
-      // `snapshot.events` is this mount's live store, which — per the
-      // `pastMessages` comment above — never received `existing.events` as
-      // `initialEvents`. Prepend them by hand so persisting a turn doesn't
-      // overwrite the thread's earlier history with just what happened since
-      // this mount.
       upsertThread(threadId, {
         title: titleRef.current,
+        agent: agentId,
         session: snapshot.session,
-        events: [...(existing?.events ?? []), ...snapshot.events],
+        events: [...history, ...snapshot.events],
       });
     },
   });
 
-  // `onFinish` is the only place a thread got written, so closing the panel
-  // (desktop unmounts the aside, mobile unmounts the drawer's session) while a
-  // run was still streaming threw the whole conversation away. Mirror the
-  // latest snapshot into a ref and flush it on unmount so a partial run
-  // survives.
+  // Closing the panel mid-run unmounts this session; flush the latest
+  // snapshot so a partial run isn't thrown away.
   const latestRef = useRef<{
-    events: typeof agent.events;
+    events: readonly HandleMessageStreamEvent[];
+    history: readonly HandleMessageStreamEvent[];
     session?: typeof agent.session;
     firstUserText?: string;
-  }>({ events: [] });
+  }>({ events: [], history: [] });
 
   useEffect(() => {
     latestRef.current = {
       events: agent.events,
+      history,
       session: agent.session,
       firstUserText: agent.data.messages
         .find((m) => m.role === "user")
@@ -301,40 +303,55 @@ export const AgentPanelSession = ({
 
   useEffect(
     () => () => {
-      const { events, session, firstUserText } = latestRef.current;
-      if (events.length === 0) return;
+      const { events, history: past, session, firstUserText } = latestRef.current;
+      if (events.length === 0 && past.length === (existing?.events.length ?? 0)) return;
       const title =
-        titleRef.current === "Nueva conversación" && firstUserText
-          ? deriveTitle(firstUserText)
-          : titleRef.current;
-      // Same merge as `onFinish` — `events` here is live-only too.
-      upsertThread(threadId, {
-        title,
-        session,
-        events: [...(existing?.events ?? []), ...events],
-      });
+        titleRef.current === DEFAULT_THREAD_TITLE && firstUserText ? deriveTitle(firstUserText) : titleRef.current;
+      upsertThread(threadId, { title, agent: agentId, session, events: [...past, ...events] });
     },
-    [threadId, existing]
+    [threadId, existing, agentId]
   );
 
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
+  const isError = agent.status === "error";
+
+  /**
+   * After a failure eve resets the session cursor (no `sessionId`): the next
+   * send opens a new backend session numbered from turn_0 again. Move what
+   * this mount saw into `history` first, so the failed exchange stays on
+   * screen and can't collide with the new session's ids.
+   */
+  const prepareForSend = () => {
+    if (agent.status !== "error" || agent.session?.sessionId) return;
+    if (agent.events.length > 0) setHistory((h) => [...h, ...agent.events]);
+    agent.reset();
+  };
+
+  const sendPayload = async (payload: SendPayload) => {
+    lastSentRef.current = payload;
+    setCanRetry(true);
+    prepareForSend();
+    await agent.send({ message: payload });
+  };
 
   useEffect(() => {
     if (sentSeedRef.current || (!seedMessage && !seedFiles?.length)) return;
     sentSeedRef.current = true;
-    if (!seedFiles?.length) {
-      void agent.send({ message: seedMessage ?? "" });
-      return;
-    }
     void (async () => {
+      if (!seedFiles?.length) {
+        await sendPayload(seedMessage ?? "");
+        return;
+      }
       const parts: UserContent = [];
       if (seedMessage) parts.push({ type: "text", text: seedMessage });
       for (const file of seedFiles) {
         const dataUrl = await fileToDataUrl(file);
         parts.push({ type: "file", data: dataUrl, filename: file.name, mediaType: file.type });
       }
-      await agent.send({ message: parts });
-    })();
+      await sendPayload(parts);
+    })().catch(() => {
+      // The failure shows as the error bubble; nothing else to do here.
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seedMessage, seedFiles]);
 
@@ -346,55 +363,19 @@ export const AgentPanelSession = ({
     const text = message.text.trim();
     if ((text.length === 0 && message.files.length === 0) || isBusy) return;
 
-    // PromptInputTextarea is controlled (`value={input}`), so PromptInput's
-    // own `form.reset()` after submit only resets the uncontrolled DOM value
-    // — the next render immediately overwrites it back to `input` state,
-    // which is why the box kept showing the sent text. Clear it ourselves.
+    // PromptInputTextarea is controlled, so PromptInput's own reset doesn't
+    // clear it — clear it here, and put it back if the send throws.
     setInput("");
 
-    // A failed turn leaves the underlying eve session dead — eve's own store
-    // never clears its accumulated events on that failure, and the *next*
-    // send silently lands on a brand-new session whose turn numbering
-    // restarts at turn_0. Since eve keys messages by turn id alone (not
-    // session-scoped), that new turn_0 response collides with the old
-    // failed turn_0's message id and gets merged into it — the failed
-    // exchange's bubble "eats" the retry's real answer. The failed exchange
-    // is already persisted to thread history (onFinish already ran for it),
-    // so it's safe to clear the live view before retrying — that's what
-    // stops the collision, since there's nothing left with a matching id.
-    if (agent.status === "error") {
-      agent.reset();
-      // The failed exchange already derived a title from itself (onFinish
-      // ran for it too) — without resetting this back, the fresh
-      // conversation the reset just started would keep showing that stale
-      // title instead of deriving its own from whatever comes next.
-      titleRef.current = "Nueva conversación";
-      onTitleChange(titleRef.current);
-    }
-
-    // PromptInput deliberately keeps the composer intact when onSubmit throws
-    // ("user may want to retry"), but that only covers the uncontrolled DOM
-    // value — clearing our own state above defeated it, so a send that failed
-    // (model unreachable, router misconfigured) silently ate what was typed.
-    // Put it back and rethrow so PromptInput keeps the attachments too.
     try {
       if (message.files.length === 0) {
-        await agent.send({ message: text });
+        await sendPayload(text);
         return;
       }
 
-      // `file.url` here is a `URL.createObjectURL(file)` blob: URL — only
-      // ever valid inside this tab (see PromptInput's attachments context),
-      // so sending it straight to the model meant the server received a URL
-      // it could never fetch: every file attachment failed silently.
-      // Uploading to Blob first (tried initially) doesn't fix it either —
-      // this project's store is configured private-access-only ("Cannot use
-      // public access on a private store"), and even a private blob isn't
-      // fetchable by Gemini regardless, since generateContent only accepts
-      // inline base64 or a URI from Gemini's own upload API, never an
-      // arbitrary authenticated URL. Inlining as a data: URI sidesteps all
-      // of that — no upload, no fetch, the bytes just travel in the request
-      // body, exactly the `inline_data` shape Gemini already wants.
+      // `file.url` is a tab-local blob: URL the model can never fetch, and the
+      // Blob store is private — inline every file as a data: URI instead,
+      // exactly the `inline_data` shape Gemini wants.
       const inlined = await Promise.all(
         message.files.map(async (file) => {
           const blob = await fetch(file.url).then((r) => r.blob());
@@ -408,15 +389,28 @@ export const AgentPanelSession = ({
       for (const file of inlined) {
         parts.push({ type: "file", data: file.url, filename: file.filename, mediaType: file.mediaType });
       }
-      await agent.send({ message: parts });
+      await sendPayload(parts);
     } catch (err) {
       setInput(text);
       throw err;
     }
   };
 
+  const handleRetry = async () => {
+    const payload = lastSentRef.current;
+    if (!payload || isBusy) return;
+    setRetrying(true);
+    try {
+      await sendPayload(payload);
+    } catch {
+      // Still failing: the bubble stays with the new reason.
+    } finally {
+      setRetrying(false);
+    }
+  };
+
   const handleRespond = (requestId: string, response: { optionId?: string; text?: string }) => {
-    void agent.send({ inputResponses: [{ requestId, ...response }] });
+    void agent.send({ inputResponses: [{ requestId, ...response }] }).catch(() => {});
   };
 
   const insertText = (text: string) => {
@@ -424,55 +418,86 @@ export const AgentPanelSession = ({
     setSubPanel(null);
   };
 
-  const pendingInputPart = findPendingInputPart(agent.data.messages);
+  const liveTimings = useMemo(() => turnTimings(agent.events), [agent.events]);
+  const pastMessages = useMemo(() => pastItems.map((i) => i.message), [pastItems]);
+  const pendingCallId = findPendingCallId(agent.data.messages);
+  // Reopening a thread that was closed while an approval waited: the session
+  // is still parked on it (same sessionId), so the card comes back. Only for
+  // approval gates — a replayed `ask_question` has no resolved event in
+  // eve's log and would look pending forever.
+  const resumedPending = useMemo(() => {
+    if (agent.data.messages.length > 0 || !existing?.session?.sessionId) return null;
+    const id = findPendingCallId(pastMessages);
+    const part = id ? pastMessages.at(-1)?.parts.find((p) => p.type === "dynamic-tool" && p.toolCallId === id) : undefined;
+    return part?.type === "dynamic-tool" && isApprovalPart(part) ? part : null;
+  }, [agent.data.messages.length, existing, pastMessages]);
+  const pendingPart = useMemo(() => {
+    if (!pendingCallId) return resumedPending;
+    const last = agent.data.messages.at(-1);
+    const part = last?.parts.find((p) => p.type === "dynamic-tool" && p.toolCallId === pendingCallId);
+    return part?.type === "dynamic-tool" ? part : null;
+  }, [agent.data.messages, pendingCallId, resumedPending]);
+  const names = useMemo(
+    () => collectNames([...toolOutputs(pastMessages), ...toolOutputs(agent.data.messages)]),
+    [pastMessages, agent.data.messages]
+  );
+  const errorReason = isError
+    ? describeAgentError(agent.error?.message ?? lastFailureMessage(agent.events))
+    : null;
+  const isEmpty = pastItems.length === 0 && agent.data.messages.length === 0 && !isError;
+  const lastIndex = agent.data.messages.length - 1;
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      {pastMessages.length === 0 && agent.data.messages.length === 0 ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-4 text-center text-sm text-muted-foreground">
-          <DayanaAiLogo className="size-20" active={isBusy} />
-          Pregúntame sobre contactos, inscripciones o sesiones de terapia.
-        </div>
+      {isEmpty ? (
+        <AgentEmptyState
+          agent={agentId}
+          disabled={isBusy}
+          onSuggestion={(text) => void handleSubmit({ text, files: [] }).catch(() => {})}
+        />
       ) : (
         <Conversation className="min-h-0 flex-1">
           <ConversationContent className="mx-auto w-full max-w-2xl gap-6">
-            {/* Read-only history from before this mount — never live, so it
-                can't collide with this mount's own turn ids (see the
-                `pastMessages` comment above). */}
-            {pastMessages.map((message) => (
-              // Prefixed: eve numbers turns fresh per session, so a past
-              // message's id can collide with a live one from this mount's
-              // own (possibly brand-new) session — these are two separate
-              // arrays sharing one list visually, and React keys must be
-              // unique across all of it, not just within each map.
-              <AgentMessage key={`past-${message.id}`} message={message} isStreaming={false} isLastMessage={false} />
+            {pastItems.map((item, index) => (
+              <AgentMessage
+                key={item.key}
+                message={item.message}
+                isStreaming={false}
+                pendingCallId={index === pastItems.length - 1 ? (resumedPending?.toolCallId ?? null) : null}
+                timing={item.timing}
+              />
             ))}
             {agent.data.messages.map((message, index) => (
               <AgentMessage
                 key={message.id}
                 message={message}
-                isStreaming={agent.status === "streaming" && index === agent.data.messages.length - 1}
-                isLastMessage={index === agent.data.messages.length - 1}
+                isStreaming={agent.status === "streaming" && index === lastIndex}
+                pendingCallId={index === lastIndex ? pendingCallId : null}
+                timing={message.metadata?.turnId ? liveTimings.get(message.metadata.turnId) : undefined}
               />
             ))}
             {agent.status === "submitted" && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground" data-testid="agent-thinking">
                 <DayanaAiLogo className="size-8" active />
-                Pensando…
+                <Shimmer>Pensando…</Shimmer>
               </div>
             )}
+            {isError && (
+              <ErrorBubble
+                reason={errorReason}
+                retrying={retrying}
+                onRetry={canRetry ? () => void handleRetry() : undefined}
+              />
+            )}
           </ConversationContent>
-          <ConversationScrollButton />
+          <ConversationScrollButton aria-label="Ir al final" />
         </Conversation>
       )}
 
-      {pendingInputPart && (
-        <PendingInputBar part={pendingInputPart} canRespond={!isBusy} onRespond={handleRespond} />
+      {pendingPart && (
+        <PendingInputBar part={pendingPart} canRespond={!isBusy} onRespond={handleRespond} names={names} />
       )}
 
-      {agent.status === "error" && agent.error && (
-        <p className="shrink-0 px-3 pb-1 text-xs text-destructive">{agent.error.message}</p>
-      )}
       {stt.error && <p className="shrink-0 px-3 pb-1 text-xs text-destructive">{stt.error}</p>}
 
       <div
@@ -488,7 +513,7 @@ export const AgentPanelSession = ({
           </div>
         )}
         <PromptInput
-          onSubmit={(message) => void handleSubmit(message)}
+          onSubmit={(message) => void handleSubmit(message).catch(() => {})}
           onError={(err) => console.error(err)}
           className="gap-1.5 rounded-full py-1 pr-1.5 pl-2"
         >
@@ -500,16 +525,9 @@ export const AgentPanelSession = ({
               active={isBusy}
             />
           </div>
-          {/* InputGroup (the pill this all sits in) has a `has-[>textarea]:h-auto`
-              rule that only matches while the textarea is its DIRECT child —
-              that's what lets the pill grow for multi-line text. Wrapping it
-              unconditionally in a div (to anchor the recording-state bars
-              overlay) broke that selector and capped the pill at a fixed
-              height even while idle. Only wrap while actually recording,
-              when a fixed height is correct anyway (the field is sr-only —
-              still mounted so its `name="message"` value keeps participating
-              in PromptInput's form-data submit — and nothing should be
-              growing the pill while there's no visible text to grow it). */}
+          {/* InputGroup's `has-[>textarea]:h-auto` only matches while the
+              textarea is its DIRECT child, so it's only wrapped while
+              recording (sr-only, still in the form data) to anchor the bars. */}
           {stt.isRecording ? (
             <div className="relative min-h-8 min-w-0 flex-1">
               <PromptInputTextarea
@@ -517,6 +535,7 @@ export const AgentPanelSession = ({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 className="sr-only"
+                placeholder={agentPlaceholder(agentId)}
               />
               <VoiceBars bands={stt.bands} className="absolute inset-x-0 top-1/2 -translate-y-1/2" />
             </div>
@@ -526,6 +545,8 @@ export const AgentPanelSession = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="min-h-0 max-h-32 py-1.5"
+              placeholder={agentPlaceholder(agentId)}
+              aria-label={agentPlaceholder(agentId)}
             />
           )}
           <PromptInputTools className="shrink-0">
@@ -584,10 +605,8 @@ export const AgentPanelSession = ({
             )}
           </PromptInputTools>
           {/* While a run is in flight this button IS the stop control, so it
-              must stay clickable — gating it on `isBusy` (as it used to) left
-              a square "Detener" icon that never fired and no way to cancel.
-              While recording it's the other of the two ways to end dictation
-              (see handleSubmit) — sending whatever's been transcribed so far. */}
+              must stay clickable. While recording it's the other way to end
+              dictation (see handleSubmit). */}
           <PromptInputSubmit
             status={agent.status}
             onStop={agent.stop}
@@ -602,6 +621,10 @@ export const AgentPanelSession = ({
   );
 };
 
+type PanelThread = { id: string; title: string; agent: AgentId; seed?: string; seedFiles?: File[] };
+
+const freshThread = (agent: AgentId): PanelThread => ({ id: newThreadId(), title: DEFAULT_THREAD_TITLE, agent });
+
 const AgentPanel = () => {
   const {
     agentPanelOpen,
@@ -611,81 +634,92 @@ const AgentPanel = () => {
     pendingAgentAction,
     clearPendingAgentAction,
   } = useCrm();
-  const [threadId, setThreadId] = useState<string>(() => newThreadId());
-  const [title, setTitle] = useState("Nueva conversación");
-  const [threads, setThreads] = useState<AgentThread[]>([]);
-  const [seed, setSeed] = useState<string | undefined>(undefined);
-  const [seedFiles, setSeedFiles] = useState<File[] | undefined>(undefined);
-  // Tracks the last pendingAgentAction object already applied — comparing it
-  // against the current one from CrmProvider lets us adjust local state
-  // directly during render (React's documented pattern for "adjust state
-  // when a prop changes"), same technique ContactFormModal.tsx already uses
-  // for its own open/wasOpen tracking, and avoids the multi-branch setState
-  // sequence tripping react-hooks/set-state-in-effect inside a useEffect.
+  const [thread, setThread] = useState<PanelThread>(() => freshThread("auto"));
+  // Tracks the last pendingAgentAction already applied — React's documented
+  // "adjust state when a prop changes" pattern, applied during render.
   const [lastAppliedAction, setLastAppliedAction] = useState<typeof pendingAgentAction>(null);
   const isMobile = useIsMobile();
+  const asideRef = useRef<HTMLElement>(null);
 
   if (agentPanelOpen && pendingAgentAction && pendingAgentAction !== lastAppliedAction) {
     setLastAppliedAction(pendingAgentAction);
     if (pendingAgentAction.type === "message") {
-      setThreadId(newThreadId());
-      setTitle("Nueva conversación");
-      setSeed(pendingAgentAction.value);
-      setSeedFiles(pendingAgentAction.files);
+      setThread({
+        ...freshThread(pendingAgentAction.agent ?? "auto"),
+        seed: pendingAgentAction.value,
+        seedFiles: pendingAgentAction.files,
+      });
+    } else if (pendingAgentAction.type === "new") {
+      if (!(pendingAgentAction.keepIfSame && thread.agent === pendingAgentAction.agent)) {
+        setThread(freshThread(pendingAgentAction.agent));
+      }
     } else {
-      setThreadId(pendingAgentAction.value);
-      setTitle(getThread(pendingAgentAction.value)?.title ?? "Conversación");
-      setSeed(undefined);
-      setSeedFiles(undefined);
+      const stored = getThread(pendingAgentAction.value);
+      setThread({
+        id: pendingAgentAction.value,
+        title: stored?.title ?? "Conversación",
+        agent: stored?.agent ?? "auto",
+      });
     }
   }
 
-  // Clearing pendingAgentAction touches CrmProvider's state, not this
-  // component's own — updating another component's state during render
-  // (as the block above safely does for its own local state) isn't safe,
-  // so this one part of the adjustment is deferred to an effect.
+  // Clearing pendingAgentAction touches CrmProvider's state, so it waits for an effect.
   useEffect(() => {
     if (lastAppliedAction && lastAppliedAction === pendingAgentAction) {
       clearPendingAgentAction();
     }
   }, [lastAppliedAction, pendingAgentAction, clearPendingAgentAction]);
 
-  const startNewThread = () => {
-    setThreadId(newThreadId());
-    setTitle("Nueva conversación");
-    setSeed(undefined);
-    setSeedFiles(undefined);
-  };
-
-  const switchThread = (thread: AgentThread) => {
-    setThreadId(thread.id);
-    setTitle(thread.title);
-    setSeed(undefined);
-    setSeedFiles(undefined);
-  };
+  const startNewThread = useCallback((agent: AgentId) => setThread(freshThread(agent)), []);
+  const switchThread = useCallback(
+    (t: AgentThread) => setThread({ id: t.id, title: t.title, agent: t.agent }),
+    []
+  );
+  const setTitle = useCallback((title: string) => setThread((t) => ({ ...t, title })), []);
 
   const handleDeleteThread = (id: string) => {
     deleteThread(id);
-    setThreads(listThreads());
-    if (id === threadId) startNewThread();
+    if (id === thread.id) startNewThread(thread.agent);
   };
+
+  const header = (trailing: ReactNode, touch?: boolean) => (
+    <AgentPanelHeader
+      agent={thread.agent}
+      title={thread.title}
+      threadId={thread.id}
+      onNewThread={startNewThread}
+      onSwitchThread={switchThread}
+      onDeleteThread={handleDeleteThread}
+      trailing={trailing}
+      touch={touch}
+    />
+  );
+
+  const session = (
+    <AgentPanelSession
+      key={thread.id}
+      threadId={thread.id}
+      agent={thread.agent}
+      seedMessage={thread.seed}
+      seedFiles={thread.seedFiles}
+      onTitleChange={setTitle}
+    />
+  );
 
   if (isMobile) {
     return (
       <AgentPanelMobile
         open={agentPanelOpen}
         onOpenChange={setAgentPanelOpen}
-        title={title}
-        threads={threads}
-        onThreadsMenuOpen={() => setThreads(listThreads())}
-        threadId={threadId}
-        seed={seed}
-        seedFiles={seedFiles}
-        onTitleChange={setTitle}
-        onNewThread={startNewThread}
-        onSwitchThread={switchThread}
-        onDeleteThread={handleDeleteThread}
-      />
+        header={header(
+          <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Cerrar" onClick={() => setAgentPanelOpen(false)}>
+            <X className="size-4" />
+          </Button>,
+          true
+        )}
+      >
+        {session}
+      </AgentPanelMobile>
     );
   }
 
@@ -693,76 +727,49 @@ const AgentPanel = () => {
 
   return (
     <aside
+      ref={asideRef}
+      aria-label="Asistente del CRM"
+      data-testid="agent-panel"
+      data-expanded={agentPanelExpanded ? "true" : undefined}
+      onKeyDown={(e) => {
+        // Esc closes the panel — but not when it was meant for a menu or
+        // popover (portaled, so its target is outside the aside).
+        if (e.key !== "Escape" || e.defaultPrevented) return;
+        if (!asideRef.current?.contains(e.target as Node)) return;
+        setAgentPanelOpen(false);
+      }}
       className={`flex h-full min-h-0 flex-col border-l border-border bg-popover text-popover-foreground ${
         agentPanelExpanded ? "w-full flex-1" : "w-96 shrink-0"
       }`}
     >
-      <header className="flex shrink-0 items-center gap-1 border-b border-border px-2 py-2">
-        <DropdownMenu onOpenChange={(open) => open && setThreads(listThreads())}>
-          <DropdownMenuTrigger
-            className="flex min-w-0 flex-1 items-center gap-1 rounded-md px-1.5 py-1 text-sm font-medium hover:bg-accent"
-            render={<button type="button" />}
-          >
-            <span className="min-w-0 truncate">{title}</span>
-            <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start">
-            {threads.length === 0 && (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">Sin conversaciones aún</p>
-            )}
-            {threads.map((t) => (
-              <DropdownMenuItem key={t.id} onClick={() => switchThread(t)} className="justify-between">
-                <span className="min-w-0 flex-1 truncate">{t.title}</span>
-                <button
-                  type="button"
-                  aria-label="Eliminar conversación"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteThread(t.id);
-                  }}
-                  className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
-              </DropdownMenuItem>
-            ))}
-            {threads.length > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuItem onClick={startNewThread}>Nueva conversación</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <Button variant="ghost" size="icon" className="size-7 shrink-0" aria-label="Nueva conversación" onClick={startNewThread}>
-          <SquarePen className="size-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 shrink-0"
-          aria-label={agentPanelExpanded ? "Contraer" : "Expandir"}
-          onClick={() => setAgentPanelExpanded(!agentPanelExpanded)}
-        >
-          <ChevronsLeftRight className="size-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-7 shrink-0"
-          aria-label="Cerrar"
-          onClick={() => setAgentPanelOpen(false)}
-        >
-          <X className="size-4" />
-        </Button>
+      <header className="flex shrink-0 items-center gap-1 border-b border-border px-2 py-1.5">
+        {header(
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 shrink-0"
+              aria-label={agentPanelExpanded ? "Contraer" : "Expandir"}
+              title={agentPanelExpanded ? "Contraer" : "Expandir"}
+              onClick={() => setAgentPanelExpanded(!agentPanelExpanded)}
+            >
+              <ChevronsLeftRight className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 shrink-0"
+              aria-label="Cerrar"
+              title="Cerrar (Esc)"
+              onClick={() => setAgentPanelOpen(false)}
+            >
+              <X className="size-4" />
+            </Button>
+          </>
+        )}
       </header>
 
-      <AgentPanelSession
-        key={threadId}
-        threadId={threadId}
-        seedMessage={seed}
-        seedFiles={seedFiles}
-        onTitleChange={setTitle}
-      />
+      {session}
     </aside>
   );
 };
