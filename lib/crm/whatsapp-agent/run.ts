@@ -29,6 +29,7 @@ import {
   type AttentionReason,
 } from "../whatsapp-attention-rules";
 import { clientContext, guestFreeEvent, think, type TranscriptLine } from "./brain";
+import { getChatInstructions } from "./chat-instructions";
 import { getMemory, refreshMemory } from "./memory";
 import { approvedMessageIds, proposeForApproval, supersedePending, type Proposal } from "./approvals";
 import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer } from "./attention";
@@ -699,6 +700,7 @@ export const runWhatsAppAi = async (input: {
         contactId: conversation.contactId,
         client: await clientContext(conversation.contactId, conversation.externalThreadId, { messages: messageCount }),
         memory: await getMemory(phone),
+        chatInstructions: await getChatInstructions(conversationId).catch(() => null),
         timezone,
         mode: "live",
         images,

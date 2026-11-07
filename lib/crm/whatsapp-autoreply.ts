@@ -218,6 +218,9 @@ export const draftAutoReply = async (input: {
   name: string | null;
   client?: string | null;
   phone?: string;
+  /** For a simulation inside one real chat: what the AI remembers and Dayana's instruction for it. */
+  memory?: string | null;
+  chatInstructions?: string | null;
 }): Promise<ReplyDraft> => {
   const result = await think({
     config: input.config,
@@ -227,7 +230,8 @@ export const draftAutoReply = async (input: {
     conversationId: null,
     contactId: null,
     client: input.client ?? null,
-    memory: null,
+    memory: input.memory ?? null,
+    chatInstructions: input.chatInstructions ?? null,
     timezone: await getOperationalTimezone(),
     mode: "preview",
   });

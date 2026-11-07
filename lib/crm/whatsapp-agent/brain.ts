@@ -85,6 +85,7 @@ import {
 } from "./workshop-interest";
 import { enrolledInWorkshop, openWorkshopForAi } from "../workshop-interests";
 import { asksHowToPay, quotePayReply, quotePromptLine, quoteSituation, withQuoteReminder } from "./quote-follow-up-rules";
+import { chatInstructionsLine } from "./chat-instructions";
 import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
@@ -846,6 +847,8 @@ export type BrainInput = {
   contactId: string | null;
   client: string | null;
   memory: string | null;
+  /** Dayana's instruction for this one chat (`chat-instructions.ts`). */
+  chatInstructions?: string | null;
   timezone: string;
   /** `preview` no agenda de verdad (botón «Probar», chat con el asistente). */
   mode: "live" | "preview";
@@ -1975,6 +1978,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         : null,
       dossierPart,
       input.memory ? `MEMORIA (lo que sabemos de esta persona):\n${input.memory}` : null,
+      chatInstructionsLine(input.chatInstructions),
       snippetsPart,
       examplesPart,
       stickers.length > 0

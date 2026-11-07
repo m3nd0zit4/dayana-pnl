@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast as sonnerToast } from "sonner";
 import {
   createContext,
+  Suspense,
   useCallback,
   useContext,
   useMemo,
@@ -18,6 +19,7 @@ import {
   canRecordManualPayments,
 } from "@/lib/crm/staff-permissions";
 import CrmConfirmDialog from "./CrmConfirmDialog";
+import AgentMessageParam, { type AgentMessageSeed } from "./agent-panel/AgentMessageParam";
 
 export type ToastVariant = "success" | "error" | "info" | "loading";
 
@@ -34,7 +36,9 @@ export type PendingAgentAction =
   | { type: "message"; value: string; files?: File[]; agent?: AgentId }
   | { type: "thread"; value: string }
   /** A fresh conversation with this agent; `keepIfSame` keeps the open one if it's already that agent's. */
-  | { type: "new"; agent: AgentId; keepIfSame?: boolean };
+  | { type: "new"; agent: AgentId; keepIfSame?: boolean }
+  /** The assistant started this conversation (`?agentMessage=<key>`): reopen its thread, or start it with that message. */
+  | { type: "opener"; seed: AgentMessageSeed };
 
 type CrmContextValue = {
   role: StaffRole | "PREVIEW";
@@ -157,6 +161,15 @@ const CrmProvider = ({
 
   const clearPendingAgentAction = useCallback(() => setPendingAgentAction(null), []);
 
+  const openAgentMessage = useCallback((seed: AgentMessageSeed) => {
+    setPendingAgentAction({ type: "opener", seed });
+    setAgentPanelOpen(true);
+  }, []);
+
+  const agentMessageMissing = useCallback(() => {
+    sonnerToast.error("No encontré ese mensaje del asistente", { duration: defaultDuration("error") });
+  }, []);
+
   const dismissToast = useCallback((id: number) => {
     sonnerToast.dismiss(id);
   }, []);
@@ -239,6 +252,11 @@ const CrmProvider = ({
   return (
     <CrmContext.Provider value={value}>
       {children}
+      {value.agentEnabled && (
+        <Suspense fallback={null}>
+          <AgentMessageParam onSeed={openAgentMessage} onMissing={agentMessageMissing} />
+        </Suspense>
+      )}
       <CrmConfirmDialog
         open={confirmOpen}
         title={confirmState?.title ?? ""}

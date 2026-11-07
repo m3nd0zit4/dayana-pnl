@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { DEFAULT_THREAD_TITLE, deriveTitle, normalizeThreads, splitSessions } from "./threads";
+import { DEFAULT_THREAD_TITLE, deriveTitle, normalizeThreads, openerContext, splitSessions } from "./threads";
 
 describe("normalizeThreads", () => {
   test("old threads without an agent become «auto»; valid agents are kept", () => {
@@ -21,9 +21,33 @@ describe("normalizeThreads", () => {
     expect(typeof threads[0].createdAt).toBe("string");
   });
 
+  test("keeps a valid opener; old threads and broken openers have none", () => {
+    const opener = { key: "k1", title: "Pagos pendientes", message: "Hay 3 pagos sin confirmar. ¿Los reviso?", createdAt: "2026-11-07T13:00:00.000Z" };
+    const threads = normalizeThreads([
+      { id: "a", title: "Pagos pendientes", agent: "auto", events: [], opener },
+      { id: "b", title: "Vieja", events: [] },
+      { id: "c", opener: { key: "k2" } },
+      { id: "d", opener: { key: "", message: "hola" } },
+      { id: "e", opener: "texto" },
+      { id: "f", opener: { key: "k3", message: "Hola" } },
+    ]);
+    expect(threads[0].opener).toEqual(opener);
+    expect(threads.slice(1, 5).map((t) => t.opener)).toEqual([undefined, undefined, undefined, undefined]);
+    expect("opener" in threads[1]).toBe(false);
+    expect(threads[5].opener).toEqual({ key: "k3", title: DEFAULT_THREAD_TITLE, message: "Hola", createdAt: new Date(0).toISOString() });
+  });
+
   test("non-array storage reads as empty", () => {
     expect(normalizeThreads({ id: "a" })).toEqual([]);
     expect(normalizeThreads(undefined)).toEqual([]);
+  });
+});
+
+describe("openerContext", () => {
+  test("quotes what the assistant wrote first", () => {
+    expect(openerContext({ message: "  ¿Reviso los 3 pagos?  " })).toBe(
+      "Contexto: antes de esta conversación tú (el asistente) le escribiste a la dueña: «¿Reviso los 3 pagos?». Ella responde a eso."
+    );
   });
 });
 

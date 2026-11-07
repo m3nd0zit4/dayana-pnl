@@ -13,6 +13,7 @@
  */
 import { EnrollmentStatus, PaymentProvider, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { ensureWhatsAppConversation } from "@/lib/crm/whatsapp-outbound";
 
 if (new URL(process.env.DATABASE_URL ?? "postgres://x/none").pathname !== "/neondb_dev") {
   console.error("eval-fixtures: solo contra /neondb_dev.");
@@ -27,7 +28,14 @@ export const FIXTURE = {
   /** Created by the panel screenshots (`scripts/dev/agent-panel-screenshots.ts`). */
   screenshotContactPhone: "+573005550102",
   promoCode: "EVALTEST10",
+  /** A second chat with the same question and no instruction: the control. */
+  controlPhone: "+573005550198",
+  /** What both test chats last said. */
+  chatQuestion: "Hola, ¿cuánto cuesta la terapia con Dayana?",
 } as const;
+
+/** WhatsApp thread ids of the test chats (digits). */
+const CHAT_DIGITS = [FIXTURE.phone, FIXTURE.controlPhone].map((p) => p.replace(/\D/g, ""));
 
 const DAY = 24 * 3600_000;
 
@@ -37,6 +45,11 @@ const clean = async () => {
     select: { id: true },
   });
   const ids = contacts.map((c) => c.id);
+  const chats = await prisma.conversation.findMany({ where: { externalThreadId: { in: CHAT_DIGITS } }, select: { id: true } });
+  await prisma.siteSetting.deleteMany({ where: { key: { in: chats.map((c) => `whatsapp.ai.chat.${c.id}.instructions`) } } });
+  await prisma.conversation.deleteMany({ where: { id: { in: chats.map((c) => c.id) } } });
+  // Conversations the agent-started-conversation test created for the dev OWNER.
+  await prisma.platformNotification.deleteMany({ where: { entityType: "AgentMessage", title: { startsWith: "[eval]" } } });
   await prisma.payment.deleteMany({ where: { providerPaymentId: { startsWith: "evalfx-" } } });
   await prisma.payment.deleteMany({ where: { enrollment: { contactId: { in: ids } } } });
   await prisma.enrollment.deleteMany({ where: { contactId: { in: ids } } });
@@ -69,6 +82,18 @@ const create = async () => {
   await prisma.enrollment.create({
     data: { contactId: contact.id, productId: "therapy-6", status: EnrollmentStatus.PENDING_PAYMENT, sessionsTotal: 6, currency: "COP", amountMinor: 980000 },
   });
+  // Two WhatsApp chats asking the same thing: Valentina's (gets an instruction
+  // in the feature test) and a control.
+  for (const [phone, name, contactId] of [
+    [FIXTURE.phone, FIXTURE.name, contact.id],
+    [FIXTURE.controlPhone, "Control Prueba Eval", null],
+  ] as const) {
+    const chat = await ensureWhatsAppConversation({ phoneE164: phone, contactId, name });
+    await prisma.conversationMessage.create({
+      data: { conversationId: chat.id, direction: "INBOUND", body: FIXTURE.chatQuestion, sentAt: new Date(now - 10 * 60_000) },
+    });
+    await prisma.conversation.update({ where: { id: chat.id }, data: { lastMessageAt: new Date(now - 10 * 60_000), lastInboundAt: new Date(now - 10 * 60_000), participantName: name } });
+  }
   await prisma.payment.createMany({
     data: [
       {

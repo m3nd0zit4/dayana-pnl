@@ -7,6 +7,13 @@ import { isAgentId, type AgentId } from "@/agent/lib/catalog";
 
 export const DEFAULT_THREAD_TITLE = "Nueva conversación";
 
+/**
+ * The message the assistant wrote first, when it started the conversation
+ * (`/admin?agentMessage=<key>`). Shown as the thread's first bubble and sent
+ * back to the agent on every turn, since it's not in eve's session history.
+ */
+export type ThreadOpener = { key: string; title: string; message: string; createdAt: string };
+
 export type StoredThread<TSession = unknown, TEvent = unknown> = {
   id: string;
   title: string;
@@ -15,7 +22,29 @@ export type StoredThread<TSession = unknown, TEvent = unknown> = {
   agent: AgentId;
   session?: TSession;
   events: readonly TEvent[];
+  opener?: ThreadOpener;
 };
+
+/** A well-formed opener or nothing: threads saved before openers existed have none. */
+export const normalizeOpener = (raw: unknown): ThreadOpener | undefined => {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  if (typeof o.key !== "string" || !o.key || typeof o.message !== "string" || !o.message.trim()) return undefined;
+  return {
+    key: o.key,
+    title: typeof o.title === "string" && o.title.trim() ? o.title : DEFAULT_THREAD_TITLE,
+    message: o.message,
+    createdAt: typeof o.createdAt === "string" ? o.createdAt : new Date(0).toISOString(),
+  };
+};
+
+/**
+ * One-turn context for every message in an opener thread: eve never saw the
+ * assistant's first message (it was written outside the session), so without
+ * this the agent wouldn't know what she is answering.
+ */
+export const openerContext = (opener: Pick<ThreadOpener, "message">): string =>
+  `Contexto: antes de esta conversación tú (el asistente) le escribiste a la dueña: «${opener.message.trim()}». Ella responde a eso.`;
 
 /**
  * Accepts whatever was in localStorage — threads saved before agents existed
@@ -33,6 +62,7 @@ export const normalizeThreads = <TSession = unknown, TEvent = unknown>(
     const t = item as Record<string, unknown>;
     if (typeof t.id !== "string" || !t.id || seen.has(t.id)) continue;
     seen.add(t.id);
+    const opener = normalizeOpener(t.opener);
     out.push({
       id: t.id,
       title: typeof t.title === "string" && t.title.trim() ? t.title : DEFAULT_THREAD_TITLE,
@@ -40,6 +70,7 @@ export const normalizeThreads = <TSession = unknown, TEvent = unknown>(
       agent: isAgentId(t.agent) ? t.agent : "auto",
       session: (t.session ?? undefined) as TSession | undefined,
       events: Array.isArray(t.events) ? (t.events as TEvent[]) : [],
+      ...(opener ? { opener } : {}),
     });
   }
   return out;

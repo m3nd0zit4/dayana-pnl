@@ -1,10 +1,11 @@
 import type { HandleMessageStreamEvent, SessionState } from "eve/client";
 import type { AgentId } from "@/agent/lib/catalog";
-import { DEFAULT_THREAD_TITLE, deriveTitle, normalizeThreads, type StoredThread } from "@/lib/agent-ui/threads";
+import { DEFAULT_THREAD_TITLE, deriveTitle, normalizeThreads, type StoredThread, type ThreadOpener } from "@/lib/agent-ui/threads";
 
 export type AgentThread = StoredThread<SessionState, HandleMessageStreamEvent>;
 
 export { DEFAULT_THREAD_TITLE, deriveTitle };
+export type { ThreadOpener };
 
 const STORAGE_KEY = "crm-agent-threads";
 const MAX_THREADS = 20;
@@ -39,10 +40,20 @@ export const listThreads = (): AgentThread[] =>
 
 export const getThread = (id: string): AgentThread | undefined => readAll().find((t) => t.id === id);
 
-/** Creates the thread on first save, updates it on every save after. The agent is set once: a thread never changes agent. */
+/** The thread the assistant opened with this message, if it's still saved. */
+export const findThreadByOpenerKey = (key: string): AgentThread | undefined =>
+  readAll().find((t) => t.opener?.key === key);
+
+/** Creates the thread on first save, updates it on every save after. The agent and the opener are set once. */
 export const upsertThread = (
   id: string,
-  data: { title?: string; agent: AgentId; session?: SessionState; events: readonly HandleMessageStreamEvent[] }
+  data: {
+    title?: string;
+    agent: AgentId;
+    session?: SessionState;
+    events: readonly HandleMessageStreamEvent[];
+    opener?: ThreadOpener;
+  }
 ) => {
   const threads = readAll();
   const index = threads.findIndex((t) => t.id === id);
@@ -55,6 +66,7 @@ export const upsertThread = (
       agent: data.agent,
       session: data.session,
       events: data.events,
+      ...(data.opener ? { opener: data.opener } : {}),
     });
   } else {
     threads[index] = {
@@ -62,6 +74,7 @@ export const upsertThread = (
       ...(data.title ? { title: data.title } : {}),
       session: data.session ?? threads[index].session,
       events: data.events,
+      ...(threads[index].opener || data.opener ? { opener: threads[index].opener ?? data.opener } : {}),
     };
   }
 

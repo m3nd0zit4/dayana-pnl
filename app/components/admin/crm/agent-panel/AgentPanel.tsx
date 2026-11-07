@@ -11,7 +11,7 @@ import { isApprovalPart } from "@/lib/agent-ui/approval";
 import { describeAgentError, lastFailureMessage } from "@/lib/agent-ui/errors";
 import { collectNames } from "@/lib/agent-ui/refs";
 import { findPendingCallId, turnTimings, type TurnTiming } from "@/lib/agent-ui/steps";
-import { splitSessions } from "@/lib/agent-ui/threads";
+import { openerContext, splitSessions, type ThreadOpener } from "@/lib/agent-ui/threads";
 import { useIsMobile } from "@/app/hooks/use-mobile";
 import { Button } from "@/app/components/ui/button";
 import { ButtonGroup, ButtonGroupSeparator } from "@/app/components/ui/button-group";
@@ -22,6 +22,7 @@ import AgentMessage from "./AgentMessage";
 import { AgentEmptyState } from "./AgentEmptyState";
 import { AgentPanelHeader } from "./AgentPanelHeader";
 import { ErrorBubble } from "./agent-message/ErrorBubble";
+import { OpenerBubble } from "./agent-message/OpenerBubble";
 import { PendingInputBar } from "./agent-message/PendingInputBar";
 import AgentPanelMobile from "./AgentPanelMobile";
 import { Conversation, ConversationContent, ConversationScrollButton } from "./ai-elements/conversation";
@@ -38,7 +39,15 @@ import {
   type PromptInputMessage,
 } from "./ai-elements/prompt-input";
 import { Shimmer } from "./ai-elements/shimmer";
-import { DEFAULT_THREAD_TITLE, deleteThread, deriveTitle, getThread, upsertThread, type AgentThread } from "./thread-store";
+import {
+  DEFAULT_THREAD_TITLE,
+  deleteThread,
+  deriveTitle,
+  findThreadByOpenerKey,
+  getThread,
+  upsertThread,
+  type AgentThread,
+} from "./thread-store";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
 import { VoiceBars } from "./VoiceBars";
 
@@ -211,16 +220,20 @@ export const AgentPanelSession = ({
   agent: agentId,
   seedMessage,
   seedFiles,
+  opener: newOpener,
   onTitleChange,
 }: {
   threadId: string;
   agent: AgentId;
   seedMessage?: string;
   seedFiles?: File[];
+  /** Only for a thread the assistant is starting now; a saved thread brings its own. */
+  opener?: ThreadOpener;
   onTitleChange: (title: string) => void;
 }) => {
   const existing = useMemo(() => getThread(threadId), [threadId]);
-  const titleRef = useRef(existing?.title ?? DEFAULT_THREAD_TITLE);
+  const opener = existing?.opener ?? newOpener;
+  const titleRef = useRef(existing?.title ?? opener?.title ?? DEFAULT_THREAD_TITLE);
   // Events from before this mount's live store: the stored thread, plus any
   // live turns archived when a retry had to open a fresh session.
   const [history, setHistory] = useState<readonly HandleMessageStreamEvent[]>(() => existing?.events ?? []);
@@ -244,6 +257,13 @@ export const AgentPanelSession = ({
     if (!stt.isRecording) dictationBaseRef.current = input;
     stt.toggle();
   };
+
+  // A thread the assistant started is saved right away, before she answers,
+  // so it survives a reload and shows in the threads menu under its title.
+  useEffect(() => {
+    if (!newOpener || getThread(threadId)) return;
+    upsertThread(threadId, { title: titleRef.current, agent: agentId, events: [], opener: newOpener });
+  }, [threadId, agentId, newOpener]);
 
   useEffect(() => {
     if (!subPanel) return;
@@ -277,6 +297,7 @@ export const AgentPanelSession = ({
         agent: agentId,
         session: snapshot.session,
         events: [...history, ...snapshot.events],
+        opener,
       });
     },
   });
@@ -307,9 +328,9 @@ export const AgentPanelSession = ({
       if (events.length === 0 && past.length === (existing?.events.length ?? 0)) return;
       const title =
         titleRef.current === DEFAULT_THREAD_TITLE && firstUserText ? deriveTitle(firstUserText) : titleRef.current;
-      upsertThread(threadId, { title, agent: agentId, session, events: [...past, ...events] });
+      upsertThread(threadId, { title, agent: agentId, session, events: [...past, ...events], opener });
     },
-    [threadId, existing, agentId]
+    [threadId, existing, agentId, opener]
   );
 
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
@@ -331,7 +352,8 @@ export const AgentPanelSession = ({
     lastSentRef.current = payload;
     setCanRetry(true);
     prepareForSend();
-    await agent.send({ message: payload });
+    // eve never saw the opener (written outside the session): remind it on every turn.
+    await agent.send(opener ? { message: payload, clientContext: openerContext(opener) } : { message: payload });
   };
 
   useEffect(() => {
@@ -444,7 +466,7 @@ export const AgentPanelSession = ({
   const errorReason = isError
     ? describeAgentError(agent.error?.message ?? lastFailureMessage(agent.events))
     : null;
-  const isEmpty = pastItems.length === 0 && agent.data.messages.length === 0 && !isError;
+  const isEmpty = !opener && pastItems.length === 0 && agent.data.messages.length === 0 && !isError;
   const lastIndex = agent.data.messages.length - 1;
 
   return (
@@ -458,6 +480,7 @@ export const AgentPanelSession = ({
       ) : (
         <Conversation className="min-h-0 flex-1">
           <ConversationContent className="mx-auto w-full max-w-2xl gap-6">
+            {opener && <OpenerBubble opener={opener} />}
             {pastItems.map((item, index) => (
               <AgentMessage
                 key={item.key}
@@ -621,7 +644,15 @@ export const AgentPanelSession = ({
   );
 };
 
-type PanelThread = { id: string; title: string; agent: AgentId; seed?: string; seedFiles?: File[] };
+type PanelThread = {
+  id: string;
+  title: string;
+  agent: AgentId;
+  seed?: string;
+  seedFiles?: File[];
+  /** Set only when the assistant starts this thread now (`?agentMessage=`). */
+  opener?: ThreadOpener;
+};
 
 const freshThread = (agent: AgentId): PanelThread => ({ id: newThreadId(), title: DEFAULT_THREAD_TITLE, agent });
 
@@ -652,6 +683,19 @@ const AgentPanel = () => {
     } else if (pendingAgentAction.type === "new") {
       if (!(pendingAgentAction.keepIfSame && thread.agent === pendingAgentAction.agent)) {
         setThread(freshThread(pendingAgentAction.agent));
+      }
+    } else if (pendingAgentAction.type === "opener") {
+      const { seed } = pendingAgentAction;
+      const stored = findThreadByOpenerKey(seed.key);
+      if (stored) {
+        setThread({ id: stored.id, title: stored.title, agent: stored.agent });
+      } else {
+        const title = seed.title.trim() || DEFAULT_THREAD_TITLE;
+        setThread({
+          ...freshThread(seed.agent),
+          title,
+          opener: { key: seed.key, title, message: seed.message, createdAt: seed.createdAt },
+        });
       }
     } else {
       const stored = getThread(pendingAgentAction.value);
@@ -702,6 +746,7 @@ const AgentPanel = () => {
       agent={thread.agent}
       seedMessage={thread.seed}
       seedFiles={thread.seedFiles}
+      opener={thread.opener}
       onTitleChange={setTitle}
     />
   );

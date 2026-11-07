@@ -13,6 +13,9 @@ const names = Object.keys(TOOL_CATALOG) as ToolName[];
 const NO_APPROVAL_WRITES = new Set<ToolName>([
   // The agent's own notes; audited, and asking every time would kill the habit.
   "memory",
+  // A note to Dayana herself (bell + push), never to a client; an approval card
+  // would land on the very person it is addressed to.
+  "message_owner",
 ]);
 
 describe("tool catalog", () => {

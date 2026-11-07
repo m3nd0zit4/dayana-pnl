@@ -130,6 +130,7 @@ export const TOOL_CATALOG = {
   search_contacts: { access: "read", agents: ALL, label: "Buscar contactos" },
   get_contact: { access: "read", agents: ALL, label: "Ver contacto" },
   memory: { access: "edit", agents: ALL, label: "Memoria" },
+  message_owner: { access: "edit", agents: ALL, label: "Escribirle a Dayana" },
   crm_stats: { access: "read", agents: ["auto", "ventas", "whatsapp", "talleres"], label: "Estadísticas" },
   dashboard_stats: { access: "read", agents: ["auto", "ventas"], label: "Resumen del panel" },
   pending_tasks: { access: "read", agents: ["auto", "ventas", "whatsapp"], label: "Pendientes" },

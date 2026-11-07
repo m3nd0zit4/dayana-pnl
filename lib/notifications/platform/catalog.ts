@@ -552,6 +552,19 @@ export const NOTIFICATION_CATALOG: Record<
   },
   // Lo que pasa a la hora de una sesión con Meet: suena en el celular. Sin
   // correo: cuando se lea, la sesión ya empezó.
+  // El asistente del panel empieza una conversación: la notificación abre el
+  // panel con su mensaje y Dayana le responde ahí. Suena (push) porque pide algo.
+  AGENT_MESSAGE: {
+    label: "Mensaje del asistente",
+    description: "El asistente del panel te escribe para preguntarte o avisarte algo; ábrelo para responderle.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "INFO",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: OWNER_DEV,
+    immediate: true,
+  },
   WHATSAPP_SESSION_WAITING: {
     label: "WhatsApp: tus sesiones en Meet",
     description:
