@@ -1019,6 +1019,8 @@ model StaffUser {
   paymentLinks             PaymentLink[]
   contactTouches           ContactTouch[]
   pushSubscriptions        PushSubscription[]
+  mcpAccessTokens          McpAccessToken[]
+  agentMemories            AgentMemory[]
 
   @@map("staff_users")
 }
@@ -2758,4 +2760,47 @@ model WhatsAppCommunityMember {
   @@index([communityId, status])
   @@index([contactId])
   @@map("whatsapp_community_members")
+}
+
+/// Token personal para conectar un agente externo (Claude Code, Claude Desktop,
+/// Cursor…) al servidor MCP del CRM en `/api/mcp`. Sólo se guarda el hash: el
+/// token se muestra una vez al crearlo. Los permisos nunca superan el rol de la
+/// persona dueña del token, y se vuelven a comprobar en cada petición.
+model McpAccessToken {
+  id          String    @id @default(cuid())
+  staffUserId String    @map("staff_user_id")
+  name        String
+  /// sha256 del token en hexadecimal.
+  tokenHash   String    @unique @map("token_hash")
+  /// Primeros caracteres del token (`dpnl_ab12…`) para reconocerlo en la lista.
+  prefix      String
+  /// Subconjunto de `read` | `edit` | `execute`.
+  scopes      String[]
+  expiresAt   DateTime? @map("expires_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  staffUser StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+
+  @@index([staffUserId])
+  @@map("mcp_access_tokens")
+}
+
+/// Lo que el equipo le enseña al asistente del panel: preferencias, correcciones
+/// y reglas de trabajo («no me agendes los viernes», «los totales en COP»). Se
+/// inyecta en las instrucciones de cada conversación del agente indicado.
+model AgentMemory {
+  id          String   @id @default(cuid())
+  /// `all` o el id de un especialista (`ventas`, `whatsapp`, `agenda`, `talleres`, `contactos`).
+  scope       String   @default("all")
+  content     String   @db.Text
+  createdById String?  @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy StaffUser? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([scope])
+  @@map("agent_memories")
 }

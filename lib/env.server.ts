@@ -95,6 +95,11 @@ const productionSchema = z
         (v) => v !== "true",
         "CRM_AGENT_LOCAL_DEV_AUTH must not be true in production"
       ),
+    // Bearer login for the agent eval runner against neondb_dev — never in production.
+    CRM_AGENT_EVAL_TOKEN: z
+      .string()
+      .optional()
+      .refine((v) => !v?.trim(), "CRM_AGENT_EVAL_TOKEN must not be set in production"),
   })
   .refine(
     (env) => env.NEXT_PUBLIC_PAYPAL_CLIENT_ID === env.PAYPAL_CLIENT_ID,

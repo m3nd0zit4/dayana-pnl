@@ -18,9 +18,9 @@
  */
 import { NextRequest } from "next/server";
 
-import deactivateFreeWebinarTool from "@/agent/tools/deactivate_free_webinar";
-import getFreeWebinarTool from "@/agent/tools/get_free_webinar";
-import updateFreeWebinarTool from "@/agent/tools/update_free_webinar";
+import deactivateFreeWebinarTool from "@/agent/lib/tools/deactivate_free_webinar";
+import getFreeWebinarTool from "@/agent/lib/tools/get_free_webinar";
+import updateFreeWebinarTool from "@/agent/lib/tools/update_free_webinar";
 import { POST as leadsPost } from "@/app/api/leads/route";
 import { prisma } from "@/lib/db";
 import {

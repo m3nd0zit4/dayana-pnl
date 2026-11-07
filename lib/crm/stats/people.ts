@@ -1,4 +1,5 @@
-import "server-only";
+// Sin `server-only`: el agente del panel (eve, `agent/lib/tools/crm_stats.ts`) también
+// lo importa, y fuera de Next ese paquete lanza al cargarse.
 
 import { EnrollmentStatus } from "@prisma/client";
 

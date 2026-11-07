@@ -14,7 +14,7 @@ import { fireNotification } from "@/lib/notifications/platform/emit";
  * imported from `eve/tools`) since only `session.auth.current.attributes`
  * is used here.
  */
-type AgentToolContext = {
+export type AgentToolContext = {
   session: {
     auth?: { current?: { principalId: string; attributes?: Record<string, unknown> } | null };
   };
@@ -81,22 +81,40 @@ export const requireBroadcastStaff = (ctx: AgentToolContext) => {
   return staff;
 };
 
+/**
+ * The same tools also run behind the MCP server (`lib/mcp/`), which builds
+ * this context from an access token and sets `attributes.channel = "mcp"`.
+ * The audit row says which door a write came through: `AGENT_*` for the
+ * panel assistant, `MCP_*` for an external agent, plus the token id.
+ */
+const callerChannel = (ctx: AgentToolContext) => {
+  const attributes = ctx.session.auth?.current?.attributes;
+  return attributes?.channel === "mcp"
+    ? { prefix: "MCP", who: "Un agente externo (MCP)", tokenId: attributes.tokenId as string | undefined }
+    : { prefix: "AGENT", who: "El asistente", tokenId: undefined };
+};
+
 export const auditAgentWrite = async (
   ctx: AgentToolContext,
-  input: { action: string; entityType: string; entityId: string; changes?: unknown }
+  input: { action: string; entityType: string; entityId: string; changes?: unknown },
+  options: { notify?: boolean } = {}
 ) => {
   const staff = getCallerStaff(ctx);
+  const channel = callerChannel(ctx);
   await writeAuditLog({
     staffUserId: staff.staffId,
-    action: `AGENT_${input.action}`,
+    action: `${channel.prefix}_${input.action}`,
     entityType: input.entityType,
     entityId: input.entityId,
-    changes: input.changes,
+    changes: channel.tokenId
+      ? { ...(typeof input.changes === "object" && input.changes ? input.changes : { value: input.changes }), mcpTokenId: channel.tokenId }
+      : input.changes,
   });
 
+  if (options.notify === false) return;
   fireNotification({
     eventType: "AGENT_ACTION_EXECUTED",
-    title: `El asistente ejecutó ${input.action} sobre ${input.entityType}`,
+    title: `${channel.who} ejecutó ${input.action} sobre ${input.entityType}`,
     body: `A nombre de un usuario con rol ${staff.role}.`,
     href: "/admin/audit",
     entityType: input.entityType,
