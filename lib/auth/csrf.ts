@@ -1,6 +1,8 @@
 const MUTATING = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
-export const verifyAdminMutationOrigin = (req: Request): boolean => {
+// Solo método y cabeceras: `mcp-handler` añade `auth?: AuthInfo` al `Request`
+// global y eso choca con el `auth` de NextAuth en proxy.ts.
+export const verifyAdminMutationOrigin = (req: Pick<Request, "method" | "headers">): boolean => {
   if (!MUTATING.has(req.method.toUpperCase())) return true;
 
   const origin = req.headers.get("origin");

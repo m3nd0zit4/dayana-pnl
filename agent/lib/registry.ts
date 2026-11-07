@@ -16,18 +16,26 @@ import getContact from "@/agent/lib/tools/get_contact";
 import getConversation from "@/agent/lib/tools/get_conversation";
 import getEnrollment from "@/agent/lib/tools/get_enrollment";
 import getFreeWebinar from "@/agent/lib/tools/get_free_webinar";
+import getPayment from "@/agent/lib/tools/get_payment";
 import getWorkshopEdition from "@/agent/lib/tools/get_workshop_edition";
 import importGoogleContact from "@/agent/lib/tools/import_google_contact";
 import linkConversationToContact from "@/agent/lib/tools/link_conversation_to_contact";
+import listAiRuns from "@/agent/lib/tools/list_ai_runs";
+import listAppointments from "@/agent/lib/tools/list_appointments";
 import listCalendarEvents from "@/agent/lib/tools/list_calendar_events";
 import listConversations from "@/agent/lib/tools/list_conversations";
 import listEnrollments from "@/agent/lib/tools/list_enrollments";
+import listFreeEventRegistrations from "@/agent/lib/tools/list_free_event_registrations";
 import listGoogleAccounts from "@/agent/lib/tools/list_google_accounts";
 import listMessageTemplates from "@/agent/lib/tools/list_message_templates";
+import listNotifications from "@/agent/lib/tools/list_notifications";
+import listPaymentReceipts from "@/agent/lib/tools/list_payment_receipts";
 import listPayments from "@/agent/lib/tools/list_payments";
 import listProducts from "@/agent/lib/tools/list_products";
+import listWhatsappMessages from "@/agent/lib/tools/list_whatsapp_messages";
 import listWorkshopDocuments from "@/agent/lib/tools/list_workshop_documents";
 import listWorkshopEditions from "@/agent/lib/tools/list_workshop_editions";
+import listWorkshopEnrollees from "@/agent/lib/tools/list_workshop_enrollees";
 import memory from "@/agent/lib/tools/memory";
 import pendingTasks from "@/agent/lib/tools/pending_tasks";
 import prepareCustomerWhatsappMessage from "@/agent/lib/tools/prepare_customer_whatsapp_message";
@@ -66,7 +74,6 @@ import whatsappUpdateConfig from "@/agent/lib/tools/whatsapp_update_config";
  * MCP server reads the same map. `satisfies` makes the catalog and this map
  * fail typecheck the moment they disagree.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const TOOL_DEFINITIONS = {
   convert_event_timezone: convertEventTimezone,
   create_calendar_event: createCalendarEvent,
@@ -84,18 +91,26 @@ export const TOOL_DEFINITIONS = {
   get_conversation: getConversation,
   get_enrollment: getEnrollment,
   get_free_webinar: getFreeWebinar,
+  get_payment: getPayment,
   get_workshop_edition: getWorkshopEdition,
   import_google_contact: importGoogleContact,
   link_conversation_to_contact: linkConversationToContact,
+  list_ai_runs: listAiRuns,
+  list_appointments: listAppointments,
   list_calendar_events: listCalendarEvents,
   list_conversations: listConversations,
   list_enrollments: listEnrollments,
+  list_free_event_registrations: listFreeEventRegistrations,
   list_google_accounts: listGoogleAccounts,
   list_message_templates: listMessageTemplates,
+  list_notifications: listNotifications,
+  list_payment_receipts: listPaymentReceipts,
   list_payments: listPayments,
   list_products: listProducts,
+  list_whatsapp_messages: listWhatsappMessages,
   list_workshop_documents: listWorkshopDocuments,
   list_workshop_editions: listWorkshopEditions,
+  list_workshop_enrollees: listWorkshopEnrollees,
   memory: memory,
   pending_tasks: pendingTasks,
   prepare_customer_whatsapp_message: prepareCustomerWhatsappMessage,
@@ -125,10 +140,11 @@ export const TOOL_DEFINITIONS = {
   whatsapp_set_chat: whatsappSetChat,
   whatsapp_simulate_reply: whatsappSimulateReply,
   whatsapp_update_config: whatsappUpdateConfig,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } satisfies Record<ToolName, ToolDefinition<any, any>>;
 
 /**
- * One definition with its input type erased. The map above is a union of 57
+ * One definition with its input type erased. The map above is a union of 65
  * input shapes; code that handles any tool by name (the dynamic resolvers, the
  * MCP server) only passes inputs through, and each tool validates its own.
  */

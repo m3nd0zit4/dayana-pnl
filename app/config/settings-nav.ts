@@ -16,6 +16,9 @@ export const personalSettingsGroup: SettingsNavGroup = {
     { href: "/admin/ajustes/perfil", label: "Perfil" },
     { href: "/admin/ajustes/seguridad", label: "Seguridad" },
     { href: "/admin/ajustes/mis-notificaciones", label: "Mis notificaciones" },
+    // Tokens personales para agentes externos por MCP (docs/mcp.md). Cada rol
+    // gestiona los suyos; DEVELOPER ve la página pero no puede crear.
+    { href: "/admin/ajustes/mcp", label: "Conexiones MCP" },
   ],
 };
 

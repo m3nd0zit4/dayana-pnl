@@ -136,6 +136,8 @@ export const TOOL_CATALOG = {
   list_products: { access: "read", agents: ["auto", "ventas", "talleres"], label: "Productos" },
   get_enrollment: { access: "read", agents: ["auto", "ventas", "talleres"], label: "Ver inscripción" },
   list_payments: { access: "read", agents: ["auto", "ventas"], label: "Pagos" },
+  get_payment: { access: "read", agents: ["auto", "ventas"], label: "Ver pago" },
+  list_notifications: { access: "read", agents: ALL, label: "Mis notificaciones" },
   query_audit_log: { access: "read", agents: ["auto", "ventas", "contactos"], label: "Historial de cambios" },
   convert_event_timezone: { access: "read", agents: ["agenda", "talleres"], label: "Convertir horario" },
 
@@ -148,6 +150,7 @@ export const TOOL_CATALOG = {
   update_promo_code: { access: "edit", agents: ["ventas"], label: "Editar código promocional" },
   update_product_price: { access: "execute", agents: ["ventas"], label: "Cambiar precio" },
   update_usd_to_cop_rate: { access: "execute", agents: ["ventas"], label: "Cambiar tasa USD→COP" },
+  list_payment_receipts: { access: "read", agents: ["ventas", "whatsapp", "auto"], label: "Comprobantes por WhatsApp" },
 
   // ── whatsapp ────────────────────────────────────────────────────────────
   whatsapp_find_chat: { access: "read", agents: ["whatsapp"], label: "Buscar chats" },
@@ -160,6 +163,8 @@ export const TOOL_CATALOG = {
   whatsapp_simulate_reply: { access: "read", agents: ["whatsapp"], label: "Simular respuesta de la IA" },
   list_conversations: { access: "read", agents: ["whatsapp"], label: "Bandeja de entrada" },
   get_conversation: { access: "read", agents: ["whatsapp"], label: "Leer conversación" },
+  list_whatsapp_messages: { access: "read", agents: ["whatsapp"], label: "Mensajes del chat" },
+  list_ai_runs: { access: "read", agents: ["whatsapp", "auto"], label: "Ejecuciones de la IA" },
   draft_conversation_reply: { access: "edit", agents: ["whatsapp"], label: "Dejar borrador" },
   link_conversation_to_contact: { access: "edit", agents: ["whatsapp", "contactos"], label: "Vincular chat a contacto" },
   list_message_templates: { access: "read", agents: ["whatsapp", "contactos"], label: "Plantillas" },
@@ -170,17 +175,20 @@ export const TOOL_CATALOG = {
   // ── agenda ──────────────────────────────────────────────────────────────
   list_google_accounts: { access: "read", agents: ["agenda", "contactos"], label: "Cuentas de Google" },
   list_calendar_events: { access: "read", agents: ["agenda"], label: "Ver calendario" },
+  list_appointments: { access: "read", agents: ["agenda", "whatsapp", "auto"], label: "Citas y reservas" },
   create_calendar_event: { access: "edit", agents: ["agenda"], label: "Crear evento" },
   update_calendar_event: { access: "edit", agents: ["agenda"], label: "Mover evento" },
 
   // ── talleres ────────────────────────────────────────────────────────────
   list_workshop_editions: { access: "read", agents: ["talleres", "auto"], label: "Talleres" },
   get_workshop_edition: { access: "read", agents: ["talleres"], label: "Ver taller" },
+  list_workshop_enrollees: { access: "read", agents: ["talleres", "auto"], label: "Inscritas e interesadas del taller" },
   create_workshop: { access: "edit", agents: ["talleres"], label: "Crear taller" },
   update_workshop: { access: "edit", agents: ["talleres"], label: "Editar taller" },
   create_workshop_product: { access: "edit", agents: ["talleres"], label: "Crear producto del taller" },
   list_workshop_documents: { access: "read", agents: ["talleres"], label: "Documentos del taller" },
   get_free_webinar: { access: "read", agents: ["talleres"], label: "Ver evento gratuito" },
+  list_free_event_registrations: { access: "read", agents: ["talleres", "auto"], label: "Inscritas al evento gratuito" },
   update_free_webinar: { access: "edit", agents: ["talleres"], label: "Editar evento gratuito" },
   deactivate_free_webinar: { access: "edit", agents: ["talleres"], label: "Cerrar evento gratuito" },
 

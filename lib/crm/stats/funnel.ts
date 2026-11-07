@@ -1,8 +1,6 @@
 // Sin `server-only`: el agente del panel (eve, `agent/lib/tools/crm_stats.ts`) también
 // lo importa, y fuera de Next ese paquete lanza al cargarse.
 
-import { Prisma } from "@prisma/client";
-
 import { prisma } from "@/lib/db";
 import { diagnosticSourceLabel } from "@/lib/crm/diagnostic-answers";
 import { PROFILE_SHORT_LABEL } from "@/lib/diagnostico/profiles";
@@ -33,19 +31,10 @@ import type { StatsRange } from "./types";
  * cualquier producto, no solo el recomendado: lo que interesa es si el
  * diagnóstico acabó en venta.
  */
-const PURCHASED_SQL = Prisma.sql`(
-  d."contact_id" IS NOT NULL
-  AND d."completed_at" IS NOT NULL
-  AND EXISTS (
-    SELECT 1
-    FROM "payments" p
-    JOIN "enrollments" e ON e."id" = p."enrollment_id"
-    WHERE e."contact_id" = d."contact_id"
-      AND p."status" = 'APPROVED'
-      AND p."paid_at" >= d."completed_at"
-      AND p."paid_at" < d."completed_at" + ${ATTRIBUTION_DAYS}::int * interval '1 day'
-  )
-)`;
+// The purchase condition is written inline in the query below, not as a
+// nested `Prisma.sql` fragment: the panel agent (eve) loads this module in a
+// bundle whose Prisma copy is not the client's, and a fragment from another
+// copy reaches `$queryRaw` as a JSON value (Postgres `22P02`).
 
 type StepsRow = {
   started: bigint;
@@ -92,13 +81,30 @@ export async function getFunnelStats(range: StatsRange): Promise<FunnelStats> {
     // KPIs por fecha de TERMINAR (`completed_at`), actual frente a anterior:
     // terminados, y de ellos cuántos compraron dentro de la ventana.
     prisma.$queryRaw<CompletedRow[]>`
+      WITH d AS (
+        SELECT
+          d."completed_at",
+          (
+            d."contact_id" IS NOT NULL
+            AND EXISTS (
+              SELECT 1
+              FROM "payments" p
+              JOIN "enrollments" e ON e."id" = p."enrollment_id"
+              WHERE e."contact_id" = d."contact_id"
+                AND p."status" = 'APPROVED'
+                AND p."paid_at" >= d."completed_at"
+                AND p."paid_at" < d."completed_at" + ${ATTRIBUTION_DAYS}::int * interval '1 day'
+            )
+          ) AS purchased
+        FROM "diagnostics" d
+        WHERE d."completed_at" >= ${prevFrom} AND d."completed_at" < ${to}
+      )
       SELECT
         COUNT(*) FILTER (WHERE d."completed_at" >= ${from}) AS completed_current,
         COUNT(*) FILTER (WHERE d."completed_at" < ${prevTo}) AS completed_previous,
-        COUNT(*) FILTER (WHERE d."completed_at" >= ${from} AND ${PURCHASED_SQL}) AS purchased_current,
-        COUNT(*) FILTER (WHERE d."completed_at" < ${prevTo} AND ${PURCHASED_SQL}) AS purchased_previous
-      FROM "diagnostics" d
-      WHERE d."completed_at" >= ${prevFrom} AND d."completed_at" < ${to}
+        COUNT(*) FILTER (WHERE d."completed_at" >= ${from} AND d.purchased) AS purchased_current,
+        COUNT(*) FILTER (WHERE d."completed_at" < ${prevTo} AND d.purchased) AS purchased_previous
+      FROM d
     `,
     // Origen, perfil y respuestas: sobre los terminados en el periodo (un
     // diagnóstico a medias no tiene perfil ni respuestas completas).
