@@ -2581,7 +2581,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       text,
       urlKeys(
         system,
-        [dossierPart, snippetsPart, examplesPart, transcriptPart].reduce<string>((t, part) => (part ? t.split(part).join("") : t), promptText),
+        // Dayana's instruction for one chat is not a source of links either: a URL
+        // typed there would reach the client on the model's word alone.
+        [dossierPart, snippetsPart, examplesPart, transcriptPart, chatInstructionsLine(input.chatInstructions)].reduce<string>(
+          (t, part) => (part ? t.split(part).join("") : t),
+          promptText
+        ),
         ...trusted,
         ...state.links,
         state.paymentLink,

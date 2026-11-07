@@ -14,7 +14,9 @@
  * - `read`: looks, never changes anything.
  * - `edit`: changes CRM data that only the team sees (a contact, a draft, a
  *   workshop, the agent's own memory).
- * - `execute`: reaches outside the CRM or moves money — a WhatsApp/email/SMS
+ * - `execute`: reaches outside the CRM or moves money — anything a client or
+ *   the public sees (a public page, a Meet link, a calendar invite, how the
+ *   WhatsApp AI answers clients), a WhatsApp/email/SMS
  *   that a real person receives, a payment, a site-wide price, a staff account.
  */
 
@@ -121,6 +123,12 @@ type CatalogEntry = {
   agents: AgentId[];
   /** Spanish, sentence case, shown in the panel while it runs. */
   label: string;
+  /**
+   * `false`: only the panel agents, never the MCP server. For tools that shape
+   * the owner's own assistant (its memory): a token or an external agent must
+   * not be able to plant rules in it.
+   */
+  mcp?: false;
 };
 
 const ALL: AgentId[] = ["auto", ...SPECIALIST_IDS];
@@ -129,8 +137,8 @@ export const TOOL_CATALOG = {
   // ── shared reads ────────────────────────────────────────────────────────
   search_contacts: { access: "read", agents: ALL, label: "Buscar contactos" },
   get_contact: { access: "read", agents: ALL, label: "Ver contacto" },
-  memory: { access: "edit", agents: ALL, label: "Memoria" },
-  message_owner: { access: "edit", agents: ALL, label: "Escribirle a Dayana" },
+  memory: { access: "edit", agents: ALL, label: "Memoria", mcp: false },
+  message_owner: { access: "execute", agents: ALL, label: "Escribirle a Dayana" },
   crm_stats: { access: "read", agents: ["auto", "ventas", "whatsapp", "talleres"], label: "Estadísticas" },
   dashboard_stats: { access: "read", agents: ["auto", "ventas"], label: "Resumen del panel" },
   pending_tasks: { access: "read", agents: ["auto", "ventas", "whatsapp"], label: "Pendientes" },
@@ -157,10 +165,10 @@ export const TOOL_CATALOG = {
   whatsapp_find_chat: { access: "read", agents: ["whatsapp"], label: "Buscar chats" },
   whatsapp_ai_status: { access: "read", agents: ["whatsapp", "auto"], label: "Estado de la IA de WhatsApp" },
   whatsapp_get_config: { access: "read", agents: ["whatsapp", "agenda"], label: "Configuración de la IA" },
-  whatsapp_update_config: { access: "edit", agents: ["whatsapp", "agenda"], label: "Cambiar configuración de la IA" },
+  whatsapp_update_config: { access: "execute", agents: ["whatsapp", "agenda"], label: "Cambiar configuración de la IA" },
   whatsapp_list_playbooks: { access: "read", agents: ["whatsapp"], label: "Guiones de la IA" },
-  whatsapp_save_playbook: { access: "edit", agents: ["whatsapp"], label: "Guardar guion de la IA" },
-  whatsapp_set_chat: { access: "edit", agents: ["whatsapp"], label: "Cambiar quién atiende el chat" },
+  whatsapp_save_playbook: { access: "execute", agents: ["whatsapp"], label: "Guardar guion de la IA" },
+  whatsapp_set_chat: { access: "execute", agents: ["whatsapp"], label: "Cambiar quién atiende el chat" },
   whatsapp_simulate_reply: { access: "read", agents: ["whatsapp"], label: "Simular respuesta de la IA" },
   list_conversations: { access: "read", agents: ["whatsapp"], label: "Bandeja de entrada" },
   get_conversation: { access: "read", agents: ["whatsapp"], label: "Leer conversación" },
@@ -177,21 +185,21 @@ export const TOOL_CATALOG = {
   list_google_accounts: { access: "read", agents: ["agenda", "contactos"], label: "Cuentas de Google" },
   list_calendar_events: { access: "read", agents: ["agenda"], label: "Ver calendario" },
   list_appointments: { access: "read", agents: ["agenda", "whatsapp", "auto"], label: "Citas y reservas" },
-  create_calendar_event: { access: "edit", agents: ["agenda"], label: "Crear evento" },
-  update_calendar_event: { access: "edit", agents: ["agenda"], label: "Mover evento" },
+  create_calendar_event: { access: "execute", agents: ["agenda"], label: "Crear evento" },
+  update_calendar_event: { access: "execute", agents: ["agenda"], label: "Mover evento" },
 
   // ── talleres ────────────────────────────────────────────────────────────
   list_workshop_editions: { access: "read", agents: ["talleres", "auto"], label: "Talleres" },
   get_workshop_edition: { access: "read", agents: ["talleres"], label: "Ver taller" },
   list_workshop_enrollees: { access: "read", agents: ["talleres", "auto"], label: "Inscritas e interesadas del taller" },
-  create_workshop: { access: "edit", agents: ["talleres"], label: "Crear taller" },
-  update_workshop: { access: "edit", agents: ["talleres"], label: "Editar taller" },
-  create_workshop_product: { access: "edit", agents: ["talleres"], label: "Crear producto del taller" },
+  create_workshop: { access: "execute", agents: ["talleres"], label: "Crear taller" },
+  update_workshop: { access: "execute", agents: ["talleres"], label: "Editar taller" },
+  create_workshop_product: { access: "execute", agents: ["talleres"], label: "Crear producto del taller" },
   list_workshop_documents: { access: "read", agents: ["talleres"], label: "Documentos del taller" },
   get_free_webinar: { access: "read", agents: ["talleres"], label: "Ver evento gratuito" },
   list_free_event_registrations: { access: "read", agents: ["talleres", "auto"], label: "Inscritas al evento gratuito" },
-  update_free_webinar: { access: "edit", agents: ["talleres"], label: "Editar evento gratuito" },
-  deactivate_free_webinar: { access: "edit", agents: ["talleres"], label: "Cerrar evento gratuito" },
+  update_free_webinar: { access: "execute", agents: ["talleres"], label: "Editar evento gratuito" },
+  deactivate_free_webinar: { access: "execute", agents: ["talleres"], label: "Cerrar evento gratuito" },
 
   // ── contactos ───────────────────────────────────────────────────────────
   create_contact: { access: "edit", agents: ["contactos", "ventas"], label: "Crear contacto" },

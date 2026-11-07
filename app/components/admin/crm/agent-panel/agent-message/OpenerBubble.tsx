@@ -1,6 +1,6 @@
 "use client";
 
-import type { ThreadOpener } from "@/lib/agent-ui/threads";
+import { isExternalOpener, type ThreadOpener } from "@/lib/agent-ui/threads";
 import { Message, MessageContent, MessageResponse } from "../ai-elements/message";
 
 const OPENER_DATE = new Intl.DateTimeFormat("es-CO", {
@@ -25,7 +25,8 @@ export const OpenerBubble = ({ opener }: { opener: ThreadOpener }) => {
     <Message from="assistant" data-testid="agent-opener">
       <MessageContent>
         <p className="text-xs text-muted-foreground">
-          Te escribió el asistente{when ? ` · ${when}` : ""}
+          {isExternalOpener(opener) ? "Te escribió un agente externo (MCP)" : "Te escribió el asistente"}
+          {when ? ` · ${when}` : ""}
         </p>
         <MessageResponse>{opener.message}</MessageResponse>
       </MessageContent>

@@ -22,3 +22,8 @@ describe("sanitizeToolInput", () => {
     expect(out.ids).toHaveLength(20);
   });
 });
+
+test("el código promocional sí queda en la auditoría", () => {
+  expect(sanitizeToolInput({ code: "EVAL10", discount: 10 }, 0, "create_promo_code")).toEqual({ code: "EVAL10", discount: 10 });
+  expect(sanitizeToolInput({ code: "123456" }, 0, "record_manual_payment")).toEqual({ code: "[oculto]" });
+});

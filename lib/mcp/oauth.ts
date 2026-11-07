@@ -1,3 +1,4 @@
+import { lookup } from "node:dns/promises";
 import type { StaffRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/crm/audit";
@@ -140,7 +141,34 @@ export const setCimdFetchForTests = (fn: typeof fetch | null) => {
   cimdFetchForTests = fn;
 };
 
+/**
+ * True for addresses a public client document can never live on: loopback,
+ * private, link-local, CGNAT, unique-local, unspecified. Pure (tested).
+ */
+export const isPrivateAddress = (address: string): boolean => {
+  const ip = address.toLowerCase().replace(/^::ffff:/, "");
+  const v4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    return (
+      a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a >= 224
+    );
+  }
+  return ip === "::" || ip === "::1" || ip.startsWith("fc") || ip.startsWith("fd") || ip.startsWith("fe80");
+};
+
+/** The document's host must resolve only to public addresses (no fetches into our own network). */
+const assertPublicHost = async (url: string) => {
+  if (cimdFetchForTests) return;
+  const records = await lookup(new URL(url).hostname, { all: true }).catch(() => []);
+  if (records.length === 0 || records.some((r) => isPrivateAddress(r.address))) {
+    throw new OAuthError("invalid_client", "El documento del cliente no está en una dirección pública.");
+  }
+};
+
 const fetchClientMetadataDocument = async (url: string): Promise<unknown> => {
+  await assertPublicHost(url);
   const res = await (cimdFetchForTests ?? fetch)(url, {
     redirect: "error",
     headers: { accept: "application/json" },
@@ -163,11 +191,20 @@ const fetchClientMetadataDocument = async (url: string): Promise<unknown> => {
  * un Client ID Metadata Document: se baja (sin seguir redirecciones, 5 s, 20 KB)
  * y se guarda una hora. null si no existe o el documento no vale.
  */
-export const resolveOAuthClient = async (clientId: unknown, now = new Date()): Promise<OAuthClientRow | null> => {
+export const resolveOAuthClient = async (
+  clientId: unknown,
+  now = new Date(),
+  /**
+   * `false` on the token and revoke endpoints: they never fetch a document or
+   * write a client row (anyone can call them). A metadata-document client
+   * always goes through the consent screen first, which stores it.
+   */
+  options: { fetchMetadata?: boolean } = {}
+): Promise<OAuthClientRow | null> => {
   if (typeof clientId !== "string" || !clientId || clientId.length > 2000) return null;
   const existing = await prisma.mcpOAuthClient.findUnique({ where: { id: clientId }, select: CLIENT_SELECT });
   if (existing && existing.source === "dcr") return existing;
-  if (!isClientMetadataUrl(clientId)) return existing;
+  if (!isClientMetadataUrl(clientId) || options.fetchMetadata === false) return existing;
   if (existing?.metadataFetchedAt && now.getTime() - existing.metadataFetchedAt.getTime() < CIMD_REFRESH_MS) {
     return existing;
   }
@@ -230,7 +267,7 @@ export const readClientCredentials = (authorization: string | null, form: URLSea
 
 /** El cliente que llama al token/revoke endpoint, autenticado según cómo se registró. */
 export const authenticateOAuthClient = async (credentials: ClientCredentials): Promise<OAuthClientRow> => {
-  const client = await resolveOAuthClient(credentials.clientId);
+  const client = await resolveOAuthClient(credentials.clientId, new Date(), { fetchMetadata: false });
   if (!client) throw new OAuthError("invalid_client", "Cliente desconocido.", 401);
   if (client.secretHash) {
     if (!credentials.clientSecret || !sameHash(hashOAuthSecret(credentials.clientSecret), client.secretHash)) {

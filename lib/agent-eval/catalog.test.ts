@@ -11,8 +11,6 @@ const names = Object.keys(TOOL_CATALOG) as ToolName[];
 
 /** Writes that deliberately skip the approval card. */
 const NO_APPROVAL_WRITES = new Set<ToolName>([
-  // The agent's own notes; audited, and asking every time would kill the habit.
-  "memory",
   // A note to Dayana herself (bell + push), never to a client; an approval card
   // would land on the very person it is addressed to.
   "message_owner",
@@ -24,6 +22,10 @@ describe("tool catalog", () => {
       (n) => TOOL_CATALOG[n].access !== "read" && !NO_APPROVAL_WRITES.has(n) && toolDefinition(n).approval === undefined
     );
     expect(missing).toEqual([]);
+  });
+
+  test("the assistant's memory never goes through MCP", () => {
+    expect((TOOL_CATALOG.memory as { mcp?: false }).mcp).toBe(false);
   });
 
   test("reads never ask for approval", () => {

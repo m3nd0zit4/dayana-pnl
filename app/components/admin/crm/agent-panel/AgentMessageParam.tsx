@@ -7,7 +7,7 @@ import { isAgentId, type AgentId } from "@/agent/lib/catalog";
 export const AGENT_MESSAGE_PARAM = "agentMessage";
 
 /** What `GET /api/admin/agent/messages/<key>` answers: the message the assistant started a conversation with. */
-export type AgentMessageSeed = { key: string; agent: AgentId; title: string; message: string; createdAt: string };
+export type AgentMessageSeed = { key: string; agent: AgentId; title: string; message: string; createdAt: string; source: string };
 
 const parseSeed = (raw: unknown, key: string): AgentMessageSeed | null => {
   if (!raw || typeof raw !== "object") return null;
@@ -19,6 +19,7 @@ const parseSeed = (raw: unknown, key: string): AgentMessageSeed | null => {
     title: typeof s.title === "string" ? s.title : "",
     message: s.message,
     createdAt: typeof s.createdAt === "string" ? s.createdAt : new Date().toISOString(),
+    source: typeof s.source === "string" ? s.source : "",
   };
 };
 

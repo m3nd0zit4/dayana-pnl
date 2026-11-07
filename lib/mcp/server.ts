@@ -120,7 +120,7 @@ export const callCrmTool = async (
         tokenId: caller.tokenId,
         tokenName: caller.tokenName,
         via: caller.via,
-        input: sanitizeToolInput(args),
+        input: sanitizeToolInput(args, 0, tool),
         ok: failure === null,
         ...(failure ? { error: failure.slice(0, 500) } : {}),
       },

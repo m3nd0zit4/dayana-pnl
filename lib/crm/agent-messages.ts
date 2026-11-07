@@ -18,7 +18,7 @@ import { emitPlatformNotification } from "@/lib/notifications/platform/emit";
 export const AGENT_MESSAGE_ENTITY = "AgentMessage";
 export const AGENT_MESSAGE_MAX = 1200;
 
-export type AgentMessageSeed = { key: string; agent: AgentId; title: string; message: string; createdAt: string };
+export type AgentMessageSeed = { key: string; agent: AgentId; title: string; message: string; createdAt: string; source: string };
 
 const newKey = () => randomBytes(9).toString("base64url");
 
@@ -57,13 +57,14 @@ export const getAgentMessageSeed = async (key: string, staffUserId: string): Pro
     select: { title: true, metadata: true, createdAt: true },
   });
   if (!row) return null;
-  const meta = (row.metadata ?? {}) as { agent?: unknown; message?: unknown };
+  const meta = (row.metadata ?? {}) as { agent?: unknown; message?: unknown; source?: unknown };
   return {
     key,
     agent: isAgentId(meta.agent) ? meta.agent : "auto",
     title: row.title,
     message: typeof meta.message === "string" ? meta.message : "",
     createdAt: row.createdAt.toISOString(),
+    source: typeof meta.source === "string" ? meta.source : "",
   };
 };
 

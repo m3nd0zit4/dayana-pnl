@@ -77,8 +77,10 @@ describe("visibilidad de herramientas", () => {
     expect(visible).not.toContain("send_whatsapp_to_contact");
   });
 
-  test("todos los scopes = todo el catálogo", () => {
-    expect(visibleTools(["read", "edit", "execute"])).toHaveLength(names.length);
+  test("todos los scopes = todo el catálogo menos la memoria del asistente", () => {
+    const all = visibleTools(["read", "edit", "execute"]);
+    expect(all).toHaveLength(names.length - 1);
+    expect(all).not.toContain("memory");
   });
 
   test("sin scopes, nada", () => {

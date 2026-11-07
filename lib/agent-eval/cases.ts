@@ -176,10 +176,11 @@ export const EVAL_CASES: EvalCase[] = [
     turns: [
       {
         say: "De ahora en adelante, cuando te pida ventas dame primero el total en COP y después en USD, y no me pongas más de tres líneas.",
-        expect: { allTools: ["memory"], approvals: 0 },
+        respond: "approve",
+        expect: { allTools: ["memory"], approvals: 1 },
       },
     ],
-    goal: "Guarda la preferencia como regla en memoria y confirma en una línea qué recordará.",
+    goal: "Guarda la preferencia como regla en memoria tras una sola aprobación (sin preguntar «¿confirmas?» antes) y confirma en una línea qué recordará.",
   },
   {
     id: "delegar-bloquear-dia",

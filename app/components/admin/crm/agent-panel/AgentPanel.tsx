@@ -694,7 +694,7 @@ const AgentPanel = () => {
         setThread({
           ...freshThread(seed.agent),
           title,
-          opener: { key: seed.key, title, message: seed.message, createdAt: seed.createdAt },
+          opener: { key: seed.key, title, message: seed.message, createdAt: seed.createdAt, source: seed.source },
         });
       }
     } else {

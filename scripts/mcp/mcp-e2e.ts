@@ -212,19 +212,22 @@ try {
 
   // ── edición: deja MCP_TOOL_CALL ───────────────────────────────────────
   const since = new Date();
-  const mem = await call(ownerEdit.token, "memory", { action: "list" });
-  check("call memory {list} (edit)", !mem.isError && !mem.rpcError, mem.rpcError ?? mem.text.slice(0, 120));
+  // Ids inventados: el enlace falla, pero la llamada de edición queda auditada.
+  const link = await call(ownerEdit.token, "link_conversation_to_contact", { conversationId: "e2e-none", contactId: "e2e-none" });
+  check("call link_conversation_to_contact (edit) responde", Boolean(link.text) || Boolean(link.rpcError) || link.isError);
   const audit = await prisma.auditLog.findFirst({
-    where: { action: "MCP_TOOL_CALL", entityId: "memory", createdAt: { gte: since } },
+    where: { action: "MCP_TOOL_CALL", entityId: "link_conversation_to_contact", createdAt: { gte: since } },
     orderBy: { createdAt: "desc" },
   });
   const changes = (audit?.changes ?? {}) as { tokenId?: string; ok?: boolean };
-  check("fila MCP_TOOL_CALL", Boolean(audit) && changes.tokenId === ownerEdit.id && changes.ok === true);
+  check("fila MCP_TOOL_CALL", Boolean(audit) && changes.tokenId === ownerEdit.id);
+
+  // ── la memoria del asistente nunca pasa por MCP ────────────────────────
+  check("memory no está en MCP (ni con todos los permisos)", !all.names.includes("memory"));
+  const mem = await call(full.token, "memory", { action: "list" });
+  check("memory no se puede llamar por MCP", mem.isError || Boolean(mem.rpcError), mem.rpcError ?? mem.text.slice(0, 120));
 
   // ── READONLY no puede edición ─────────────────────────────────────────
-  check("READONLY no ve memory", !ro.names.includes("memory"));
-  const roEdit = await call(reader.token, "memory", { action: "list" });
-  check("READONLY no puede llamar memory", roEdit.isError || Boolean(roEdit.rpcError), roEdit.rpcError ?? roEdit.text.slice(0, 120));
   // Ids inventados: aunque se colara, no cambiaría nada.
   const roLink = await call(reader.token, "link_conversation_to_contact", { conversationId: "e2e-none", contactId: "e2e-none" });
   check("READONLY no puede llamar link_conversation_to_contact", roLink.isError || Boolean(roLink.rpcError));
