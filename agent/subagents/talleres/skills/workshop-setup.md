@@ -19,13 +19,11 @@ Use this whenever the operator asks to create, set up, or publish a workshop/tal
 4. Ask for capacity, a display date (dateLabel), and a schedule label — all optional,
    explain they're free text, not parsed dates.
 5. Offer focusTopics and daySchedule as optional extras, don't force them.
-6. Last question before confirming: ask whether to activate it now (status OPEN) or
+6. Before creating it, ask whether to activate it now (status OPEN) or
    leave it as a draft. Call list_workshop_editions first to check whether one is
    already open, and if so warn the operator by name that confirming this will close it.
-7. Confirm the full summary in one plain sentence before calling create_workshop — in
-   addition to the tool's own approval gate. Keep it to one line, no bullet lists and no
-   manual line breaks: some models mangle escaped newlines inside tool-call arguments,
-   which then shows up as literal "\n" text in the panel instead of a line break.
+7. Call create_workshop with the full set of fields: its approval card is the
+   confirmation, so do not ask «¿confirmas?» first.
 
 After creation or an edit: tell the operator the workshop's title and whether it's open
 or still a draft — that's it. If it's open, the tool result includes a real public link;

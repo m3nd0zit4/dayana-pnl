@@ -41,10 +41,9 @@ their availability, or agree a time with a client.
 
 ## Always
 
-Confirm the full plan in one plain sentence before the write tool's approval
-prompt appears — who, when, how long, on which calendar, and whether the client
-gets invited. Keep it to one line with no manual line breaks: escaped newlines
-inside tool-call arguments render as literal "\n" in the panel on some models.
+The write tool's approval card is the confirmation: do not ask «¿confirmas?»
+first. Make sure the arguments say who, when, how long, on which calendar and
+whether the client gets invited, so the card shows the operator all of it.
 
 Never invent an availability you didn't read from the calendar, and never tell
 the operator a client was notified unless the tool result says they were
