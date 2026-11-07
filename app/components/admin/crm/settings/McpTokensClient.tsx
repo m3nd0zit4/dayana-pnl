@@ -198,6 +198,11 @@ const McpTokensClient = ({ initialTokens, allowedScopes, viewerId, isOwner, endp
             puede como mucho lo que permite tu rol, y si tu rol cambia, cambia con él. Todo lo que
             un agente modifica queda en Auditoría con el nombre de la conexión.
           </p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            En claude.ai no hace falta token: en Conectores, «Añadir conector personalizado» con{" "}
+            <span className="font-mono break-all">{endpoint}</span>, e inicias sesión con tu cuenta del CRM.
+            Esas conexiones también aparecen aquí y se revocan igual.
+          </p>
         </div>
         {canCreate && (
           <Button size="sm" onClick={openCreate} className="shrink-0">
@@ -248,7 +253,11 @@ const McpTokensClient = ({ initialTokens, allowedScopes, viewerId, isOwner, endp
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{t.name}</p>
                   <p className="truncate text-xs text-muted-foreground">
-                    <span className="font-mono">{t.prefix}…</span>
+                    {t.kind === "oauth" ? (
+                      <span>Inicio de sesión (OAuth)</span>
+                    ) : (
+                      <span className="font-mono">{t.prefix}…</span>
+                    )}
                     {isOwner && t.staffUserId !== viewerId ? ` · ${t.ownerName}` : ""}
                   </p>
                 </div>

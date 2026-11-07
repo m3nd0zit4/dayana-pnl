@@ -11,10 +11,13 @@ token.
   clientes de la especificación 2026-07-28 y a los de 2025.
 - **Código:** `app/api/mcp/route.ts` (ruta), `lib/mcp/tokens.ts` (tokens),
   `lib/mcp/scopes.ts` (permisos, puro), `lib/mcp/server.ts` (registro de
-  herramientas, ejecución, auditoría).
-- **Autenticación:** `Authorization: Bearer dpnl_…`. Sin token, o con uno
-  inválido, revocado o caducado: **401**. La ruta está fuera del `matcher` de
-  `proxy.ts`: aquí no hay cookie, la puerta es el token.
+  herramientas, ejecución, auditoría), `lib/mcp/oauth*.ts` (OAuth).
+- **Autenticación:** `Authorization: Bearer dpnl_…` (token personal) o
+  `Bearer dpat_…` (access token de OAuth, ver [Conectar con OAuth](#conectar-con-oauth-claudeai-y-otros)).
+  Sin token, o con uno inválido, revocado o caducado: **401** con
+  `WWW-Authenticate: Bearer … resource_metadata="…/.well-known/oauth-protected-resource/api/mcp"`.
+  La ruta está fuera del `matcher` de `proxy.ts`: aquí no hay cookie, la puerta
+  es el token.
 
 ## Permisos
 
@@ -133,25 +136,73 @@ claude mcp add dayana-crm-dev -e CRM_MCP_STAFF_EMAIL=tu@correo -- \
 
 Pruebas:
 
-- `bun test ./lib/mcp` — scopes, forma de los tokens, saneado de la auditoría.
+- `bun test ./lib/mcp` — scopes, forma de los tokens, saneado de la auditoría,
+  y lo puro del OAuth (PKCE, `redirect_uri`, registro, CIMD, metadatos).
 - `bun --env-file=../dayana-pnl/.env scripts/mcp/mcp-e2e.ts` — llama a la ruta
   dentro del proceso: 401 sin token / inventado / revocado / caducado,
   `initialize`, `tools/list` por scope, una lectura de cada herramienta nueva,
   la fila `MCP_TOOL_CALL` de una edición, y que un token de solo lectura no ve
   ni puede llamar edición. Borra sus tokens al terminar. No llama a ninguna
   herramienta de envío.
+- `bun --env-file=../dayana-pnl/.env scripts/mcp/mcp-oauth-e2e.ts` — el OAuth
+  entero como claude.ai (ver abajo), dentro del proceso. Con
+  `--base=http://localhost:3100` va por HTTP contra un `next dev` local y pasa
+  por la pantalla de consentimiento real con una sesión del OWNER de dev.
 
-## Fase 2: OAuth para los conectores de claude.ai
+## Conectar con OAuth (claude.ai y otros)
 
-claude.ai (web) solo conecta servidores remotos con OAuth 2.1, no con una
-cabecera fija. No está construido. La capa de autenticación ya está preparada:
-la ruta usa `withMcpAuth` de `mcp-handler`, que responde los 401 con el
-`WWW-Authenticate` de RFC 9728. Faltaría:
+claude.ai (web, escritorio y móvil) solo conecta servidores remotos con OAuth
+2.1, no con una cabecera fija. El CRM es su propio servidor de autorización:
+quien conecta inicia sesión con **su cuenta del CRM** y elige los permisos.
 
-1. Un servidor de autorización (o uno externo) con PKCE y, para la
-   especificación 2026-07-28, Client ID Metadata Documents.
-2. Servir `/.well-known/oauth-protected-resource` con `protectedResourceHandler`
-   de `mcp-handler`.
-3. Que `verifyToken` acepte también los access tokens de OAuth y los convierta en
-   el mismo `McpCaller` (persona, rol, scopes ∩ rol). El resto —registro de
-   herramientas, auditoría, límite— no cambia.
+**claude.ai:** Ajustes → Conectores → «Añadir conector personalizado» → URL
+`https://www.dayanabeltran.com/api/mcp` (con `www`), sin client id ni secreto.
+Al pulsar «Conectar» se abre el CRM: iniciar sesión (si no la hay), marcar
+permisos y «Permitir». Claude Code, Cursor y otros clientes con OAuth hacen lo
+mismo solos con solo la URL (`claude mcp add --transport http dayana-crm
+https://www.dayanabeltran.com/api/mcp` y luego `/mcp` → autenticar).
+
+**Cómo funciona** (especificación de autorización de MCP):
+
+| Paso | Dónde | Norma |
+|---|---|---|
+| 401 con `resource_metadata` | `/api/mcp` | RFC 9728 |
+| Metadatos del recurso (`resource` = `…/api/mcp`, servidor = el propio sitio) | `/.well-known/oauth-protected-resource/api/mcp` (y la raíz) | RFC 9728 |
+| Metadatos del servidor | `/.well-known/oauth-authorization-server` | RFC 8414 |
+| Registro del cliente | `POST /api/mcp/oauth/register` (abierto, 20/h por IP) o `client_id` = URL de su documento (CIMD) | RFC 7591 / Client ID Metadata Documents |
+| Consentimiento | `/admin/autorizar-mcp` (el proxy pide sesión) → `POST /api/admin/mcp-oauth/authorize` | OAuth 2.1, PKCE S256 obligatorio, `iss` en la vuelta (RFC 9207) |
+| Tokens | `POST /api/mcp/oauth/token` (`authorization_code`, `refresh_token`; 60/min por IP) | OAuth 2.1, `resource` (RFC 8707) |
+| Revocación | `POST /api/mcp/oauth/revoke` | RFC 7009 |
+
+- **Una autorización = una conexión** de `/admin/ajustes/mcp`: una fila
+  `McpAccessToken` con `oauthClientId` (prefijo `oauth`, sin token propio). Se
+  ve como «Inicio de sesión (OAuth)», con el nombre del cliente, y se revoca con
+  el mismo botón. Volver a autorizar el mismo cliente reemplaza la conexión
+  anterior. Caduca a los 90 días (hay que volver a autorizar).
+- **Permisos:** los que pide el cliente (`scope`; claude.ai pide los tres) ∩ los
+  del rol, y de esos los que la persona deja marcados. En cada petición se
+  vuelven a recortar con el rol de hoy, igual que los tokens personales.
+- **Tokens** (`McpOAuthToken`, solo su sha256): acceso `dpat_…` de 1 hora,
+  refresco `dprt_…` de 30 días que **rota** en cada uso. Repetir un refresh ya
+  usado (pasados 30 s, para no castigar dos refrescos simultáneos) revoca la
+  conexión entera, igual que repetir un código (`dpac_…`, 10 minutos, un uso,
+  atado al PKCE, a la `redirect_uri` y a la persona). El access token solo vale
+  para este `/api/mcp` (su `resource`).
+- **Clientes** (`McpOAuthClient`): registrarse no da acceso a nada. `redirect_uri`
+  exacta (salvo el puerto de loopback, RFC 8252): https, `http://localhost` /
+  `127.0.0.1` o un esquema propio; nunca `javascript:`, `data:`… Secreto (si lo
+  pidió) solo en hash. Un `client_id` que es una URL https se baja (sin
+  redirecciones, 5 s, 20 KB, nunca a IPs ni nombres internos) y se guarda una
+  hora; tiene que ser cliente público.
+- **Pantalla de consentimiento:** dice qué app, a qué dirección vuelve (claude.ai
+  y chatgpt.com salen reconocidas; otra dirección sale con aviso) y qué permisos;
+  «Cancelar» vuelve con `access_denied`. No se puede enmarcar (`X-Frame-Options:
+  DENY` de todo el sitio) y el «Permitir» exige sesión del equipo y mismo origen
+  (proxy de `/api/admin`).
+- **Auditoría:** `MCP_OAUTH_CLIENT_REGISTERED` (registro), `MCP_TOKEN_CREATED`
+  con `via: "oauth"`, el cliente y la dirección de vuelta, `MCP_TOKEN_REVOKED`
+  con `reason` (`manual`, `replaced`, `code_reuse`, `refresh_reuse`,
+  `client_revocation`), y cada `MCP_TOOL_CALL` lleva `via`.
+- **Emisor:** el origen público de la petición (`X-Forwarded-Host`), así que en
+  producción es `https://www.dayanabeltran.com` y en local `http://localhost:…`.
+  El ápice redirige con 308, como en el resto del sitio.

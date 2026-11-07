@@ -1020,6 +1020,7 @@ model StaffUser {
   contactTouches           ContactTouch[]
   pushSubscriptions        PushSubscription[]
   mcpAccessTokens          McpAccessToken[]
+  mcpOAuthCodes            McpOAuthCode[]
   agentMemories            AgentMemory[]
 
   @@map("staff_users")
@@ -2766,25 +2767,109 @@ model WhatsAppCommunityMember {
 /// Cursor…) al servidor MCP del CRM en `/api/mcp`. Sólo se guarda el hash: el
 /// token se muestra una vez al crearlo. Los permisos nunca superan el rol de la
 /// persona dueña del token, y se vuelven a comprobar en cada petición.
+///
+/// Una conexión hecha por OAuth (claude.ai «Add custom connector») también es
+/// una fila de aquí: `oauthClientId` dice qué cliente, `tokenHash` va vacío y
+/// los tokens que de verdad viajan (de acceso y de refresco, rotativos) están en
+/// `McpOAuthToken`. Revocar la fila corta todos sus tokens a la vez.
 model McpAccessToken {
-  id          String    @id @default(cuid())
-  staffUserId String    @map("staff_user_id")
-  name        String
-  /// sha256 del token en hexadecimal.
-  tokenHash   String    @unique @map("token_hash")
-  /// Primeros caracteres del token (`dpnl_ab12…`) para reconocerlo en la lista.
-  prefix      String
+  id            String    @id @default(cuid())
+  staffUserId   String    @map("staff_user_id")
+  name          String
+  /// sha256 del token en hexadecimal. Vacío en las conexiones OAuth.
+  tokenHash     String?   @unique @map("token_hash")
+  /// Primeros caracteres del token (`dpnl_ab12…`) para reconocerlo en la lista; `oauth` en las conexiones OAuth.
+  prefix        String
   /// Subconjunto de `read` | `edit` | `execute`.
-  scopes      String[]
-  expiresAt   DateTime? @map("expires_at")
-  lastUsedAt  DateTime? @map("last_used_at")
-  revokedAt   DateTime? @map("revoked_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  scopes        String[]
+  expiresAt     DateTime? @map("expires_at")
+  lastUsedAt    DateTime? @map("last_used_at")
+  revokedAt     DateTime? @map("revoked_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  /// Cliente OAuth que la creó (null = token personal).
+  oauthClientId String?   @map("oauth_client_id")
+  /// Recurso (RFC 8707) para el que se emitió: `https://…/api/mcp`.
+  resource      String?
 
-  staffUser StaffUser @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  staffUser   StaffUser       @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+  oauthClient McpOAuthClient? @relation(fields: [oauthClientId], references: [id], onDelete: SetNull)
+  oauthTokens McpOAuthToken[]
 
   @@index([staffUserId])
+  @@index([oauthClientId])
   @@map("mcp_access_tokens")
+}
+
+/// Cliente OAuth del servidor MCP: registrado solo (RFC 7591, `source = dcr`) o
+/// leído de su documento de metadatos (`source = cimd`, el `id` es la URL). Un
+/// cliente no da acceso a nada: hace falta que alguien del equipo inicie sesión
+/// y lo autorice.
+model McpOAuthClient {
+  /// `client_id`: `dpcl_…` (registro dinámico) o la URL https del documento (CIMD).
+  id                      String    @id
+  name                    String
+  /// sha256 del secreto; null en clientes públicos (`none`).
+  secretHash              String?   @map("secret_hash")
+  redirectUris            String[]  @map("redirect_uris")
+  /// `none` | `client_secret_post` | `client_secret_basic`.
+  tokenEndpointAuthMethod String    @map("token_endpoint_auth_method")
+  clientUri               String?   @map("client_uri")
+  logoUri                 String?   @map("logo_uri")
+  /// `dcr` | `cimd`.
+  source                  String
+  /// Cuándo se leyó por última vez el documento (solo `cimd`).
+  metadataFetchedAt       DateTime? @map("metadata_fetched_at")
+  lastUsedAt              DateTime? @map("last_used_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+
+  grants McpAccessToken[]
+  codes  McpOAuthCode[]
+
+  @@map("mcp_oauth_clients")
+}
+
+/// Código de autorización (un solo uso, 10 minutos, PKCE S256). Solo su hash.
+model McpOAuthCode {
+  id            String    @id @default(cuid())
+  codeHash      String    @unique @map("code_hash")
+  clientId      String    @map("client_id")
+  staffUserId   String    @map("staff_user_id")
+  redirectUri   String    @map("redirect_uri")
+  codeChallenge String    @map("code_challenge")
+  scopes        String[]
+  resource      String
+  expiresAt     DateTime  @map("expires_at")
+  usedAt        DateTime? @map("used_at")
+  /// La conexión que creó al canjearse: si alguien repite el código, se revoca.
+  grantId       String?   @map("grant_id")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  client    McpOAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  staffUser StaffUser      @relation(fields: [staffUserId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("mcp_oauth_codes")
+}
+
+/// Token OAuth de una conexión (`grantId` → `McpAccessToken`). `access`: 1 hora;
+/// `refresh`: rota en cada uso y, si se repite uno ya rotado, se revoca la conexión.
+model McpOAuthToken {
+  id        String    @id @default(cuid())
+  grantId   String    @map("grant_id")
+  /// `access` | `refresh`.
+  kind      String
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  /// Solo refresh: cuándo se cambió por uno nuevo.
+  rotatedAt DateTime? @map("rotated_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  grant McpAccessToken @relation(fields: [grantId], references: [id], onDelete: Cascade)
+
+  @@index([grantId])
+  @@index([expiresAt])
+  @@map("mcp_oauth_tokens")
 }
 
 /// Lo que el equipo le enseña al asistente del panel: preferencias, correcciones

@@ -2,6 +2,7 @@ import type { StaffRole } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/crm/audit";
 import { effectiveScopes, normalizeScopes, roleScopes, scopesBeyondRole, type McpScope } from "./scopes";
+import { OAUTH_GRANT_PREFIX } from "./oauth-format";
 import {
   expiryFrom,
   generateMcpToken,
@@ -45,6 +46,10 @@ export type McpTokenView = {
   status: McpTokenStatus;
   staffUserId: string;
   ownerName: string;
+  /** `token`: token personal pegado a mano; `oauth`: conexión autorizada al iniciar sesión (claude.ai…). */
+  kind: "token" | "oauth";
+  /** Solo OAuth: el cliente que pidió la conexión. */
+  clientName: string | null;
 };
 
 type Viewer = { id: string; role: StaffRole };
@@ -60,6 +65,8 @@ const toView = (row: {
   revokedAt: Date | null;
   staffUserId: string;
   staffUser: { displayName: string };
+  oauthClientId: string | null;
+  oauthClient: { name: string } | null;
 }): McpTokenView => ({
   id: row.id,
   name: row.name,
@@ -72,6 +79,8 @@ const toView = (row: {
   status: tokenStatus(row),
   staffUserId: row.staffUserId,
   ownerName: row.staffUser.displayName,
+  kind: row.oauthClientId || row.prefix === OAUTH_GRANT_PREFIX ? "oauth" : "token",
+  clientName: row.oauthClient?.name ?? null,
 });
 
 const VIEW_SELECT = {
@@ -85,6 +94,8 @@ const VIEW_SELECT = {
   revokedAt: true,
   staffUserId: true,
   staffUser: { select: { displayName: true } },
+  oauthClientId: true,
+  oauthClient: { select: { name: true } },
 } as const;
 
 export const createMcpToken = async (input: {
@@ -162,22 +173,31 @@ export const revokeMcpToken = async (viewer: Viewer, id: string): Promise<McpTok
   }
   if (row.revokedAt) return toView(row);
 
+  const now = new Date();
   const updated = await prisma.mcpAccessToken.update({
     where: { id },
-    data: { revokedAt: new Date() },
+    data: { revokedAt: now },
     select: VIEW_SELECT,
   });
+  // Conexión OAuth: sus tokens ya no valen (la verificación mira la conexión), pero quedan marcados.
+  await prisma.mcpOAuthToken.updateMany({ where: { grantId: id, revokedAt: null }, data: { revokedAt: now } });
   await writeAuditLog({
     staffUserId: viewer.id,
     action: "MCP_TOKEN_REVOKED",
     entityType: "McpAccessToken",
     entityId: id,
-    changes: { name: row.name, prefix: row.prefix, ownerStaffUserId: row.staffUserId },
+    changes: {
+      name: row.name,
+      prefix: row.prefix,
+      ownerStaffUserId: row.staffUserId,
+      ...(row.oauthClientId ? { via: "oauth", oauthClientId: row.oauthClientId, reason: "manual" } : {}),
+    },
   });
   return toView(updated);
 };
 
 export type McpCaller = {
+  /** Id de la fila `McpAccessToken`: el token personal o la conexión OAuth. */
   tokenId: string;
   tokenName: string;
   staffId: string;
@@ -186,6 +206,8 @@ export type McpCaller = {
   /** token.scopes ∩ lo que permite el rol de HOY. Nunca vacío. */
   scopes: McpScope[];
   expiresAt: Date | null;
+  /** Cómo entró: token personal o conexión OAuth (va en la auditoría). */
+  via: "token" | "oauth";
 };
 
 /**
@@ -234,5 +256,6 @@ export const verifyMcpToken = async (raw: string | undefined | null, now = new D
     role: row.staffUser.role,
     scopes,
     expiresAt: row.expiresAt,
+    via: "token",
   };
 };

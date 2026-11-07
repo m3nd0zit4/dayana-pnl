@@ -61,6 +61,7 @@ const caller = {
   role: staff.role,
   scopes,
   expiresAt: null,
+  via: "token" as const,
 };
 
 serveStdio(() => newCrmMcpServer(caller), {
