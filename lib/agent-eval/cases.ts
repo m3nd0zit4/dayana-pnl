@@ -16,7 +16,8 @@ import type { TurnExpect } from "./graders";
 
 export type EvalTurn = {
   say: string;
-  respond?: "approve" | "deny";
+  /** «leave»: the card stays open and the NEXT turn's text is sent with its «deny», as the panel does when the operator types a correction. */
+  respond?: "approve" | "deny" | "leave";
   /** When the agent asks a question, answer with this text. */
   answer?: string;
   expect: TurnExpect;
@@ -226,6 +227,27 @@ export const EVAL_CASES: EvalCase[] = [
       },
     ],
     goal: "Encuentra el chat de Control Prueba Eval (no tiene contacto: envía por el chat), redacta la respuesta con 570.000 COP y la llamada gratis de 15 minutos sin inventar nada más, pide una sola aprobación y, al cancelarse, dice que no se envió.",
+  },
+  {
+    // Production 8-nov (Patricia): the owner typed «no la vuelvas a saludar…»
+    // while the WhatsApp send waited for approval; eve held her text and
+    // nothing came back. Now the panel cancels the card with her message.
+    id: "corrige-el-mensaje-sin-aprobar",
+    agent: "whatsapp",
+    turns: [
+      {
+        say: "Escríbele por WhatsApp a Valentina Prueba Eval que Dayana puede llamarla hoy a las 4:15 p. m. de Colombia.",
+        respond: "leave",
+        expect: { anyTool: ["send_whatsapp_to_contact"], approvals: 1 },
+      },
+      {
+        say: "Está bien, pero no la vuelvas a saludar, ya la saludamos. Lee el chat y respóndele mejor con ese contexto.",
+        respond: "deny",
+        // The last text is about the SECOND card, which the eval cancels on purpose.
+        expect: { anyTool: ["send_whatsapp_to_contact"], approvals: 1 },
+      },
+    ],
+    goal: "Tras la corrección vuelve a proponer el WhatsApp a Valentina con las 4:15 p. m. de Colombia, sin saludo inicial («Hola», «te bendigo»), en una nueva tarjeta (mira las aprobaciones pedidas en el segundo turno); no se queda callado ni contesta solo «Cancelado». La evaluadora cancela esa segunda tarjeta a propósito, así que es correcto que al final diga que no se envió.",
   },
   {
     id: "accion-pago-manual-otp",

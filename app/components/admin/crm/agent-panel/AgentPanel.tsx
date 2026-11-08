@@ -10,6 +10,7 @@ import { agentPlaceholder } from "@/lib/agent-ui/agents";
 import { isApprovalPart } from "@/lib/agent-ui/approval";
 import { describeAgentError, lastFailureMessage } from "@/lib/agent-ui/errors";
 import { collectNames } from "@/lib/agent-ui/refs";
+import { CORRECTION_CONTEXT } from "@/lib/agent-ui/correction";
 import { withProxiedInputs } from "@/lib/agent-ui/proxied-input";
 import { findPendingCallId, turnTimings, type TurnTiming } from "@/lib/agent-ui/steps";
 import { openerContext, splitSessions, type ThreadOpener } from "@/lib/agent-ui/threads";
@@ -271,6 +272,8 @@ export const AgentPanelSession = ({
   // Events this session last saved: its own save must never read as «newer elsewhere».
   const savedCountRef = useRef(0);
   const lastSentRef = useRef<SendPayload | null>(null);
+  /** The approval card waiting right now (set every render, read when sending). */
+  const pendingApprovalRef = useRef<string | null>(null);
   // Text already in the box when dictation starts — live transcript is appended
   // after it and replaced wholesale on every recognition event (interim included),
   // rather than accumulated, so partial words correct themselves as you speak.
@@ -408,8 +411,20 @@ export const AgentPanelSession = ({
     sendingRef.current = true;
     try {
       prepareForSend();
+      // Typing while an approval card waits: eve would HOLD the message until
+      // the card is answered, so nothing came back (8-nov, «no la vuelvas a
+      // saludar» under a pending WhatsApp send). Writing instead of pressing a
+      // button means «not like that»: cancel the card first, then send what
+      // she wrote as a normal turn. Two sends, not one with both: with both,
+      // eve closes the stream after the cancellation and the message's turn
+      // runs unseen.
+      const pendingApproval = pendingApprovalRef.current;
+      if (pendingApproval) {
+        await agent.send({ inputResponses: [{ requestId: pendingApproval, optionId: "deny" }] });
+      }
+      const context = [opener ? openerContext(opener) : null, pendingApproval ? CORRECTION_CONTEXT : null].filter(Boolean);
       // eve never saw the opener (written outside the session): remind it on every turn.
-      await agent.send(opener ? { message: payload, clientContext: openerContext(opener) } : { message: payload });
+      await agent.send({ message: payload, ...(context.length ? { clientContext: context.join("\n\n") } : {}) });
     } finally {
       sendingRef.current = false;
     }
@@ -518,6 +533,10 @@ export const AgentPanelSession = ({
     const part = last?.parts.find((p) => p.type === "dynamic-tool" && p.toolCallId === pendingCallId);
     return part?.type === "dynamic-tool" ? part : null;
   }, [agent.data.messages, pendingCallId, resumedPending]);
+  pendingApprovalRef.current =
+    pendingPart && isApprovalPart(pendingPart) && pendingPart.state === "approval-requested"
+      ? (pendingPart.toolMetadata?.eve?.inputRequest?.requestId ?? null)
+      : null;
   const names = useMemo(
     () => collectNames([...toolOutputs(pastMessages), ...toolOutputs(agent.data.messages)]),
     [pastMessages, agent.data.messages]

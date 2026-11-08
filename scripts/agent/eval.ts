@@ -16,6 +16,7 @@ import { generateObject } from "ai";
 import { Client } from "eve/client";
 import { z } from "zod";
 import { EVAL_CASES, type EvalCase } from "@/lib/agent-eval/cases";
+import { CORRECTION_CONTEXT } from "@/lib/agent-ui/correction";
 import { gradeTurn, isApprovalGate, type Failure, type RecordedTurn } from "@/lib/agent-eval/graders";
 import { geminiProvider } from "@/lib/ai/gemini";
 
@@ -51,12 +52,27 @@ const TURN_TIMEOUT_MS = 180_000;
 async function runTurn(
   session: ReturnType<Client["session"]>,
   say: string,
-  respond: "approve" | "deny" | undefined,
-  answer: string | undefined
-): Promise<RecordedTurn> {
+  respond: "approve" | "deny" | "leave" | undefined,
+  answer: string | undefined,
+  /** Approvals the previous turn left open: denied in this send, like the panel does when the operator types. */
+  leftOpen: string[] = []
+): Promise<RecordedTurn & { leftOpen: string[] }> {
   const started = Date.now();
-  const rec: RecordedTurn = { say, texts: [], tools: [], requests: [], status: "waiting", reply: "", ms: 0 };
-  let payload: Parameters<typeof session.send>[0] = say;
+  const rec: RecordedTurn & { leftOpen: string[] } = { say, texts: [], tools: [], requests: [], status: "waiting", reply: "", ms: 0, leftOpen: [] };
+  // Like the panel: the open card is denied first, then her text goes as a normal turn.
+  if (leftOpen.length) {
+    const denied = await session.send({ inputResponses: leftOpen.map((requestId) => ({ requestId, optionId: "deny" })) } as never);
+    for await (const raw of denied) {
+      const event = raw as EveEvent;
+      if (event.type === "message.completed") {
+        const text = String((event.data as { message?: string })?.message ?? "");
+        if (text.trim()) rec.texts.push(text);
+      }
+    }
+  }
+  let payload: Parameters<typeof session.send>[0] = leftOpen.length
+    ? ({ message: say, clientContext: CORRECTION_CONTEXT } as Parameters<typeof session.send>[0])
+    : say;
 
   for (let round = 0; round < 6; round++) {
     const abort = new AbortController();
@@ -97,6 +113,10 @@ async function runTurn(
       clearTimeout(deadline);
     }
     if (rec.status === "failed" || pending.length === 0) break;
+    if (respond === "leave" && pending.every((r) => isApprovalGate((r.options ?? []).map((o) => o.id)))) {
+      rec.leftOpen = pending.map((r) => r.requestId);
+      break;
+    }
     payload = {
       inputResponses: pending.map((r) => {
         const options = (r.options ?? []).map((o) => o.id);
@@ -117,7 +137,10 @@ const verdictSchema = z.object({
 });
 
 const respondOf = (c: EvalCase, say: string) =>
-  c.turns.find((t) => t.say === say)?.respond === "approve" ? "aprobar" : "cancelar";
+  {
+  const respond = c.turns.find((t) => t.say === say)?.respond;
+  return respond === "approve" ? "aprobar" : respond === "leave" ? "escribir una corrección sin pulsar ningún botón" : "cancelar";
+};
 
 async function judge(c: EvalCase, turns: RecordedTurn[]) {
   const google = geminiProvider();
@@ -144,10 +167,12 @@ async function runCase(c: EvalCase, run: number): Promise<RunResult> {
   const session = client.session();
   const turns: RecordedTurn[] = [];
   const failures: Failure[] = [];
+  let leftOpen: string[] = [];
   for (const t of c.turns) {
-    const rec = await runTurn(session, t.say, t.respond, t.answer).catch(
-      (e): RecordedTurn => ({ say: t.say, texts: [], tools: [], requests: [], status: "failed", error: String(e), reply: "", ms: 0 })
+    const rec = await runTurn(session, t.say, t.respond, t.answer, leftOpen).catch(
+      (e): RecordedTurn & { leftOpen: string[] } => ({ say: t.say, texts: [], tools: [], requests: [], status: "failed", error: String(e), reply: "", ms: 0, leftOpen: [] })
     );
+    leftOpen = rec.leftOpen;
     turns.push(rec);
     failures.push(...gradeTurn(rec, t.expect));
   }

@@ -138,6 +138,8 @@ describe("summarizeApproval: edits", () => {
     const s = summarizeApproval("whatsapp_set_chat", { conversationId: "conv_1", mode: "MANUAL" }, { names: { conv_1: "Laura" } });
     expect(value(s, "Chat")).toBe("Laura");
     expect(value(s, "Quién responde")).toBe("Responde Dayana");
+    // Not «Personas fuera del CRM»: the card says whose chat it is.
+    expect(s.recipient).toBe("Laura");
   });
 });
 

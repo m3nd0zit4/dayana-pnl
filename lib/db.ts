@@ -15,6 +15,7 @@ const CONNECTION_CLOSED_MARKERS = [
   "ECONNRESET",
   "ETIMEDOUT",
   "Socket closed",
+  "socket hang up",
 ] as const;
 
 type PrismaExtended = ReturnType<typeof buildPrismaClient>;
@@ -28,8 +29,24 @@ if (typeof window === "undefined") {
   neonConfig.webSocketConstructor = ws;
 }
 
+/**
+ * The Neon WebSocket rejects with a DOM-style `ErrorEvent` (not an `Error`):
+ * `String(event)` is «[object Object]», so «socket hang up» was never seen as
+ * a dropped connection and the query failed instead of reconnecting (8-nov:
+ * an assistant thread PUT failed and the function exited).
+ */
+const errorText = (error: unknown): string => {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    const e = error as { message?: unknown; error?: unknown };
+    const inner = e.error instanceof Error ? e.error.message : "";
+    return [typeof e.message === "string" ? e.message : "", inner].filter(Boolean).join(" ") || String(error);
+  }
+  return String(error);
+};
+
 function isConnectionClosedError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = errorText(error);
   return CONNECTION_CLOSED_MARKERS.some((marker) => message.includes(marker));
 }
 

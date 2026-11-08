@@ -20,6 +20,7 @@ import {
 } from "@/lib/crm/staff-permissions";
 import CrmConfirmDialog from "./CrmConfirmDialog";
 import AgentMessageParam, { type AgentMessageSeed } from "./agent-panel/AgentMessageParam";
+import NewVersionNotice from "./NewVersionNotice";
 
 export type ToastVariant = "success" | "error" | "info" | "loading";
 
@@ -256,6 +257,7 @@ const CrmProvider = ({
   return (
     <CrmContext.Provider value={value}>
       {children}
+      {!preview && <NewVersionNotice />}
       {value.agentEnabled && (
         <Suspense fallback={null}>
           <AgentMessageParam onSeed={openAgentMessage} onMissing={agentMessageMissing} />

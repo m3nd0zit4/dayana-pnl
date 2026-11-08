@@ -101,6 +101,8 @@ export default defineTool({
         type: "conversation" as const,
         id: r.conversationId,
         href: `/admin/whatsapp?conversation=${r.conversationId}`,
+        // Without a label the chip read «conversation».
+        label: chatName(r),
       },
       ...(r.contactId
         ? { contactRef: { type: "contact" as const, id: r.contactId, href: `/admin/contacts/${r.contactId}` } }
@@ -135,7 +137,7 @@ export default defineTool({
         amount: r.amountMinor != null && r.currency ? `${formatMoneyMinor(r.amountMinor, r.currency)} ${r.currency}` : null,
         method: r.method,
         confirmedAt: r.decidedAt?.toISOString() ?? null,
-        ref: { type: "conversation" as const, id: r.conversationId, href: `/admin/whatsapp?conversation=${r.conversationId}` },
+        ref: { type: "conversation" as const, id: r.conversationId, href: `/admin/whatsapp?conversation=${r.conversationId}`, label: chatName(r) },
       })),
       display,
     };

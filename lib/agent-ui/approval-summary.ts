@@ -550,7 +550,11 @@ export const summarizeApproval = (toolName: string, input: unknown, ctx: Summary
   // Execute-level tools always say who receives it, even when the tool has no
   // specific summary yet (a new tool added to the catalog).
   if (access === "execute" && !summary.recipient) {
-    const who = str(record.contactId) ? nameFor(ctx, record.contactId, CONTACT) : undefined;
+    const who = str(record.contactId)
+      ? nameFor(ctx, record.contactId, CONTACT)
+      : str(record.conversationId)
+        ? nameFor(ctx, record.conversationId, "El chat elegido")
+        : undefined;
     summary.recipient = who ?? "Personas fuera del CRM";
   }
   return summary;
