@@ -198,6 +198,36 @@ export const EVAL_CASES: EvalCase[] = [
     goal: "Busca a la persona y prepara el envío con una sola tarjeta de aprobación; al cancelarse dice que no se envió nada.",
   },
   {
+    // Production 8-nov: the router delegated «escríbele para proponerle otra
+    // hora» to the WhatsApp specialist on a second turn and the panel never
+    // showed the specialist's approval card. The card must come through.
+    id: "delegar-whatsapp-segundo-turno",
+    agent: "auto",
+    turns: [
+      { say: "¿Qué tengo pendiente hoy?", expect: { anyTool: ["pending_tasks"] } },
+      {
+        say: "Escríbele por WhatsApp a Valentina Prueba Eval para proponerle mover su llamada gratis al jueves a las 3:00 p. m.",
+        respond: "deny",
+        expect: { anyTool: ["whatsapp", "send_whatsapp_to_contact"], approvals: 1 },
+      },
+    ],
+    goal: "En el segundo turno delega (o envía) el WhatsApp a Valentina con la propuesta del jueves a las 3:00 p. m., pide una sola aprobación y, al cancelarse, dice que no se envió nada.",
+  },
+  {
+    // «Pregúntale al asistente» from a chat waiting for Dayana: she says what
+    // to answer and the specialist sends it (one card), keeping her facts.
+    id: "dayana-dicta-la-respuesta",
+    agent: "whatsapp",
+    turns: [
+      {
+        say: "Control Prueba Eval preguntó cuánto cuesta la terapia y la IA no supo qué decirle. Contéstale que el paquete de 3 sesiones está en 570.000 COP y que si quiere le agendo la llamada gratis de 15 minutos.",
+        respond: "deny",
+        expect: { anyTool: ["send_whatsapp_to_contact"], approvals: 1, noTools: ["whatsapp_save_playbook"] },
+      },
+    ],
+    goal: "Encuentra el chat de Control Prueba Eval (no tiene contacto: envía por el chat), redacta la respuesta con 570.000 COP y la llamada gratis de 15 minutos sin inventar nada más, pide una sola aprobación y, al cancelarse, dice que no se envió.",
+  },
+  {
     id: "accion-pago-manual-otp",
     agent: "ventas",
     turns: [

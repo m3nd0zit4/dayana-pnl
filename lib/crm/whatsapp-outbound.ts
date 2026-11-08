@@ -1,4 +1,5 @@
 import { whatsAppDigits } from "@/lib/whatsapp-contact";
+import { phoneFromWhatsAppId } from "@/lib/phone";
 import { prisma } from "@/lib/db";
 import { sendMetaMessage, MetaWindowError, type SendAttachment, type WhatsAppImageRef } from "@/lib/meta/send";
 import { resolveWindow } from "@/lib/meta/window";
@@ -99,6 +100,24 @@ export const recipientFromContact = async (contactId: string): Promise<Recipient
     name: [c.firstName, c.lastName].filter(Boolean).join(" ").trim() || null,
     optedOut: c.notifyWhatsapp === false,
   };
+};
+
+/**
+ * Un chat de WhatsApp como destinatario, tenga o no contacto en el CRM: el
+ * contacto vinculado (con su número, o el del chat si el contacto no tiene) o,
+ * sin contacto, el número del propio chat. Muchos chats que esperan a Dayana
+ * nunca se volvieron contacto.
+ */
+export const recipientFromConversation = async (conversationId: string): Promise<RecipientInfo | null> => {
+  const c = await prisma.conversation.findFirst({
+    where: { id: conversationId, channel: "WHATSAPP" },
+    select: { contactId: true, externalThreadId: true, participantName: true },
+  });
+  if (!c) return null;
+  const chatPhone = phoneFromWhatsAppId(c.externalThreadId)?.phoneE164 ?? null;
+  const fromContact = c.contactId ? await recipientFromContact(c.contactId) : null;
+  if (fromContact) return { ...fromContact, phoneE164: fromContact.phoneE164 ?? chatPhone };
+  return { contactId: null, phoneE164: chatPhone, name: c.participantName, optedOut: false };
 };
 
 /** Qué pasaría con esta persona, sin enviar nada (para las vistas previas). */
@@ -260,6 +279,33 @@ export const sendWhatsAppToContact = async (input: {
     action: "WHATSAPP_SENT",
     entityType: "Contact",
     entityId: input.contactId,
+    changes: {
+      source: input.source,
+      status: result.status,
+      ...(result.status === "sent" ? { mode: result.mode } : {}),
+      ...(result.status === "skipped" ? { reason: result.reason } : {}),
+    },
+  }).catch(() => undefined);
+  return result;
+};
+
+/** Lo mismo que `sendWhatsAppToContact`, a un chat (con o sin contacto). */
+export const sendWhatsAppToConversation = async (input: {
+  conversationId: string;
+  text: string;
+  templateKey?: string | null;
+  vars?: Record<string, string | null | undefined>;
+  source: string;
+  staffId: string;
+}): Promise<SendResult> => {
+  const recipient = await recipientFromConversation(input.conversationId);
+  if (!recipient) return { status: "failed", error: "El chat no existe." };
+  const result = await sendWhatsAppToRecipient({ ...input, recipient });
+  await writeAuditLog({
+    staffUserId: input.staffId,
+    action: "WHATSAPP_SENT",
+    entityType: "Conversation",
+    entityId: input.conversationId,
     changes: {
       source: input.source,
       status: result.status,

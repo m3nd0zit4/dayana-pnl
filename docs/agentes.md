@@ -40,6 +40,38 @@ muestra **una** tarjeta. El prompt prohíbe preguntar «¿confirmas?» antes. Lo
 comprueban `lib/agent-eval/catalog.test.ts` (ninguna escritura sin aprobación) y
 el eval (`doubleApproval`).
 
+**Aprobaciones que pide un especialista** (8-nov: «escríbele a … para
+proponerle otra hora» se quedaba en «Ejecutando…»). eve reenvía la petición del
+hijo con el `turnId`/`stepIndex` del hijo (`turn_0`), y su reductor la colgaba
+del primer mensaje: el panel nunca mostraba la tarjeta. `withProxiedInputs`
+(`lib/agent-ui/proxied-input.ts`) la reubica junto a la llamada al especialista,
+en el vivo y en el historial. La tarjeta pide el nombre real de la persona a
+`GET /api/admin/agent/names` cuando el hilo no lo conoce (lo buscó el hijo).
+
+**Salida de las herramientas en JSON puro**: los resolvedores (`agent/tools/crm.ts`
+y `agent/subagents/*/tools/crm.ts`) pasan todo por `plainJson`; un `Date`
+hacía fallar la llamada entera (`get_conversation` falló en todo chat con la
+ventana abierta hasta el 8-nov). También conservan el `toModelOutput` de cada
+herramienta, que antes se perdía.
+
+### Personas reales: Dayana ↔ asistente ↔ IA de WhatsApp
+
+- **La IA de WhatsApp no sabe qué responder** → escala: el chat queda en
+  «Te toca» y Dayana recibe el aviso. En el chat, «Pregúntale al asistente»
+  (`chatHelpOpener`, `lib/agent-ui/chat-help.ts`) abre el especialista de
+  WhatsApp con lo que la persona escribió y por qué la IA lo dejó.
+- **Dayana dice qué contestar**, con sus palabras → el especialista lo redacta
+  con la voz de la asistente, conserva sus datos (día, hora, precio) y lo envía
+  con `send_whatsapp_to_contact` (también a un chat sin contacto, con
+  `conversationId`): una tarjeta de aprobación. Después pregunta una vez si la
+  IA debe responder así la próxima vez: para esa persona (`whatsapp_set_chat`
+  `instructions`) o para todos (`whatsapp_save_playbook`).
+- **Para otra persona en el futuro**: «cuando Laura escriba, dile…» → instrucción
+  del chat; la IA de WhatsApp la lee en cada respuesta de ese chat.
+- **El asistente necesita a Dayana** (corre para un agente externo, o una tarea
+  acaba en una pregunta suya) → `message_owner`: notificación que abre el panel
+  en un hilo nuevo con esa pregunta.
+
 ### Memoria
 
 `memory` guarda reglas que el equipo enseña («de ahora en adelante…») en

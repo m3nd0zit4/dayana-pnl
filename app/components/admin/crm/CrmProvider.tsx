@@ -73,6 +73,8 @@ type CrmContextValue = {
    * con `agent` si se pasa, si no con el asistente general ("auto"), que reparte.
    */
   askAgent: (message: string, files?: File[], options?: { agent?: AgentId }) => void;
+  /** Abre el panel en una conversación nueva que empieza con este mensaje del asistente (p. ej. desde un chat de WhatsApp). */
+  openAgentMessage: (seed: AgentMessageSeed) => void;
   /** Abre el panel en una conversación nueva con ese agente (con `keepIfSame`, deja la abierta si ya es suya). */
   startAgentConversation: (agent: AgentId, options?: { keepIfSame?: boolean }) => void;
   /** Abre el panel del agente sobre un hilo existente (p.ej. desde la lista del sidebar). */
@@ -222,6 +224,7 @@ const CrmProvider = ({
       pendingAgentAction,
       clearPendingAgentAction,
       askAgent,
+      openAgentMessage,
       startAgentConversation,
       openAgentThread,
       toast,
@@ -241,6 +244,7 @@ const CrmProvider = ({
       pendingAgentAction,
       clearPendingAgentAction,
       askAgent,
+      openAgentMessage,
       startAgentConversation,
       openAgentThread,
       toast,

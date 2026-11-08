@@ -12,6 +12,7 @@ import {
   PanelRight,
   RefreshCw,
   Search,
+  MessageCircleQuestion,
   ShieldAlert,
   Sparkles,
   Star,
@@ -38,6 +39,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { CHAT_CATEGORIES, CHAT_CATEGORY_LABEL, isChatCategory, type ChatCategory } from "@/lib/crm/chat-category-rules";
 import { categoryChangeNeedsOwner } from "@/lib/crm/whatsapp-category-filter";
+import { chatHelpOpener } from "@/lib/agent-ui/chat-help";
 import { cn } from "@/lib/utils";
 import type { ChatDetail } from "@/lib/crm/whatsapp-agent/workspace";
 import {
@@ -80,6 +82,7 @@ const AttentionBar = ({
   act: Act;
   now: number;
 }) => {
+  const { agentEnabled, openAgentMessage } = useCrm();
   const a = chat.attention;
   const approval = chat.approvals[0]?.proposal.kind ?? null;
   const escalation = chat.escalation;
@@ -117,6 +120,31 @@ const AttentionBar = ({
         <div className="truncate text-sm font-medium text-(--wa-text)">{title}</div>
         <div className="line-clamp-2 text-xs text-(--wa-icon)">{detail}</div>
       </div>
+      {agentEnabled && canWrite && (
+        <ActionButton
+          title="Dile al asistente qué contestar: lo redacta, te lo muestra para aprobar y lo envía."
+          onClick={() => {
+            const { title: openerTitle, message } = chatHelpOpener({
+              name: chat.name,
+              phone: chat.phone,
+              reason: title,
+              detail: a?.detail ?? null,
+              messages: chat.messages,
+            });
+            openAgentMessage({
+              key: `chat-${chat.id}-${Date.now().toString(36)}`,
+              agent: "whatsapp",
+              title: openerTitle,
+              message,
+              createdAt: new Date().toISOString(),
+              source: `chat:${chat.id}`,
+            });
+          }}
+        >
+          <MessageCircleQuestion /> <span className="hidden sm:inline">Pregúntale al asistente</span>
+          <span className="sm:hidden">Asistente</span>
+        </ActionButton>
+      )}
       <ActionButton
         tone="primary"
         disabled={!canWrite || busy !== null}
