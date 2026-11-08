@@ -30,18 +30,18 @@ describe("leer la lista de bloqueados de WhatsApp", () => {
     expect(plan.remove).toEqual([]);
   });
 
-  test("el que Dayana desbloqueó vuelve (vino de la app o lo bloqueamos por la API)", () => {
+  test("el que Dayana desbloqueó vuelve: el de la app, o uno del CRM que ya se vio en la lista", () => {
     const plan = planBlockSync({
       listedHashes: new Set([]),
-      current: [row("app1", "app", true), row("sex1", "sexual_content", true)],
+      current: [row("app1", "app", true), row("man1", "manual", true)],
     });
-    expect(plan.remove.sort()).toEqual(["app1", "sex1"]);
+    expect(plan.remove.sort()).toEqual(["app1", "man1"]);
   });
 
-  test("un bloqueo que WhatsApp no aceptó (fuera de 24 h) o uno sin API no se suelta porque falte en la lista", () => {
+  test("contenido sexual nunca se suelta solo; uno del CRM que nunca se vio en la lista tampoco", () => {
     const plan = planBlockSync({
       listedHashes: new Set([]),
-      current: [row("sex2", "sexual_content", false), row("man1", "manual", false)],
+      current: [row("sex1", "sexual_content", true), row("sex2", "sexual_content", false), row("man2", "manual", false)],
     });
     expect(plan.remove).toEqual([]);
   });

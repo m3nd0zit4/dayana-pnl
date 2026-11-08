@@ -42,10 +42,12 @@ const SEXUAL_ALT = "525500009911";
 const APP = "573000009912";
 const PERSONAL = "573000009913";
 const THERAPY = "573000009914";
-const ALL = [SEXUAL, SEXUAL_ALT, APP, PERSONAL, THERAPY];
+const KEEP = "573000009915";
+const ALL = [SEXUAL, SEXUAL_ALT, APP, PERSONAL, THERAPY, KEEP];
 const ACCOUNT = "e2e-blocked";
 
 const cleanup = async () => {
+  await prisma.whatsAppPaymentReceipt.deleteMany({ where: { conversation: { externalThreadId: { in: ALL } } } });
   await prisma.conversation.deleteMany({ where: { channel: "WHATSAPP", externalThreadId: { in: ALL } } });
   await prisma.contact.deleteMany({ where: { phoneE164: { in: ALL.map((n) => `+${n}`) } } });
   const hashes = ALL.map(blockHash).filter((h): h is string => Boolean(h));
@@ -96,8 +98,8 @@ const main = async () => {
   await cleanup();
 
   console.log("1. Texto inequívoco vs. terapia");
-  const explicit = await ingestMessage(msg(SEXUAL, "hola, mándame el pack 😏", 1));
-  check("«mándame el pack» se guarda marcado como contenido sexual", explicit.outcome === "stored" && explicit.sexual?.reason === "nude_request", explicit);
+  const explicit = await ingestMessage(msg(SEXUAL, "hola, mándame tu pack 😏", 1));
+  check("«mándame tu pack» se guarda marcado como contenido sexual", explicit.outcome === "stored" && explicit.sexual?.reason === "nude_request", explicit);
   const therapy = await ingestMessage(msg(THERAPY, "Sufrí abuso sexual de niña y quiero sanarlo con Dayana", 1));
   check("«sufrí abuso sexual» no se marca", therapy.outcome === "stored" && !therapy.sexual, therapy);
 
@@ -133,7 +135,7 @@ const main = async () => {
     "fila mínima: motivo, señal, API, conteos; sin número ni contenido",
     row?.reason === "sexual_content" &&
       row.detail === "text:nude_request" &&
-      Boolean(row.apiBlockedAt) &&
+      (row.actions as { apiAccepted?: boolean } | null)?.apiAccepted === true &&
       !JSON.stringify(row).includes(SEXUAL.slice(-7)) &&
       !JSON.stringify(row).includes("pack"),
     row
@@ -154,7 +156,14 @@ const main = async () => {
   check("las notificaciones por WhatsApp también", notifErr instanceof Error && /bloqueado/i.test(notifErr.message), String(notifErr));
   const f2 = fakes();
   const r2 = await enforceSexualContent({ conversationId: ghost.id, signal: { source: "vision", reason: "PROHIBITED_CONTENT" } }, f2.deps);
-  check("una segunda vez no repite aviso ni bloqueo, pero limpia el chat", r2.status === "already" && f2.calls.notice.length === 0 && f2.calls.block.length === 0 && (await prisma.conversation.count({ where: { id: ghost.id } })) === 0, r2);
+  check(
+    "una segunda vez (mientras el primero trabaja) no repite aviso ni bloqueo ni borra",
+    r2.status === "already" && f2.calls.notice.length === 0 && f2.calls.block.length === 0 && (await prisma.conversation.count({ where: { id: ghost.id } })) === 1,
+    r2
+  );
+  await prisma.whatsAppBlockedNumber.update({ where: { phoneHash: blockHash(SEXUAL)! }, data: { blockedAt: new Date(Date.now() - 120_000) } });
+  const r2b = await enforceSexualContent({ conversationId: ghost.id, signal: { source: "vision", reason: "PROHIBITED_CONTENT" } }, f2.deps);
+  check("pasado el minuto, solo limpia lo que entró", r2b.status === "already" && f2.calls.notice.length === 0 && (await prisma.conversation.count({ where: { id: ghost.id } })) === 0, r2b);
 
   console.log("4. Un número personal de Dayana no se bloquea solo");
   await ignoreNumbers([PERSONAL], "manual");
@@ -180,10 +189,24 @@ const main = async () => {
   const s2 = await syncBlockList({ list: async () => [SEXUAL] });
   check("desbloqueada en la app: vuelve", s2.removed === 1 && s2.shownChats === 1 && (await inList()), s2);
   check("su contacto también", !(await prisma.contact.findUnique({ where: { phoneE164: `+${APP}` } }))?.blockedAt);
-  // El de contenido sexual con un bloqueo que la API no aceptó no se suelta por faltar en la lista.
-  await prisma.whatsAppBlockedNumber.update({ where: { phoneHash: blockHash(SEXUAL)! }, data: { apiBlockedAt: null } });
-  const s3 = await syncBlockList({ list: async () => [] });
-  check("un bloqueo sin API no se suelta", s3.removed === 0 && (await isBlockedNumber(SEXUAL)), s3);
+  // Contenido sexual: aunque ya no esté en la lista de WhatsApp, sigue bloqueado.
+  check("la lista lo vio (queda marcado)", Boolean((await prisma.whatsAppBlockedNumber.findUnique({ where: { phoneHash: blockHash(SEXUAL)! } }))?.apiBlockedAt));
+  const s3 = await syncBlockList({ list: async () => [APP] });
+  check("contenido sexual no se suelta aunque falte en la lista", s3.removed === 0 && (await isBlockedNumber(SEXUAL)), s3);
+  await syncBlockList({ list: async () => [] });
+
+  console.log("6. Un chat con comprobante de pago no se borra: se vacía y se oculta");
+  const k = await ingestMessage(msg(KEEP, "te mando el comprobante", 1));
+  if (k.outcome !== "stored") throw new Error("sin chat keep");
+  await prisma.whatsAppPaymentReceipt.create({ data: { conversationId: k.conversationId, status: "pending" } }).catch(async (e) => {
+    throw new Error(`no se pudo crear el comprobante de prueba: ${e instanceof Error ? e.message.slice(0, 200) : e}`);
+  });
+  const f4 = fakes();
+  const r4 = await enforceSexualContent({ conversationId: k.conversationId, signal: { source: "staff", reason: "e2e" } }, f4.deps);
+  const kept = await prisma.conversation.findUnique({ where: { id: k.conversationId }, select: { blockedAt: true } });
+  check("bloqueado y el chat queda (oculto)", r4.status === "blocked" && Boolean(kept?.blockedAt), { r4, kept });
+  check("sin mensajes", (await prisma.conversationMessage.count({ where: { conversationId: k.conversationId } })) === 0);
+  check("el comprobante sigue", (await prisma.whatsAppPaymentReceipt.count({ where: { conversationId: k.conversationId } })) === 1);
 };
 
 try {

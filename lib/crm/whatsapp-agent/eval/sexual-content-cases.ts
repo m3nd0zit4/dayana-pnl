@@ -32,4 +32,8 @@ export const SEXUAL_TEXT_CASES: SexualCase[] = [
   { id: "hot-yoga", text: "hoy voy a hot yoga y después te escribo para pagar", block: false },
   { id: "pornografia-adiccion", text: "Mi esposo es adicto a la pornografía y eso me destruye", block: false },
   { id: "sexy-autoestima", text: "Quiero volver a sentirme sexy y segura de mí misma", block: false },
+  { id: "pack-de-sesiones", text: "Pásame el pack de sesiones, el de 6 por favor", block: false },
+  { id: "novio-manda-fotos", text: "Mi novio me manda fotos desnudas y no sé cómo decirle que pare", block: false },
+  { id: "esposo-pornhub", text: "Mi esposo ve pornhub todo el día y ya no me busca", block: false },
+  { id: "caliente-enojada", text: "Estoy bien caliente contigo porque no me contestaste ayer", block: false },
 ];

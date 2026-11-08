@@ -47,17 +47,25 @@ export const blockHash = (threadId: string): string | null => {
 export type BlockReason = "app" | "sexual_content" | "manual";
 export type BlockSource = "sync" | "auto" | "staff";
 
-/** ¿Está bloqueado ahora? Un fallo de la base cuenta como no (nunca deja a alguien sin respuesta por un error). */
-export const isBlockedNumber = async (threadId: string): Promise<boolean> => {
-  const hash = blockHash(threadId);
-  if (!hash) return false;
-  return (
-    (await prisma.whatsAppBlockedNumber.count({ where: { phoneHash: hash, unblockedAt: null } }).catch(() => 0)) > 0
-  );
+/**
+ * ¿Está bloqueado ahora alguno de estos ids (el número y su id de usuario)?
+ * Para recibir y contestar, un fallo de la base cuenta como no (nunca deja a
+ * alguien sin respuesta por un error); para ENVIAR (`strict`) lanza: un error
+ * no puede dejar salir un mensaje a un número bloqueado (revisión 8-nov).
+ */
+export const isBlockedAny = async (ids: (string | null | undefined)[], opts: { strict?: boolean } = {}): Promise<boolean> => {
+  const hashes = [...new Set(ids.map((id) => (id ? blockHash(id) : null)).filter((h): h is string => Boolean(h)))];
+  if (hashes.length === 0) return false;
+  const query = prisma.whatsAppBlockedNumber.count({ where: { phoneHash: { in: hashes }, unblockedAt: null } });
+  return (opts.strict ? await query : await query.catch(() => 0)) > 0;
 };
 
-/** Lo mismo para un teléfono E.164 (`+57…`): envíos de notificaciones, invitaciones. */
-export const isBlockedPhone = async (phoneE164: string): Promise<boolean> => isBlockedNumber(phoneE164.replace(/\D/g, ""));
+export const isBlockedNumber = async (threadId: string, opts: { strict?: boolean } = {}): Promise<boolean> =>
+  isBlockedAny([threadId], opts);
+
+/** Lo mismo para un teléfono E.164 (`+57…`) al enviar notificaciones: lanza si no se pudo mirar. */
+export const isBlockedPhone = async (phoneE164: string): Promise<boolean> =>
+  isBlockedNumber(phoneE164.replace(/\D/g, ""), { strict: true });
 
 /** Los chats de WhatsApp de ese número, en cualquiera de sus formas. */
 const chatsOf = async (threadId: string): Promise<{ id: string; contactId: string | null }[]> =>
@@ -68,14 +76,15 @@ const chatsOf = async (threadId: string): Promise<{ id: string; contactId: strin
 
 /**
  * Oculta (o vuelve a mostrar con `at = null`) los chats y contactos del número.
- * Devuelve cuántos tocó.
+ * Los contactos, solo por su teléfono: un chat ligado a mano al contacto de
+ * otra persona no la oculta a ella (revisión 8-nov). Devuelve cuántos tocó.
  */
 export const setNumberHidden = async (
   threadId: string,
   at: Date | null
 ): Promise<{ chats: number; contacts: number }> => {
   const chats = await chatsOf(threadId);
-  const contactIds = new Set(chats.map((c) => c.contactId).filter((id): id is string => Boolean(id)));
+  const contactIds = new Set<string>();
   const phones = contactPhoneCandidates(threadId);
   if (phones.length) {
     const byPhone = await prisma.contact.findMany({ where: { phoneE164: { in: phones } }, select: { id: true } });
@@ -102,7 +111,7 @@ export const recordBlock = async (input: {
   source: BlockSource;
   detail?: string | null;
   apiBlockedAt?: Date | null;
-}): Promise<{ hash: string; created: boolean; reason: string } | null> => {
+}): Promise<{ hash: string; created: boolean; reason: string; since: Date } | null> => {
   const hash = blockHash(input.threadId);
   if (!hash) return null;
   const data = {
@@ -113,13 +122,16 @@ export const recordBlock = async (input: {
     apiError: null,
     actions: undefined,
   };
-  const existing = await prisma.whatsAppBlockedNumber.findUnique({ where: { phoneHash: hash }, select: { reason: true, unblockedAt: true } });
-  if (existing && !existing.unblockedAt) return { hash, created: false, reason: existing.reason };
+  const existing = await prisma.whatsAppBlockedNumber.findUnique({
+    where: { phoneHash: hash },
+    select: { reason: true, unblockedAt: true, blockedAt: true },
+  });
+  if (existing && !existing.unblockedAt) return { hash, created: false, reason: existing.reason, since: existing.blockedAt };
   try {
     // Sin fila: se crea (si otro proceso la creó en el mismo instante, cae abajo).
     if (!existing) {
       await prisma.whatsAppBlockedNumber.create({ data: { phoneHash: hash, ...data } });
-      return { hash, created: true, reason: input.reason };
+      return { hash, created: true, reason: input.reason, since: new Date() };
     }
     throw new Error("reopen");
   } catch {
@@ -128,9 +140,9 @@ export const recordBlock = async (input: {
       where: { phoneHash: hash, unblockedAt: { not: null } },
       data: { ...data, blockedAt: new Date(), unblockedAt: null },
     });
-    if (reopened.count > 0) return { hash, created: true, reason: input.reason };
-    const row = await prisma.whatsAppBlockedNumber.findUnique({ where: { phoneHash: hash }, select: { reason: true } });
-    return { hash, created: false, reason: row?.reason ?? input.reason };
+    if (reopened.count > 0) return { hash, created: true, reason: input.reason, since: new Date() };
+    const row = await prisma.whatsAppBlockedNumber.findUnique({ where: { phoneHash: hash }, select: { reason: true, blockedAt: true } });
+    return { hash, created: false, reason: row?.reason ?? input.reason, since: row?.blockedAt ?? new Date() };
   }
 };
 
@@ -213,10 +225,11 @@ export const fetchBlockList = async (maxPages = 20): Promise<string[]> => {
       }
     }
     const next = res.paging?.cursors?.after;
-    if (!next || next === after || (res.data ?? []).length === 0) break;
+    if (!next || next === after || (res.data ?? []).length === 0) return out;
     after = next;
   }
-  return out;
+  // Una lista cortada se leería como «desbloqueó a los que faltan».
+  throw new Error("block_list_truncated");
 };
 
 export type BlockSyncResult = {
@@ -231,17 +244,21 @@ export type BlockSyncResult = {
 /** Qué cambia, sin tocar la base (puro, para las pruebas). */
 export const planBlockSync = (input: {
   listedHashes: Set<string>;
-  /** Filas bloqueadas ahora: huella, motivo y si WhatsApp las tenía por la API. */
+  /** Filas bloqueadas ahora: huella, motivo y si ya se vio en la lista de WhatsApp (`apiBlockedAt`). */
   current: { phoneHash: string; reason: string; apiBlockedAt: Date | null }[];
 }): { add: string[]; remove: string[] } => {
   const current = new Map(input.current.map((r) => [r.phoneHash, r]));
   const add = [...input.listedHashes].filter((h) => !current.has(h));
-  // Solo se desbloquea lo que la lista tenía: lo que vino de la app, o lo que
-  // bloqueamos por la API y ya no está (Dayana lo desbloqueó en su celular).
-  // Un bloqueo que la API no aceptó (fuera de 24 h) o uno manual no se suelta
-  // porque falte en la lista.
+  // Solo se desbloquea lo que la lista tenía: lo que vino de la app, o uno
+  // bloqueado desde el CRM que ya se vio en la lista y ya no está (Dayana lo
+  // desbloqueó en su celular). Un bloqueo por contenido sexual nunca se suelta
+  // solo (revisión 8-nov), ni uno que nunca se vio en la lista.
   const remove = input.current
-    .filter((r) => !input.listedHashes.has(r.phoneHash) && (r.reason === "app" || r.apiBlockedAt !== null))
+    .filter(
+      (r) =>
+        !input.listedHashes.has(r.phoneHash) &&
+        (r.reason === "app" || (r.reason === "manual" && r.apiBlockedAt !== null))
+    )
     .map((r) => r.phoneHash);
   return { add, remove };
 };
@@ -277,14 +294,14 @@ export const syncBlockList = async (deps: { list?: () => Promise<string[]>; now?
     await noteBlockActions(hash, { hiddenChats: hidden.chats, hiddenContacts: hidden.contacts });
   }
   // Lo que bloqueamos nosotros y sí está en la lista: queda marcado como de la API.
+  // `apiBlockedAt` = visto en la lista de WhatsApp (que el POST lo aceptara va en `actions.apiAccepted`).
   const listedOurs = current.filter((r) => byHash.has(r.phoneHash) && r.apiBlockedAt === null).map((r) => r.phoneHash);
   if (listedOurs.length) {
     await prisma.whatsAppBlockedNumber.updateMany({ where: { phoneHash: { in: listedOurs } }, data: { apiBlockedAt: now } });
   }
 
-  // Una lista vacía con varios bloqueados de la app suele ser un fallo de lectura, no que Dayana desbloqueó a todos.
-  const appBlocked = current.filter((r) => r.reason === "app").length;
-  if (byHash.size === 0 && appBlocked > 3) {
+  // Una lista vacía suele ser un fallo de lectura, no que Dayana desbloqueó a todos.
+  if (byHash.size === 0 && plan.remove.length > 1) {
     result.skippedUnblock = "empty_list";
     return result;
   }

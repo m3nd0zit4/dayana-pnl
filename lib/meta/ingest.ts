@@ -226,8 +226,11 @@ export const ingestMessage = async (
   // Un número bloqueado (por Dayana en su WhatsApp, por contenido sexual o
   // desde el CRM) no vuelve a entrar: ni mensajes, ni ecos, ni historial.
   if (message.channel === "WHATSAPP") {
-    const { isBlockedNumber } = await import("@/lib/crm/whatsapp-blocked-numbers");
-    if (await isBlockedNumber(message.threadId)) return { outcome: "ignored", reason: "blocked_number" };
+    // Con su número y con su id de usuario (BSUID): no vuelve por el otro.
+    const { isBlockedAny } = await import("@/lib/crm/whatsapp-blocked-numbers");
+    if (await isBlockedAny([message.threadId, ...(message.altThreadIds ?? [])])) {
+      return { outcome: "ignored", reason: "blocked_number" };
+    }
   }
 
   // Una reacción, edición o eliminación se aplica al mensaje original.
@@ -243,7 +246,9 @@ export const ingestMessage = async (
     message.channel === "WHATSAPP" && !message.isEcho && !message.isHistory && !message.system && (await sexualGuardOn());
   const attachments = await storeAttachments(message, { screen });
   const quarantined = attachments.find((a) => a.quarantined)?.quarantined;
-  const explicitText = screen ? explicitSexualText(message.body) : null;
+  // También lo que dice una nota de voz.
+  const transcript = attachments.find((a) => a.transcript)?.transcript;
+  const explicitText = screen ? explicitSexualText([message.body, transcript].filter(Boolean).join("\n")) : null;
   const sexual: SexualSignal | undefined = quarantined
     ? { source: "vision", reason: quarantined }
     : explicitText
@@ -392,6 +397,16 @@ export const ingestMessage = async (
   });
   if (!stored) return { outcome: "duplicate" };
   const conversation = stored;
+
+  // Lo bloquearon mientras se guardaba (otro mensaje de la misma ráfaga): el
+  // chat queda oculto y no sigue (el bloqueo en curso lo borra).
+  if (message.channel === "WHATSAPP" && !sexual && !message.isHistory) {
+    const { isBlockedAny, setNumberHidden } = await import("@/lib/crm/whatsapp-blocked-numbers");
+    if (await isBlockedAny([message.threadId, ...(message.altThreadIds ?? [])])) {
+      await setNumberHidden(message.threadId, new Date()).catch(() => undefined);
+      return { outcome: "ignored", reason: "blocked_number" };
+    }
+  }
 
   if (message.isHistory) {
     await prisma.conversation.updateMany({
@@ -589,12 +604,17 @@ export const processNormalizedEvent = async (
     const signal = result.sexual ?? (await doubtfulTextSignal(event, result.conversationId));
     if (signal) {
       const { enforceSexualContent } = await import("@/lib/crm/whatsapp-agent/sexual-content");
-      const r = await enforceSexualContent({ conversationId: result.conversationId, signal }).catch((e: unknown) => {
+      const r = await enforceSexualContent({
+        conversationId: result.conversationId,
+        signal,
+        altThreadIds: event.altThreadIds,
+      }).catch((e: unknown) => {
         console.error("[contenido] no se pudo aplicar el bloqueo", e);
         return null;
       });
       console.warn(`[contenido] ${signal.source}:${signal.reason} → ${r?.status ?? "error"}`);
-      if (r && r.status !== "spared") return result;
+      // Aunque falle, la IA no le contesta a un mensaje sexual (la cola lo reintenta si lanzó antes de guardar).
+      if (!r || r.status !== "spared") return result;
     }
   }
 

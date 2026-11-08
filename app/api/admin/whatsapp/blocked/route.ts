@@ -71,7 +71,7 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
   if (!claim.created) return NextResponse.json({ ok: true, already: true });
   const api = await blockOnWhatsApp(conv.externalThreadId);
   const hidden = await setNumberHidden(conv.externalThreadId, new Date());
-  await noteBlockActions(claim.hash, { hiddenChats: hidden.chats, hiddenContacts: hidden.contacts }, { at: api.ok ? new Date() : null, error: api.error });
+  await noteBlockActions(claim.hash, { hiddenChats: hidden.chats, hiddenContacts: hidden.contacts, apiAccepted: api.ok }, { error: api.error });
   fireAuditLog({
     action: "WHATSAPP_NUMBER_BLOCKED",
     entityType: "WhatsAppBlockedNumber",

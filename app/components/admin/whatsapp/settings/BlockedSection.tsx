@@ -17,7 +17,7 @@ type Row = {
   detail: string | null;
   apiBlockedAt: string | null;
   apiError: string | null;
-  actions: { noticeSent?: boolean; deletedChats?: number; deletedMessages?: number; hiddenChats?: number } | null;
+  actions: { noticeSent?: boolean; apiAccepted?: boolean; deletedChats?: number; deletedMessages?: number; hiddenChats?: number } | null;
   blockedAt: string;
   unblockedAt: string | null;
 };
@@ -100,7 +100,7 @@ const BlockedSection = () => {
                 <span className="font-medium">{REASON[r.reason] ?? r.reason}</span>
                 <span className="text-xs text-muted-foreground">{date(r.blockedAt)}</span>
                 {r.reason === "sexual_content" && <Badge variant="destructive">Falta reportarlo desde tu app</Badge>}
-                {r.reason !== "app" && !r.apiBlockedAt && (
+                {r.reason !== "app" && !r.actions?.apiAccepted && !r.apiBlockedAt && (
                   <Badge variant="outline">WhatsApp no aceptó el bloqueo: bloquéalo en tu app</Badge>
                 )}
                 {r.actions?.deletedChats ? (

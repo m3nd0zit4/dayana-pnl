@@ -133,7 +133,8 @@ export class BlockedRecipientError extends MetaSendError {
 const assertNotBlocked = async (channel: string, threadId: string): Promise<void> => {
   if (channel !== "WHATSAPP") return;
   const { isBlockedNumber } = await import("@/lib/crm/whatsapp-blocked-numbers");
-  if (await isBlockedNumber(threadId)) throw new BlockedRecipientError();
+  // Estricto: si no se pudo mirar, no sale (un error no puede escribirle a un bloqueado).
+  if (await isBlockedNumber(threadId, { strict: true })) throw new BlockedRecipientError();
 };
 export class MetaWindowError extends MetaSendError {
   readonly window: WindowState;

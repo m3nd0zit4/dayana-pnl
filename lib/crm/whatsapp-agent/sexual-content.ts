@@ -76,28 +76,39 @@ const blobUrlsOf = (attachments: unknown): string[] =>
     .filter((u): u is string => typeof u === "string" && /blob\.vercel-storage\.com/.test(u));
 
 /**
- * Borra del CRM los chats de ese número: archivos en Blob, la cola de avisos
- * de sus mensajes (guarda el texto normalizado) y los chats (en cascada:
- * mensajes, corridas de la IA, expediente, propuestas…). Oculta el contacto.
+ * Borra del CRM los chats de ese número: los archivos que mandó la persona
+ * (Blob), la cola de avisos de sus mensajes (guarda el texto normalizado), los
+ * mensajes y los chats. Oculta el contacto (nunca lo borra).
+ *
+ * Un chat con comprobantes de pago, citas agendadas por la IA o un interés en
+ * un taller NO se borra (esas filas cuelgan del chat en cascada y el
+ * comprobante está ligado al pago): se borran sus mensajes, corridas de la IA,
+ * expediente y ejemplos, y el chat queda oculto (revisión 8-nov). Los archivos
+ * salientes no se tocan: un envío masivo usa el mismo archivo en muchos chats.
  */
 export const purgeNumberFromCrm = async (
-  threadId: string,
+  threadIds: string | string[],
   deps: Pick<EnforceDeps, "deleteBlobs"> = {}
-): Promise<{ chats: number; messages: number; blobs: number; inboxEvents: number; contacts: number }> => {
+): Promise<{ chats: number; keptChats: number; messages: number; blobs: number; inboxEvents: number; contacts: number }> => {
+  const all = (Array.isArray(threadIds) ? threadIds : [threadIds]).filter(Boolean);
   const chats = await prisma.conversation.findMany({
-    where: { channel: "WHATSAPP", externalThreadId: { in: whatsAppIdVariants(threadId) } },
-    select: { id: true, contactId: true },
+    where: { channel: "WHATSAPP", externalThreadId: { in: [...new Set(all.flatMap(whatsAppIdVariants))] } },
+    select: {
+      id: true,
+      _count: { select: { paymentReceipts: true, aiBookings: true, workshopInterests: true } },
+    },
   });
   const ids = chats.map((c) => c.id);
-  // Primero el contacto oculto (si el chat está ligado a uno, ese también).
-  const hidden = await setNumberHidden(threadId, new Date());
-  if (ids.length === 0) return { chats: 0, messages: 0, blobs: 0, inboxEvents: 0, contacts: hidden.contacts };
+  const now = new Date();
+  let contacts = 0;
+  for (const t of all) contacts += (await setNumberHidden(t, now)).contacts;
+  if (ids.length === 0) return { chats: 0, keptChats: 0, messages: 0, blobs: 0, inboxEvents: 0, contacts };
 
   const messages = await prisma.conversationMessage.findMany({
     where: { conversationId: { in: ids } },
-    select: { externalMessageId: true, attachments: true },
+    select: { externalMessageId: true, attachments: true, direction: true },
   });
-  const urls = [...new Set(messages.flatMap((m) => blobUrlsOf(m.attachments)))];
+  const urls = [...new Set(messages.filter((m) => m.direction === "INBOUND").flatMap((m) => blobUrlsOf(m.attachments)))];
   if (urls.length) {
     await (deps.deleteBlobs ?? (async (u: string[]) => void (await del(u))))(urls).catch((e: unknown) =>
       console.warn("[contenido] no se pudieron borrar archivos de Blob", e instanceof Error ? e.message : e)
@@ -116,10 +127,24 @@ export const purgeNumberFromCrm = async (
       if (still === 0) await prisma.metaWebhookPayload.delete({ where: { id: pid } }).catch(() => undefined);
     }
   }
+  const keep = chats.filter((c) => c._count.paymentReceipts + c._count.aiBookings + c._count.workshopInterests > 0).map((c) => c.id);
+  const drop = ids.filter((id) => !keep.includes(id));
+  if (keep.length) {
+    await prisma.conversationMessage.deleteMany({ where: { conversationId: { in: keep } } });
+    await prisma.whatsAppAiRun.deleteMany({ where: { conversationId: { in: keep } } });
+    await prisma.whatsAppDossier.deleteMany({ where: { conversationId: { in: keep } } });
+    await prisma.whatsAppReplyExample.deleteMany({ where: { conversationId: { in: keep } } });
+    await prisma.conversation.updateMany({
+      where: { id: { in: keep } },
+      data: { blockedAt: now, draftBody: null, escalationReason: null, attentionAt: null, unreadCount: 0 },
+    });
+  }
   // Las citas guardan el id del chat sin relación: quedan sin chat.
-  await prisma.calendarAppointment.updateMany({ where: { conversationId: { in: ids } }, data: { conversationId: null } }).catch(() => undefined);
-  const deleted = await prisma.conversation.deleteMany({ where: { id: { in: ids } } });
-  return { chats: deleted.count, messages: messages.length, blobs: urls.length, inboxEvents, contacts: hidden.contacts };
+  if (drop.length) {
+    await prisma.calendarAppointment.updateMany({ where: { conversationId: { in: drop } }, data: { conversationId: null } }).catch(() => undefined);
+  }
+  const deleted = drop.length ? await prisma.conversation.deleteMany({ where: { id: { in: drop } } }) : { count: 0 };
+  return { chats: deleted.count, keptChats: keep.length, messages: messages.length, blobs: urls.length, inboxEvents, contacts };
 };
 
 const prettyNumber = (threadId: string): string => (isWhatsAppUserId(threadId) ? threadId : `+${threadId.replace(/\D/g, "")}`);
@@ -130,7 +155,12 @@ const prettyNumber = (threadId: string): string => (isWhatsAppUserId(threadId) ?
  * chat mientras se borraba).
  */
 export const enforceSexualContent = async (
-  input: { conversationId: string; signal: SexualSignal },
+  input: {
+    conversationId: string;
+    signal: SexualSignal;
+    /** Otros ids de la misma persona en el mensaje (su id de usuario / su número): se bloquean también. */
+    altThreadIds?: string[];
+  },
   deps: EnforceDeps = {}
 ): Promise<EnforceResult> => {
   const conv = await prisma.conversation.findUnique({
@@ -167,10 +197,18 @@ export const enforceSexualContent = async (
     return { status: "spared", reason: personalNumber ? "personal_number" : `category:${conv.category}` };
   }
 
-  const claim = await recordBlock({ threadId, reason: "sexual_content", source: "auto", detail: label });
+  const source = input.signal.source === "staff" ? "staff" : "auto";
+  const claim = await recordBlock({ threadId, reason: "sexual_content", source, detail: label });
   if (!claim) return { status: "skipped", reason: "no_hash" };
+  // La misma persona con su otro id (número ↔ id de usuario): no vuelve por ahí.
+  const alt = [...new Set((input.altThreadIds ?? []).filter((id) => id && id !== threadId))];
+  for (const id of alt) await recordBlock({ threadId: id, reason: "sexual_content", source, detail: label }).catch(() => null);
   if (!claim.created) {
-    const purged = claim.reason === "sexual_content" ? await purgeNumberFromCrm(threadId, deps) : { chats: 0 };
+    // Otro mensaje de la misma ráfaga ya lo está bloqueando: mientras manda el
+    // aviso no se le borra el chat (el aviso se quedaría sin chat). Pasado un
+    // minuto, solo se limpia lo que haya entrado mientras tanto.
+    const working = Date.now() - claim.since.getTime() < 60_000;
+    const purged = claim.reason === "sexual_content" && !working ? await purgeNumberFromCrm([threadId, ...alt], deps) : { chats: 0 };
     return { status: "already", deletedChats: purged.chats };
   }
 
@@ -179,19 +217,21 @@ export const enforceSexualContent = async (
   // 3. El bloqueo en WhatsApp.
   const api = await (deps.blockApi ?? blockOnWhatsApp)(threadId);
   // 4. Fuera del CRM.
-  const purged = await purgeNumberFromCrm(threadId, deps);
+  const purged = await purgeNumberFromCrm([threadId, ...alt], deps);
   await noteBlockActions(
     claim.hash,
     {
       noticeSent: notice.sent,
       ...(notice.error ? { noticeError: notice.error.slice(0, 120) } : {}),
       deletedChats: purged.chats,
+      keptChats: purged.keptChats,
       deletedMessages: purged.messages,
       deletedFiles: purged.blobs,
       hiddenContacts: purged.contacts,
+      apiAccepted: api.ok,
       reportedToMeta: false,
     },
-    { at: api.ok ? new Date() : null, error: api.error }
+    { error: api.error }
   );
   fireAuditLog({
     action: "WHATSAPP_NUMBER_BLOCKED",
