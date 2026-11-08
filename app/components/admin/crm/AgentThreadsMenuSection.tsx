@@ -13,43 +13,40 @@ import {
   SidebarMenuSubItem,
 } from "@/app/components/ui/sidebar";
 import { useCrm } from "./CrmProvider";
-import { deleteThread, listThreads, type AgentThread } from "./agent-panel/thread-store";
+import { deleteThread, useAgentThreads, useAgentThreadSync } from "./agent-panel/thread-store";
 
 /**
  * `crmMenuSections` (app/config/crm-menu-items.ts) is static, `Link`-driven
- * config — not a fit for these dynamic, localStorage-backed, click-handler
- * items, so this lives as its own component rather than folding into
- * `CrmMenu`. Mirrors `CrmMenuParentItem`'s collapsible/chevron pattern.
+ * config — not a fit for these dynamic, click-handler items, so this lives as
+ * its own component rather than folding into `CrmMenu`. Mirrors
+ * `CrmMenuParentItem`'s collapsible/chevron pattern. The list is the
+ * server-synced cache (`thread-store.ts`): the same on the phone and the
+ * computer, updated live when another device adds or deletes a thread.
  */
 const AgentThreadsMenuSection = () => {
   const { openAgentThread } = useCrm();
   const [open, setOpen] = useState(false);
-  const [threads, setThreads] = useState<AgentThread[]>([]);
-
-  const handleOpenChange = (next: boolean) => {
-    setOpen(next);
-    if (next) setThreads(listThreads());
-  };
+  const threads = useAgentThreads();
+  useAgentThreadSync();
 
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     deleteThread(id);
-    setThreads(listThreads());
   };
 
   return (
     <SidebarGroup>
-      <Collapsible open={open} onOpenChange={handleOpenChange}>
+      <Collapsible open={open} onOpenChange={setOpen}>
         <SidebarGroupLabel
           render={
-            <CollapsibleTrigger className="flex w-full items-center" />
+            <CollapsibleTrigger data-testid="agent-threads-sidebar-trigger" className="flex w-full items-center" />
           }
         >
           Conversaciones del agente
           <ChevronRight className={`ml-auto transition-transform duration-200 ${open ? "rotate-90" : ""}`} />
         </SidebarGroupLabel>
         <CollapsibleContent>
-          <SidebarMenu>
+          <SidebarMenu data-testid="agent-threads-sidebar">
             {threads.length === 0 ? (
               <SidebarMenuItem>
                 <p className="px-2 py-1.5 text-xs text-muted-foreground">Sin conversaciones aún</p>
@@ -57,7 +54,12 @@ const AgentThreadsMenuSection = () => {
             ) : (
               <SidebarMenuSub className="mr-0 ml-0 border-l-0 px-0">
                 {threads.map((thread) => (
-                  <SidebarMenuSubItem key={thread.id} className="flex items-center gap-0.5">
+                  <SidebarMenuSubItem
+                    key={thread.id}
+                    data-testid="agent-threads-sidebar-item"
+                    data-thread-id={thread.id}
+                    className="flex items-center gap-0.5"
+                  >
                     <SidebarMenuSubButton
                       render={<button type="button" />}
                       onClick={() => openAgentThread(thread.id)}

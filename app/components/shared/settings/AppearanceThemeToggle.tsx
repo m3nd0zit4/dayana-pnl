@@ -7,7 +7,9 @@ import { THEME_PREFERENCE_OPTIONS } from "@/lib/profile-options";
 /**
  * Local UI toggle only — persists via next-themes (localStorage). The DB
  * `themePreference` field is saved separately as part of the profile form
- * submit so the server can seed the initial theme on next login.
+ * submit so the server can seed the initial theme on next login. The live
+ * theme is per device on purpose (dark on the phone at night, light on the
+ * computer): it's not synced like the assistant's conversations.
  *
  * `theme` reads as undefined until next-themes' own effect resolves it after
  * mount, matching this component's first client render to its SSR output —

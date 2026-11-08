@@ -12,9 +12,10 @@ import {
 import { createPortal } from "react-dom";
 import {
   getContactRecents,
-  saveContactRecent,
+  loadContactRecents,
+  rememberContactRecent,
   type ContactRecentHit,
-} from "@/lib/crm/contact-search-recents";
+} from "./contact-recents-sync";
 import { Button } from "@/app/components/ui/button";
 import { Label } from "@/app/components/ui/label";
 import { useContactSearch } from "./hooks/useContactSearch";
@@ -97,7 +98,7 @@ const ContactPickerField = ({
   }, []);
 
   const pick = (c: PickerContact) => {
-    saveContactRecent({
+    rememberContactRecent({
       id: c.id,
       firstName: c.firstName,
       lastName: c.lastName,
@@ -208,6 +209,7 @@ const ContactPickerField = ({
             }}
             onFocus={() => {
               setRecents(getContactRecents());
+              void loadContactRecents().then(setRecents);
               setOpen(true);
             }}
             onKeyDown={(e) => {

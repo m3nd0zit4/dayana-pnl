@@ -32,6 +32,7 @@ type Props = {
   onSaved: (result?: SavedResult) => void;
 };
 
+/** Per tab on purpose (sessionStorage, never synced): a half-typed contact only survives a reload here. */
 const DRAFT_KEY = "crm-contact-draft";
 const DRAFT_DEBOUNCE_MS = 400;
 

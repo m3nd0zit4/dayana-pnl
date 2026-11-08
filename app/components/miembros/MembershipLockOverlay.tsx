@@ -6,6 +6,8 @@ import { useState } from "react";
 import { TriangleAlert, X } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 
+// Per tab on purpose (sessionStorage, not synced): the warning comes back in a new
+// session or on another device until the membership is paid.
 const WARN_DISMISS_KEY = "portal-membership-warning-dismissed";
 
 /** Dismissible top banner for the grace window — content stays usable. */

@@ -45,9 +45,13 @@ import {
   deriveTitle,
   findThreadByOpenerKey,
   getThread,
+  syncThreads,
   upsertThread,
+  useAgentThreadSync,
+  useThreadsVersion,
   type AgentThread,
 } from "./thread-store";
+import type { AgentMessageSeed } from "./AgentMessageParam";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
 import { VoiceBars } from "./VoiceBars";
 
@@ -221,7 +225,9 @@ export const AgentPanelSession = ({
   seedMessage,
   seedFiles,
   opener: newOpener,
+  initialInput,
   onTitleChange,
+  onRemoteUpdate,
 }: {
   threadId: string;
   agent: AgentId;
@@ -229,7 +235,11 @@ export const AgentPanelSession = ({
   seedFiles?: File[];
   /** Only for a thread the assistant is starting now; a saved thread brings its own. */
   opener?: ThreadOpener;
+  /** Text left in the box when the session was reloaded with turns from another device. */
+  initialInput?: string;
   onTitleChange: (title: string) => void;
+  /** The cache holds turns this session doesn't (another device continued it): remount, keeping `draft`. */
+  onRemoteUpdate: (draft: string) => void;
 }) => {
   const existing = useMemo(() => getThread(threadId), [threadId]);
   const opener = existing?.opener ?? newOpener;
@@ -238,13 +248,19 @@ export const AgentPanelSession = ({
   // live turns archived when a retry had to open a fresh session.
   const [history, setHistory] = useState<readonly HandleMessageStreamEvent[]>(() => existing?.events ?? []);
   const pastItems = useMemo(() => reduceHistory(history), [history]);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialInput ?? "");
   const [subPanel, setSubPanel] = useState<SubPanel>(null);
   const [retrying, setRetrying] = useState(false);
   // Mirrors lastSentRef for rendering: the retry button only exists once something was sent.
   const [canRetry, setCanRetry] = useState(false);
   const subPanelRef = useRef<HTMLDivElement>(null);
   const sentSeedRef = useRef(false);
+  // True from the moment a send starts until it resolves: a failed run's
+  // retry resets the live store before re-sending, and that gap must not
+  // look like «idle with fewer turns than the cache».
+  const sendingRef = useRef(false);
+  // Events this session last saved: its own save must never read as «newer elsewhere».
+  const savedCountRef = useRef(0);
   const lastSentRef = useRef<SendPayload | null>(null);
   // Text already in the box when dictation starts — live transcript is appended
   // after it and replaced wholesale on every recognition event (interim included),
@@ -292,13 +308,19 @@ export const AgentPanelSession = ({
       // A run that fails before eve confirms anything finishes with zero
       // events: saving it would leave a titled thread with an empty transcript.
       if (snapshot.events.length === 0) return;
-      upsertThread(threadId, {
-        title: titleRef.current,
-        agent: agentId,
-        session: snapshot.session,
-        events: [...history, ...snapshot.events],
-        opener,
-      });
+      savedCountRef.current = history.length + snapshot.events.length;
+      // Uploaded right away (not debounced): the turn is done, the other device should see it.
+      upsertThread(
+        threadId,
+        {
+          title: titleRef.current,
+          agent: agentId,
+          session: snapshot.session,
+          events: [...history, ...snapshot.events],
+          opener,
+        },
+        { immediate: true }
+      );
     },
   });
 
@@ -336,6 +358,26 @@ export const AgentPanelSession = ({
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
   const isError = agent.status === "error";
 
+  // Save (and upload) as soon as the turn is complete on screen. The stream
+  // (and so eve's `onFinish`) stays open ~10 s after `turn.completed` /
+  // `session.waiting`: in the two-device test a phone opened in that gap saw
+  // no conversation, or an older one. `onFinish` still saves the final
+  // session state; `upsertThread` skips it when nothing changed.
+  const lastEventType = agent.events.at(-1)?.type;
+  useEffect(() => {
+    if (lastEventType !== "turn.completed" && lastEventType !== "session.waiting") return;
+    const { firstUserText } = latestRef.current;
+    const title =
+      titleRef.current === DEFAULT_THREAD_TITLE && firstUserText ? deriveTitle(firstUserText) : titleRef.current;
+    upsertThread(
+      threadId,
+      { title, agent: agentId, session: agent.session, events: [...history, ...agent.events], opener },
+      { immediate: true }
+    );
+    // Only the moment the turn completes matters; the values are read then.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastEventType, agent.events.length]);
+
   /**
    * After a failure eve resets the session cursor (no `sessionId`): the next
    * send opens a new backend session numbered from turn_0 again. Move what
@@ -351,9 +393,14 @@ export const AgentPanelSession = ({
   const sendPayload = async (payload: SendPayload) => {
     lastSentRef.current = payload;
     setCanRetry(true);
-    prepareForSend();
-    // eve never saw the opener (written outside the session): remind it on every turn.
-    await agent.send(opener ? { message: payload, clientContext: openerContext(opener) } : { message: payload });
+    sendingRef.current = true;
+    try {
+      prepareForSend();
+      // eve never saw the opener (written outside the session): remind it on every turn.
+      await agent.send(opener ? { message: payload, clientContext: openerContext(opener) } : { message: payload });
+    } finally {
+      sendingRef.current = false;
+    }
   };
 
   useEffect(() => {
@@ -467,6 +514,25 @@ export const AgentPanelSession = ({
     ? describeAgentError(agent.error?.message ?? lastFailureMessage(agent.events))
     : null;
   const isEmpty = !opener && pastItems.length === 0 && agent.data.messages.length === 0 && !isError;
+
+  // Another device continued this thread (the sync pulled more events than
+  // this session holds): reload it from the cache, the same remount as
+  // switching threads, but only while idle: never mid-turn, with an
+  // approval waiting or while dictating. What is typed in the box is kept.
+  const threadsVersion = useThreadsVersion();
+  const sessionEventCount = history.length + agent.events.length;
+  const idle = !isBusy && !pendingPart && !retrying && !stt.isRecording;
+  const inputRef = useRef(input);
+  useEffect(() => {
+    inputRef.current = input;
+  });
+  useEffect(() => {
+    if (!idle || threadsVersion < 0 || sendingRef.current) return;
+    const cached = getThread(threadId);
+    if (cached && cached.events.length > Math.max(sessionEventCount, savedCountRef.current)) {
+      onRemoteUpdate(inputRef.current);
+    }
+  }, [idle, threadsVersion, sessionEventCount, threadId, onRemoteUpdate]);
   const lastIndex = agent.data.messages.length - 1;
 
   return (
@@ -652,9 +718,25 @@ type PanelThread = {
   seedFiles?: File[];
   /** Set only when the assistant starts this thread now (`?agentMessage=`). */
   opener?: ThreadOpener;
+  /** Bumped to remount the session when another device added turns to this thread. */
+  rev?: number;
+  /** The box's text carried over that remount. */
+  draft?: string;
 };
 
 const freshThread = (agent: AgentId): PanelThread => ({ id: newThreadId(), title: DEFAULT_THREAD_TITLE, agent });
+
+const openerThread = (seed: AgentMessageSeed): PanelThread => {
+  const title = seed.title.trim() || DEFAULT_THREAD_TITLE;
+  return {
+    ...freshThread(seed.agent),
+    title,
+    opener: { key: seed.key, title, message: seed.message, createdAt: seed.createdAt, source: seed.source },
+  };
+};
+
+/** How long opening an assistant message waits for the sync before starting a thread here. */
+const OPENER_SYNC_WAIT_MS = 4_000;
 
 const AgentPanel = () => {
   const {
@@ -669,8 +751,12 @@ const AgentPanel = () => {
   // Tracks the last pendingAgentAction already applied — React's documented
   // "adjust state when a prop changes" pattern, applied during render.
   const [lastAppliedAction, setLastAppliedAction] = useState<typeof pendingAgentAction>(null);
+  // The assistant message being opened, while the sync checks whether another
+  // device already has its thread (so the phone and the computer share one).
+  const [openerWait, setOpenerWait] = useState<AgentMessageSeed | null>(null);
   const isMobile = useIsMobile();
   const asideRef = useRef<HTMLElement>(null);
+  useAgentThreadSync();
 
   if (agentPanelOpen && pendingAgentAction && pendingAgentAction !== lastAppliedAction) {
     setLastAppliedAction(pendingAgentAction);
@@ -688,14 +774,10 @@ const AgentPanel = () => {
       const { seed } = pendingAgentAction;
       const stored = findThreadByOpenerKey(seed.key);
       if (stored) {
+        setOpenerWait(null);
         setThread({ id: stored.id, title: stored.title, agent: stored.agent });
       } else {
-        const title = seed.title.trim() || DEFAULT_THREAD_TITLE;
-        setThread({
-          ...freshThread(seed.agent),
-          title,
-          opener: { key: seed.key, title, message: seed.message, createdAt: seed.createdAt, source: seed.source },
-        });
+        setOpenerWait(seed);
       }
     } else {
       const stored = getThread(pendingAgentAction.value);
@@ -706,6 +788,26 @@ const AgentPanel = () => {
       });
     }
   }
+
+  // Not in this device's cache: sync first (the thread may have been started
+  // on another device), then open it or start it here.
+  useEffect(() => {
+    if (!openerWait) return;
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      const stored = findThreadByOpenerKey(openerWait.key);
+      setThread(stored ? { id: stored.id, title: stored.title, agent: stored.agent } : openerThread(openerWait));
+      setOpenerWait(null);
+    };
+    const timer = setTimeout(finish, OPENER_SYNC_WAIT_MS);
+    void syncThreads().finally(finish);
+    return () => {
+      done = true;
+      clearTimeout(timer);
+    };
+  }, [openerWait]);
 
   // Clearing pendingAgentAction touches CrmProvider's state, so it waits for an effect.
   useEffect(() => {
@@ -720,6 +822,17 @@ const AgentPanel = () => {
     []
   );
   const setTitle = useCallback((title: string) => setThread((t) => ({ ...t, title })), []);
+  const reloadFromCache = useCallback(
+    (draft: string) =>
+      setThread((t) => ({
+        id: t.id,
+        title: getThread(t.id)?.title ?? t.title,
+        agent: t.agent,
+        rev: (t.rev ?? 0) + 1,
+        draft,
+      })),
+    []
+  );
 
   const handleDeleteThread = (id: string) => {
     deleteThread(id);
@@ -739,15 +852,24 @@ const AgentPanel = () => {
     />
   );
 
-  const session = (
+  const session = openerWait ? (
+    <div
+      className="flex min-h-0 flex-1 items-center justify-center p-6 text-sm text-muted-foreground"
+      data-testid="agent-opener-loading"
+    >
+      <Shimmer>Abriendo la conversación…</Shimmer>
+    </div>
+  ) : (
     <AgentPanelSession
-      key={thread.id}
+      key={`${thread.id}:${thread.rev ?? 0}`}
       threadId={thread.id}
       agent={thread.agent}
       seedMessage={thread.seed}
       seedFiles={thread.seedFiles}
       opener={thread.opener}
+      initialInput={thread.draft}
       onTitleChange={setTitle}
+      onRemoteUpdate={reloadFromCache}
     />
   );
 

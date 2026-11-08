@@ -9,6 +9,7 @@ export const STT_LANGUAGES = [
 
 export type SttLanguage = (typeof STT_LANGUAGES)[number]["code"];
 
+/** Per device on purpose (not synced): the dictation language goes with the microphone/keyboard in use. */
 const STORAGE_KEY = "agent-panel:stt-lang";
 
 const readStoredLanguage = (): SttLanguage => {

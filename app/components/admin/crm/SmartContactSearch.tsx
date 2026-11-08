@@ -8,9 +8,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getContactRecents,
-  saveContactRecent,
+  loadContactRecents,
+  rememberContactRecent,
   type ContactRecentHit,
-} from "@/lib/crm/contact-search-recents";
+} from "./contact-recents-sync";
 import { MIN_SEARCH_TOKEN } from "@/lib/crm/search-normalize";
 import { useContactSearch } from "./hooks/useContactSearch";
 import { cn } from "@/lib/utils";
@@ -47,8 +48,10 @@ const SmartContactSearch = ({
   // así que consultar con una sola letra garantiza un scan por pulsación.
   const { hits, loading } = useContactSearch(q, { minLength: MIN_SEARCH_TOKEN });
 
+  // The cache at once, then merged with the server's list (the same on every device).
   const refreshRecents = useCallback(() => {
     setRecents(getContactRecents());
+    void loadContactRecents().then(setRecents);
   }, []);
 
   useEffect(() => {
@@ -115,14 +118,14 @@ const SmartContactSearch = ({
   };
 
   const openContact = (c: ContactRecentHit) => {
-    // Sólo los campos de «recientes»: lo que llegue de más en el hit no va a localStorage.
-    saveContactRecent({
+    // Sólo los campos de «recientes»: lo que llegue de más en el hit no se guarda.
+    rememberContactRecent({
       id: c.id,
       firstName: c.firstName,
       lastName: c.lastName,
       phoneE164: c.phoneE164,
     });
-    refreshRecents();
+    setRecents(getContactRecents());
     setOpen(false);
   };
 

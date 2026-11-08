@@ -124,6 +124,8 @@ const useNotificationFeed = ({
   const latestAtRef = useRef(0);
   const seenIdsRef = useRef<Set<string>>(new Set());
   const primedRef = useRef(false);
+  /** Mutaciones propias (leer/descartar) aún sin respuesta del servidor. */
+  const mutationsInFlightRef = useRef(0);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -249,6 +251,8 @@ const useNotificationFeed = ({
         list.filter((item) => item.readAt === null).length;
       const delta = countUnread(prevItems) - countUnread(nextItems);
       setUnread(Math.max(0, prevUnread - delta));
+      unreadRef.current = Math.max(0, prevUnread - delta);
+      mutationsInFlightRef.current += 1;
 
       try {
         const res = await fetch(feedUrl, {
@@ -259,13 +263,19 @@ const useNotificationFeed = ({
         if (!res.ok) throw new Error(String(res.status));
         const data = (await res.json()) as { unread?: number };
         if (!mountedRef.current) return true;
-        if (typeof data.unread === "number") setUnread(data.unread);
+        if (typeof data.unread === "number") {
+          unreadRef.current = data.unread;
+          setUnread(data.unread);
+        }
         return true;
       } catch {
         if (!mountedRef.current) return false;
         setItems(prevItems);
+        unreadRef.current = prevUnread;
         setUnread(prevUnread);
         return false;
+      } finally {
+        mutationsInFlightRef.current = Math.max(0, mutationsInFlightRef.current - 1);
       }
     },
     [enabled, feedUrl]
@@ -305,14 +315,29 @@ const useNotificationFeed = ({
     [mutate]
   );
 
-  /** Aplica un frame del stream, venga del EventSource o de otra pestaña. */
+  /**
+   * Aplica un frame del stream, venga del EventSource o de otra pestaña.
+   *
+   * Recarga la primera página (en silencio) cuando llega algo nuevo
+   * (`latestAt`) **o** cuando el contador cambió sin que esta pestaña mutara
+   * nada: es lo que pasa al leer o descartar en otro dispositivo (el móvil y
+   * el ordenador ven el mismo estado), y sin recargar la lista seguiría
+   * mostrando como no leídas las que ya se leyeron allí.
+   */
   const applyStreamEvent = useCallback(
     (event: FeedStreamEvent) => {
       if (!mountedRef.current) return;
+      const unreadChanged = event.unread !== unreadRef.current;
+      unreadRef.current = event.unread;
       setUnread(event.unread);
       if (event.latestAt > latestAtRef.current) {
         latestAtRef.current = event.latestAt;
         // Solo la primera página: lo que el usuario ve arriba es lo nuevo.
+        void load(null, { silent: true });
+      } else if (unreadChanged && mutationsInFlightRef.current === 0) {
+        // Con una mutación propia en vuelo el cambio es nuestro (y la lista ya
+        // está al día de forma optimista): recargar ahí podría traer la fila
+        // de antes de que el servidor la aplicara.
         void load(null, { silent: true });
       }
     },

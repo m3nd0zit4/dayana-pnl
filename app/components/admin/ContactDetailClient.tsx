@@ -29,7 +29,7 @@ import { enrollmentStatusLabel } from "@/lib/crm/enrollment-labels";
 import { Badge } from "@/app/components/ui/badge";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
-import { saveContactRecent } from "@/lib/crm/contact-search-recents";
+import { rememberContactRecent } from "@/app/components/admin/crm/contact-recents-sync";
 import type { ContactDiagnosticSummary } from "@/lib/crm/diagnostics";
 
 type Enrollment = {
@@ -285,7 +285,7 @@ const ContactDetailClient = ({
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
-    saveContactRecent({
+    rememberContactRecent({
       id: contact.id,
       firstName: contact.firstName,
       lastName: contact.lastName,

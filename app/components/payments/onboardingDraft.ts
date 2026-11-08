@@ -18,7 +18,7 @@
  * **`sessionStorage`, no `localStorage`.** Cubre lo que hace falta —refrescar,
  * irse y volver, cambiar de pestaña— y se borra al cerrar. En un ordenador
  * compartido, el nombre y el teléfono de alguien no deberían quedarse ahí para
- * siempre.
+ * siempre. Por eso tampoco se sincroniza entre dispositivos: es de esta pestaña.
  */
 
 export type OnboardingDraft = {

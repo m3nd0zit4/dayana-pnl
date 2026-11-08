@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Check, ChevronDown, History, SquarePen, Trash2 } from "lucide-react";
 import { AGENT_ORDER, AGENT_PROFILES, type AgentId } from "@/agent/lib/catalog";
 import { newConversationLabel } from "@/lib/agent-ui/agents";
@@ -15,7 +15,7 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { AGENT_ICONS } from "./agent-icons";
-import { DEFAULT_THREAD_TITLE, listThreads, type AgentThread } from "./thread-store";
+import { DEFAULT_THREAD_TITLE, useAgentThreads, useAgentThreadSync, type AgentThread } from "./thread-store";
 
 type Props = {
   agent: AgentId;
@@ -46,7 +46,10 @@ export const AgentPanelHeader = ({
   trailing,
   touch = false,
 }: Props) => {
-  const [threads, setThreads] = useState<AgentThread[]>([]);
+  // The cache, kept in step with the server (other devices' threads included)
+  // and re-rendered on every change, so an open menu updates live.
+  const threads = useAgentThreads();
+  useAgentThreadSync();
   const profile = AGENT_PROFILES[agent];
   const Icon = AGENT_ICONS[agent];
   const iconButton = touch ? "size-8" : "size-7";
@@ -98,7 +101,7 @@ export const AgentPanelHeader = ({
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DropdownMenu onOpenChange={(open) => open && setThreads(listThreads())}>
+      <DropdownMenu>
         <DropdownMenuTrigger
           data-testid="agent-threads-trigger"
           render={
@@ -118,6 +121,8 @@ export const AgentPanelHeader = ({
               return (
                 <DropdownMenuItem
                   key={t.id}
+                  data-testid="agent-thread-item"
+                  data-thread-id={t.id}
                   onClick={() => onSwitchThread(t)}
                   data-current={t.id === threadId ? "true" : undefined}
                   className="gap-2 data-[current=true]:bg-muted"
@@ -134,7 +139,6 @@ export const AgentPanelHeader = ({
                     onClick={(e) => {
                       e.stopPropagation();
                       onDeleteThread(t.id);
-                      setThreads(listThreads());
                     }}
                     className="shrink-0 rounded p-1 text-muted-foreground outline-none hover:text-destructive focus-visible:ring-2 focus-visible:ring-ring/50"
                   >
