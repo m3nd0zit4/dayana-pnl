@@ -10,6 +10,7 @@ import { agentPlaceholder } from "@/lib/agent-ui/agents";
 import { isApprovalPart } from "@/lib/agent-ui/approval";
 import { describeAgentError, lastFailureMessage } from "@/lib/agent-ui/errors";
 import { collectNames } from "@/lib/agent-ui/refs";
+import { withProxiedInputs } from "@/lib/agent-ui/proxied-input";
 import { findPendingCallId, turnTimings, type TurnTiming } from "@/lib/agent-ui/steps";
 import { openerContext, splitSessions, type ThreadOpener } from "@/lib/agent-ui/threads";
 import { useIsMobile } from "@/app/hooks/use-mobile";
@@ -21,6 +22,7 @@ import { DayanaAiLogo } from "@/app/components/admin/crm/DayanaAiLogo";
 import AgentMessage from "./AgentMessage";
 import { AgentEmptyState } from "./AgentEmptyState";
 import { AgentPanelHeader } from "./AgentPanelHeader";
+import { AgentChip, rememberAgentChoice, shortAgentPlaceholder } from "./AgentPicker";
 import { ErrorBubble } from "./agent-message/ErrorBubble";
 import { OpenerBubble } from "./agent-message/OpenerBubble";
 import { PendingInputBar } from "./agent-message/PendingInputBar";
@@ -203,7 +205,7 @@ type HistoryItem = { key: string; message: EveMessage; timing?: TurnTiming };
  */
 const reduceHistory = (events: readonly HandleMessageStreamEvent[]): HistoryItem[] =>
   splitSessions(events).flatMap((segment, i) => {
-    const reducer = defaultMessageReducer();
+    const reducer = withProxiedInputs(defaultMessageReducer());
     let data = reducer.initial();
     for (const event of segment) data = reducer.reduce(data, event);
     const timings = turnTimings(segment);
@@ -228,6 +230,7 @@ export const AgentPanelSession = ({
   initialInput,
   onTitleChange,
   onRemoteUpdate,
+  onPickAgent,
 }: {
   threadId: string;
   agent: AgentId;
@@ -240,6 +243,12 @@ export const AgentPanelSession = ({
   onTitleChange: (title: string) => void;
   /** The cache holds turns this session doesn't (another device continued it): remount, keeping `draft`. */
   onRemoteUpdate: (draft: string) => void;
+  /**
+   * Phone sheet only: an agent chip in the composer, so the agent can be
+   * changed right where she types — with the iPhone keyboard up the sheet's
+   * header is pushed off screen. Starts a new thread, keeping the draft.
+   */
+  onPickAgent?: (agent: AgentId, draft: string) => void;
 }) => {
   const existing = useMemo(() => getThread(threadId), [threadId]);
   const opener = existing?.opener ?? newOpener;
@@ -292,7 +301,10 @@ export const AgentPanelSession = ({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [subPanel]);
 
+  // A specialist's approval card must land in the current turn (see proxied-input.ts).
+  const reducer = useMemo(() => withProxiedInputs(defaultMessageReducer()), []);
   const agent = useEveAgent({
+    reducer,
     initialSession: existing?.session,
     // The server pins the session to this agent at its first turn; sending it
     // on every request keeps a fresh session (after a retry) on the same one.
@@ -606,14 +618,25 @@ export const AgentPanelSession = ({
           onError={(err) => console.error(err)}
           className="gap-1.5 rounded-full py-1 pr-1.5 pl-2"
         >
-          {/* Same fixed-slot + overflow trick as the dashboard composer — keeps
-              this pill's height stable while the logo renders bigger. */}
-          <div className="relative size-6 shrink-0">
-            <DayanaAiLogo
-              className="absolute top-1/2 left-1/2 size-11 -translate-x-1/2 -translate-y-1/2"
-              active={isBusy}
+          {onPickAgent ? (
+            <AgentChip
+              agent={agentId}
+              testId="agent-composer-picker"
+              onPick={(next) => {
+                if (next !== agentId) onPickAgent(next, input);
+              }}
+              className="-my-0.5"
             />
-          </div>
+          ) : (
+            /* Same fixed-slot + overflow trick as the dashboard composer — keeps
+               this pill's height stable while the logo renders bigger. */
+            <div className="relative size-6 shrink-0">
+              <DayanaAiLogo
+                className="absolute top-1/2 left-1/2 size-11 -translate-x-1/2 -translate-y-1/2"
+                active={isBusy}
+              />
+            </div>
+          )}
           {/* InputGroup's `has-[>textarea]:h-auto` only matches while the
               textarea is its DIRECT child, so it's only wrapped while
               recording (sr-only, still in the form data) to anchor the bars. */}
@@ -634,7 +657,7 @@ export const AgentPanelSession = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="min-h-0 max-h-32 py-1.5"
-              placeholder={agentPlaceholder(agentId)}
+              placeholder={onPickAgent ? shortAgentPlaceholder(agentId) : agentPlaceholder(agentId)}
               aria-label={agentPlaceholder(agentId)}
             />
           )}
@@ -816,11 +839,15 @@ const AgentPanel = () => {
     }
   }, [lastAppliedAction, pendingAgentAction, clearPendingAgentAction]);
 
-  const startNewThread = useCallback((agent: AgentId) => setThread(freshThread(agent)), []);
-  const switchThread = useCallback(
-    (t: AgentThread) => setThread({ id: t.id, title: t.title, agent: t.agent }),
-    []
-  );
+  const startNewThread = useCallback((agent: AgentId, draft?: string) => {
+    // The phone pill sends its next message to the agent last picked here.
+    rememberAgentChoice(agent);
+    setThread({ ...freshThread(agent), draft });
+  }, []);
+  const switchThread = useCallback((t: AgentThread) => {
+    rememberAgentChoice(t.agent);
+    setThread({ id: t.id, title: t.title, agent: t.agent });
+  }, []);
   const setTitle = useCallback((title: string) => setThread((t) => ({ ...t, title })), []);
   const reloadFromCache = useCallback(
     (draft: string) =>
@@ -870,6 +897,7 @@ const AgentPanel = () => {
       initialInput={thread.draft}
       onTitleChange={setTitle}
       onRemoteUpdate={reloadFromCache}
+      onPickAgent={isMobile ? startNewThread : undefined}
     />
   );
 
@@ -879,7 +907,7 @@ const AgentPanel = () => {
         open={agentPanelOpen}
         onOpenChange={setAgentPanelOpen}
         header={header(
-          <Button variant="ghost" size="icon" className="size-8 shrink-0" aria-label="Cerrar" onClick={() => setAgentPanelOpen(false)}>
+          <Button variant="ghost" size="icon" className="size-10 shrink-0" aria-label="Cerrar" onClick={() => setAgentPanelOpen(false)}>
             <X className="size-4" />
           </Button>,
           true

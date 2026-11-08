@@ -32,7 +32,9 @@ export default defineTool({
       contactPhone: shownPhone(conversation.contact?.phoneE164),
       // Que la ventana esté cerrada cambia lo que el asistente debe proponer:
       // fuera de ella solo cabe una plantilla aprobada, no texto libre.
-      window: conversation.window,
+      // eve only passes plain JSON: the window's `expiresAt` is a Date (every
+      // read of a chat with an open window failed until 8-nov).
+      window: JSON.parse(JSON.stringify(conversation.window)) as Record<string, unknown>,
       windowNotice: conversation.windowNotice,
       existingDraft: conversation.draftBody,
       messages: conversation.messages.map((message) => ({

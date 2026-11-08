@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { EveDynamicToolPart } from "eve/react";
 import { ChevronDown, PencilLine, Send, ShieldAlert, X } from "lucide-react";
 import { APPROVAL_OPTION_LABELS, isApprovalPart } from "@/lib/agent-ui/approval";
@@ -29,11 +29,39 @@ type Props = {
  * money, a public price) get the warning tone and always name who receives
  * it. The conversation only shows a one-line receipt for it.
  */
+/** Ids in the call the thread never named (a specialist looked them up, not this panel). */
+const RECIPIENT_KEYS = ["contactId", "conversationId"] as const;
+
+const useRecipientNames = (input: unknown, names: Readonly<Record<string, string>>) => {
+  const missing = useMemo(() => {
+    if (!input || typeof input !== "object") return [];
+    const record = input as Record<string, unknown>;
+    return RECIPIENT_KEYS.map((k) => record[k]).filter((v): v is string => typeof v === "string" && !names[v]);
+  }, [input, names]);
+  const [fetched, setFetched] = useState<Record<string, string>>({});
+  const key = missing.join(",");
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    fetch(`/api/admin/agent/names?ids=${encodeURIComponent(key)}`, { credentials: "same-origin" })
+      .then((res) => (res.ok ? (res.json() as Promise<{ names?: Record<string, string> }>) : null))
+      .then((data) => {
+        if (!cancelled && data?.names) setFetched((prev) => ({ ...prev, ...data.names }));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
+  return useMemo(() => ({ ...fetched, ...names }), [fetched, names]);
+};
+
 const ApprovalCard = ({ part, canRespond, onRespond, names }: Props) => {
   const request = part.toolMetadata?.eve?.inputRequest;
-  if (!request) return null;
   const input = "input" in part ? part.input : undefined;
-  const summary = summarizeApproval(part.toolName, input, { names });
+  const allNames = useRecipientNames(input, names);
+  if (!request) return null;
+  const summary = summarizeApproval(part.toolName, input, { names: allNames });
   const isExecute = summary.access === "execute";
   const Icon = isExecute ? ShieldAlert : PencilLine;
 

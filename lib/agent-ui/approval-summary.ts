@@ -276,7 +276,9 @@ const SUMMARIZERS: Record<string, Summarizer> = {
     push(lines, "Mensaje", str(input.text) && truncate(str(input.text)!));
     push(lines, "Plantilla", str(input.templateKey));
     return {
-      recipient: nameFor(ctx, input.contactId, CONTACT),
+      recipient: str(input.conversationId)
+        ? nameFor(ctx, input.conversationId, "el chat elegido")
+        : nameFor(ctx, input.contactId, CONTACT),
       lines,
       note: str(input.templateKey)
         ? "Si pasaron 24 horas desde su último mensaje, sale como plantilla."
