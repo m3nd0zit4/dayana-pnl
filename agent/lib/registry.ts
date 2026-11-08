@@ -1,5 +1,6 @@
 import type { ToolDefinition } from "eve/tools";
 import type { ToolName } from "@/agent/lib/catalog";
+import bookingSetDayHours from "@/agent/lib/tools/booking_set_day_hours";
 import convertEventTimezone from "@/agent/lib/tools/convert_event_timezone";
 import createCalendarEvent from "@/agent/lib/tools/create_calendar_event";
 import createContact from "@/agent/lib/tools/create_contact";
@@ -76,6 +77,7 @@ import whatsappUpdateConfig from "@/agent/lib/tools/whatsapp_update_config";
  * fail typecheck the moment they disagree.
  */
 export const TOOL_DEFINITIONS = {
+  booking_set_day_hours: bookingSetDayHours,
   convert_event_timezone: convertEventTimezone,
   create_calendar_event: createCalendarEvent,
   create_contact: createContact,

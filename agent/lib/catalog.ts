@@ -166,6 +166,7 @@ export const TOOL_CATALOG = {
   whatsapp_ai_status: { access: "read", agents: ["whatsapp", "auto"], label: "Estado de la IA de WhatsApp" },
   whatsapp_get_config: { access: "read", agents: ["whatsapp", "agenda"], label: "Configuración de la IA" },
   whatsapp_update_config: { access: "execute", agents: ["whatsapp", "agenda"], label: "Cambiar configuración de la IA" },
+  booking_set_day_hours: { access: "execute", agents: ["agenda", "whatsapp"], label: "Horario de un día" },
   whatsapp_list_playbooks: { access: "read", agents: ["whatsapp"], label: "Guiones de la IA" },
   whatsapp_save_playbook: { access: "execute", agents: ["whatsapp"], label: "Guardar guion de la IA" },
   whatsapp_set_chat: { access: "execute", agents: ["whatsapp"], label: "Cambiar quién atiende el chat" },

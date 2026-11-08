@@ -75,6 +75,23 @@ const bookingSchema = z.object({
     )
     .max(21),
   /**
+   * Horario de un día concreto, en la zona operativa: reemplaza el de su día
+   * de la semana (`ranges: []` = ese día no se agenda nada). Dayana, 8-nov:
+   * «hoy solo de 5 a 7» se guardó como texto en las instrucciones y la IA, cuyas
+   * horas salen del código, siguió ofreciendo 12:15 y 1:15. Con default: una
+   * configuración vieja sin el campo sigue siendo válida.
+   */
+  dateHours: z
+    .array(
+      z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Fecha AAAA-MM-DD"),
+        ranges: z.array(z.object({ from: hm, to: hm })).max(6),
+        note: z.string().trim().max(120).optional(),
+      })
+    )
+    .max(60)
+    .default([]),
+  /**
    * Dayana aprueba las horas ANTES de que la IA se las ofrezca a la persona
    * (hay horas libres que no quiere dar). Con default: una configuración vieja
    * sin este campo sigue siendo válida.
@@ -482,6 +499,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
       from: "08:00",
       to: "18:00",
     })),
+    dateHours: [],
     approveSlots: true,
     aiSchedules: false,
     bufferMin: 15,

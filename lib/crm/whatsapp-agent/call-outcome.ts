@@ -15,6 +15,7 @@ import {
   canChangeOutcome,
   EARLY_CALL_MIN,
   outcomeFromChat,
+  dayanaWroteSince,
   planManualMark,
   planOutcomeChange,
   rescheduleMessage,
@@ -274,7 +275,8 @@ const advance = async (appt: Appt, config: WhatsAppAiConfig, now: Date, aiEnable
 
   // Con la IA apagada o un silencio del chat, solo se decide: no se escribe nada.
   const blocked = !aiEnabled || (await waitingRoomBlocked(conv, config));
-  const fromChat = outcomeFromChat(await messagesSince(conv.id, appt.startsAt), {
+  const around = await messagesSince(conv.id, appt.startsAt);
+  const fromChat = outcomeFromChat(around, {
     startsAt: appt.startsAt,
     paidAfter: await paidAfter(appt, conv),
   });
@@ -285,6 +287,7 @@ const advance = async (appt: Appt, config: WhatsAppAiConfig, now: Date, aiEnable
     checkSentAt: appt.outcomeCheckAt,
     blocked,
     assumeMissedAfterHours: config.callFollowUp.assumeMissedAfterHours,
+    dayanaWrote: dayanaWroteSince(around, appt.startsAt),
   });
   switch (next.kind) {
     case "settle":
@@ -302,6 +305,8 @@ const advance = async (appt: Appt, config: WhatsAppAiConfig, now: Date, aiEnable
       return "antigua";
     case "wait":
       return "esperando";
+    case "dayana":
+      return "dayana_lo_lleva";
   }
 };
 

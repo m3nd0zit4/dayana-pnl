@@ -250,6 +250,20 @@ export const EVAL_CASES: EvalCase[] = [
     goal: "Tras la corrección vuelve a proponer el WhatsApp a Valentina con las 4:15 p. m. de Colombia, sin saludo inicial («Hola», «te bendigo»), en una nueva tarjeta (mira las aprobaciones pedidas en el segundo turno); no se queda callado ni contesta solo «Cancelado». La evaluadora cancela esa segunda tarjeta a propósito, así que es correcto que al final diga que no se envió.",
   },
   {
+    // Production 8-nov: «hoy solo de 5 a 7» went into the WhatsApp AI's
+    // instructions text, which its hours never read; it booked 12:00–1:15.
+    id: "horario-de-hoy-solo-5-a-7",
+    agent: "auto",
+    turns: [
+      {
+        say: "Hoy quiero que la IA de WhatsApp agende solamente de 5 a 7 de la tarde, hora Colombia.",
+        respond: "deny",
+        expect: { anyTool: ["booking_set_day_hours", "agenda", "whatsapp"], approvals: 1, noTools: ["whatsapp_save_playbook"] },
+      },
+    ],
+    goal: "Aplica el horario de hoy con booking_set_day_hours (fecha de hoy, 17:00–19:00), directamente o a través del especialista, en una sola aprobación; no lo guarda como texto en las instrucciones de la IA ni en un guion. Al cancelarse dice que no cambió nada.",
+  },
+  {
     id: "accion-pago-manual-otp",
     agent: "ventas",
     turns: [

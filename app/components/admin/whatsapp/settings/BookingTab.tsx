@@ -2,6 +2,7 @@
 
 import { CalendarDays, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import {
@@ -34,6 +35,79 @@ const WEEKDAYS = [
 ];
 
 type Hours = WhatsAppBookingConfig["hours"];
+type DateHours = WhatsAppBookingConfig["dateHours"];
+
+const dayLabel = (date: string) =>
+  new Intl.DateTimeFormat("es-CO", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`));
+
+/** Hoy en Colombia, AAAA-MM-DD (el mínimo del selector). */
+const todayInColombia = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Bogota" }).format(new Date());
+
+/**
+ * Horario de un día concreto («hoy solo de 5 a 7», «el sábado no agendo»):
+ * reemplaza el de ese día de la semana solo en esa fecha. Lo pone también el
+ * asistente del panel (`booking_set_day_hours`).
+ */
+const DateHoursEditor = ({ value, onChange }: { value: DateHours; onChange: (next: DateHours) => void }) => {
+  const today = todayInColombia();
+  const [date, setDate] = useState(today);
+  const [from, setFrom] = useState("17:00");
+  const [to, setTo] = useState("19:00");
+  const [closed, setClosed] = useState(false);
+  const upcoming = value.filter((d) => d.date >= today);
+  const valid = date >= today && (closed || from < to);
+  const add = () => {
+    if (!valid) return;
+    onChange(
+      [...upcoming.filter((d) => d.date !== date), { date, ranges: closed ? [] : [{ from, to }] }].sort((a, b) => a.date.localeCompare(b.date))
+    );
+  };
+  return (
+    <div className="space-y-3">
+      {upcoming.length > 0 ? (
+        <ul className="divide-y divide-border/60" data-testid="wa-date-hours-list">
+          {upcoming.map((d) => (
+            <li key={d.date} className="flex min-h-11 items-center gap-3 py-1.5 text-sm">
+              <span className="w-48 shrink-0 capitalize">{dayLabel(d.date)}</span>
+              <span className="min-w-0 flex-1 text-muted-foreground">
+                {d.ranges.length ? d.ranges.map((r) => `${r.from} a ${r.to}`).join(", ") : "No agenda ese día"}
+                {d.note ? ` · ${d.note}` : ""}
+              </span>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={`Quitar el horario especial del ${dayLabel(d.date)}`}
+                onClick={() => onChange(upcoming.filter((x) => x.date !== d.date))}
+              >
+                <Trash2 />
+              </Button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-muted-foreground">Ningún día con horario especial.</p>
+      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <Input type="date" aria-label="Fecha" min={today} value={date} onChange={(e) => setDate(e.target.value)} className="w-40" />
+        <label className="flex items-center gap-2 text-sm">
+          <WaSwitch checked={closed} onCheckedChange={setClosed} aria-label="No agendar ese día" />
+          No agendar
+        </label>
+        {!closed && (
+          <>
+            <Input type="time" aria-label="Desde" value={from} onChange={(e) => setFrom(e.target.value)} className="w-32" />
+            <span className="text-xs text-muted-foreground">a</span>
+            <Input type="time" aria-label="Hasta" value={to} onChange={(e) => setTo(e.target.value)} className="w-32" />
+          </>
+        )}
+        <Button type="button" size="sm" variant="outline" disabled={!valid} onClick={add}>
+          <Plus /> Agregar
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 /**
  * Pestaña «Horarios y citas»: todo lo que la IA necesita para agendar, en un
@@ -51,6 +125,8 @@ const BookingTab = ({ accounts }: { accounts: CalendarAccountDto[] }) => {
       [...hours].sort((x, y) => x.weekday - y.weekday || x.from.localeCompare(y.from)),
       TYPING_DELAY
     );
+
+  const setDateHours = (dateHours: DateHours) => change("wa-booking-date-hours", "booking.dateHours", dateHours, 0);
 
   const setServices = (services: WhatsAppBookingConfig["services"], delay = 0) =>
     change("wa-booking-services", "booking.services", services, delay);
@@ -251,6 +327,15 @@ const BookingTab = ({ accounts }: { accounts: CalendarAccountDto[] }) => {
               );
             })}
           </ul>
+        </SettingRow>
+        <SettingRow
+          id="wa-booking-date-hours"
+          layout="stacked"
+          label="Horario especial de un día (hora de Colombia)"
+          help="Ese día la IA solo ofrece y agenda en estas horas. También lo pone el asistente cuando le dices «hoy solo de 5 a 7»."
+          state={states["wa-booking-date-hours"]}
+        >
+          <DateHoursEditor value={b.dateHours ?? []} onChange={setDateHours} />
         </SettingRow>
         <SettingRow
           id="wa-booking-buffer"

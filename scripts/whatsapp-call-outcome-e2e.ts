@@ -170,7 +170,7 @@ const main = async () => {
   const outbound = (conversationId: string) =>
     prisma.conversationMessage.findMany({ where: { conversationId, direction: "OUTBOUND" }, orderBy: { sentAt: "asc" }, select: { body: true } });
   const apptOf = (id: string) => prisma.calendarAppointment.findUniqueOrThrow({ where: { id } });
-  const RESCHEDULE = /no lograron comunicarse/;
+  const RESCHEDULE = /no lograron comunicarse|no pudieron hablar/;
 
   try {
     console.log("\n1. Escribe «no me llamaron»");

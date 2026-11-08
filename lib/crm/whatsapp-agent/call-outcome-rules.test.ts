@@ -6,6 +6,7 @@ import {
   CHECK_MAX_AGE_HOURS,
   checkMessage,
   checkReply,
+  dayanaWroteSince,
   followUpStep,
   needsOutcomeMark,
   outcomeFromChat,
@@ -105,7 +106,8 @@ describe("checkReply", () => {
 describe("rescheduleMessage", () => {
   test("con horas, en viñetas", () => {
     const text = rescheduleMessage("Lucía Pérez", ["jueves 16 de octubre, 3:00 p. m. (tu hora)", "viernes 17 de octubre, 10:00 a. m. (tu hora)"]);
-    expect(text).toContain("Hola Lucía 🙏 Dayana te llamó a la hora de tu llamada gratis y no lograron comunicarse.");
+    expect(text).toContain("Hola Lucía 🙏 Veo que no pudieron hablar a la hora de tu llamada gratis, disculpa.");
+    expect(text).not.toContain("te llamó");
     expect(text).toContain("• jueves 16 de octubre, 3:00 p. m.");
     expect(text).toContain("¿Cuál te queda mejor?");
   });
@@ -115,7 +117,7 @@ describe("rescheduleMessage", () => {
   });
 
   test("sin un nombre que sea de persona, solo «Hola»", () => {
-    expect(rescheduleMessage("DIOS ES MI PROVEEDOR 🙏", [])).toStartWith("Hola 🙏 Dayana te llamó");
+    expect(rescheduleMessage("DIOS ES MI PROVEEDOR 🙏", [])).toStartWith("Hola 🙏 Veo que no pudieron hablar");
     expect(checkMessage(null)).toBe("Hola 🙏 ¿Pudiste hablar con Dayana en tu llamada gratis?");
   });
 
@@ -187,6 +189,23 @@ describe("followUpStep: la primera vez que corre el reloj no escribe a chats vie
       reason: "Sin respuesta en 24 h.",
       reschedule: true,
     });
+  });
+});
+
+describe("Dayana ya está en el chat (Negra, 8-nov)", () => {
+  test("lo que ella escribe desde poco antes de la llamada cuenta; la IA, los recordatorios y lo de antes no", () => {
+    expect(dayanaWroteSince([dayana("Qué pena por la confusión horaria, ¿mañana?", 15)], start)).toBe(true);
+    expect(dayanaWroteSince([dayana("Hola", 15, { source: "crm:asistente" })], start)).toBe(true);
+    expect(dayanaWroteSince([dayana("¿Pudiste hablar con Dayana?", 30, { isAutoReply: true, source: "recordatorio:seguimiento:x" })], start)).toBe(false);
+    expect(dayanaWroteSince([dayana("Te llamo a las 10", -120)], start)).toBe(false);
+  });
+
+  test("sin señales: no se le pregunta «¿pudiste hablar?», la marca Dayana", () => {
+    expect(step({ now: after(0.3), dayanaWrote: true }).kind).toBe("dayana");
+  });
+
+  test("«no me llamaron» con Dayana en el chat: se decide, pero sin mandarle horas", () => {
+    expect(step({ now: after(1), fromChat: missed, dayanaWrote: true })).toMatchObject({ kind: "settle", outcome: "no_answer", reschedule: false });
   });
 });
 

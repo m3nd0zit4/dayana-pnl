@@ -155,7 +155,7 @@ export const bookOnCalendar = async (input: {
   const inWindow =
     windows.length === 0 || windows.some((w) => input.start.getTime() >= w.start && end.getTime() <= w.end);
   const inHours =
-    (windows.length > 0 && input.config.hours.length === 0) ||
+    (windows.length > 0 && input.config.hours.length === 0 && input.config.dateHours.length === 0) ||
     isWithinBookingHours(input.config, input.start, input.durationMin, input.timezone);
   const fits = inWindow && inHours;
   if (!fits) {
@@ -240,7 +240,7 @@ export const moveOnCalendar = async (input: {
   const inWindow =
     windows.length === 0 || windows.some((w) => input.start.getTime() >= w.start && end.getTime() <= w.end);
   const inHours =
-    (windows.length > 0 && input.config.hours.length === 0) ||
+    (windows.length > 0 && input.config.hours.length === 0 && input.config.dateHours.length === 0) ||
     isWithinBookingHours(input.config, input.start, input.durationMin, input.timezone);
   if (!(inWindow && inHours)) throw new SlotUnavailableError("Esa hora está fuera del horario en que Dayana atiende.");
   if (overlapsBusy(input.start.getTime(), end.getTime(), busy, input.config.bufferMin)) {

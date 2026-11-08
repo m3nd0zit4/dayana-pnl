@@ -38,6 +38,23 @@ const hmToMinutes = (hm: string): number => {
 const minutesToHm = (total: number): string =>
   `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 
+type HoursConfig = Pick<WhatsAppBookingConfig, "hours"> & { dateHours?: WhatsAppBookingConfig["dateHours"] };
+
+/**
+ * Las franjas de un día (minutos desde las 00:00, zona operativa): las de esa
+ * fecha si Dayana puso un horario especial (`dateHours`, vacío = cerrado), si no
+ * las de su día de la semana.
+ */
+export const rangesForDate = (config: HoursConfig, dateKey: string): { from: number; to: number }[] => {
+  const special = config.dateHours?.find((d) => d.date === dateKey);
+  if (special) return special.ranges.map((r) => ({ from: hmToMinutes(r.from), to: hmToMinutes(r.to) })).sort((a, b) => a.from - b.from);
+  const weekday = new Date(`${dateKey}T12:00:00Z`).getUTCDay();
+  return config.hours
+    .filter((r) => r.weekday === weekday)
+    .map((r) => ({ from: hmToMinutes(r.from), to: hmToMinutes(r.to) }))
+    .sort((a, b) => a.from - b.from);
+};
+
 /** Paso entre inicios posibles: cada media hora, o cada cita si es más corta. */
 const stepMinutes = (duration: number): number => Math.min(30, duration);
 
@@ -58,7 +75,7 @@ export const findFreeSlots = (input: {
   config: Pick<
     WhatsAppBookingConfig,
     "hours" | "bufferMin" | "minNoticeHours" | "horizonDays"
-  >;
+  > & { dateHours?: WhatsAppBookingConfig["dateHours"] };
   durationMin: number;
   busy: Busy[];
   timezone: string;
@@ -84,13 +101,6 @@ export const findFreeSlots = (input: {
   const limit = input.limit ?? 40;
   if (latest <= earliest) return [];
 
-  const byWeekday = new Map<number, { from: number; to: number }[]>();
-  for (const rule of config.hours) {
-    const list = byWeekday.get(rule.weekday) ?? [];
-    list.push({ from: hmToMinutes(rule.from), to: hmToMinutes(rule.to) });
-    byWeekday.set(rule.weekday, list);
-  }
-
   const slots: Slot[] = [];
   const step = stepMinutes(durationMin);
 
@@ -108,7 +118,7 @@ export const findFreeSlots = (input: {
         const start = new Date(t);
         // The schedule in Ajustes is a hard limit (no Tuesdays, nothing late…):
         // a «Disponible» block outside it doesn't open those hours.
-        if (config.hours.length > 0 && !isWithinBookingHours(config, start, durationMin, timezone)) continue;
+        if ((config.hours.length > 0 || (config.dateHours?.length ?? 0) > 0) && !isWithinBookingHours(config, start, durationMin, timezone)) continue;
         if (slots.some((x) => x.startIso === start.toISOString())) continue;
         slots.push({
           startIso: start.toISOString(),
@@ -124,10 +134,7 @@ export const findFreeSlots = (input: {
 
   for (let i = 0; i <= days && slots.length < limit; i++) {
     const dateKey = getDateKeyInTz(new Date(now.getTime() + i * DAY), timezone);
-    const weekday = new Date(`${dateKey}T12:00:00Z`).getUTCDay();
-    const ranges = [...(byWeekday.get(weekday) ?? [])].sort(
-      (a, b) => a.from - b.from
-    );
+    const ranges = rangesForDate(config, dateKey);
     // Además de la cuadrícula, justo después de cada cita + el respiro (19-oct:
     // Dayana bajó «Respiro entre citas» a 7 min y se seguían ofreciendo las de
     // cada 15: tras una llamada de 12:00 a 12:15, las 12:30 y no las 12:25).
@@ -389,18 +396,12 @@ export const relaxedWishes = (wish: SlotWish): { step: WishStep; wish: SlotWish 
 
 /** ¿Encaja este inicio en el horario configurado? */
 export const isWithinBookingHours = (
-  config: Pick<WhatsAppBookingConfig, "hours">,
+  config: HoursConfig,
   start: Date,
   durationMin: number,
   timezone: string
 ): boolean => {
   const dateKey = getDateKeyInTz(start, timezone);
-  const weekday = new Date(`${dateKey}T12:00:00Z`).getUTCDay();
   const startMin = hmToMinutes(getTimeHmInTz(start, timezone));
-  return config.hours.some(
-    (r) =>
-      r.weekday === weekday &&
-      startMin >= hmToMinutes(r.from) &&
-      startMin + durationMin <= hmToMinutes(r.to)
-  );
+  return rangesForDate(config, dateKey).some((r) => startMin >= r.from && startMin + durationMin <= r.to);
 };

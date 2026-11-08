@@ -191,3 +191,34 @@ describe("isWithinBookingHours", () => {
     ).toBe(false); // sábado
   });
 });
+
+describe("horario de un día concreto (Dayana, 8-nov: «hoy solo de 5 a 7»)", () => {
+  const today = { ...config, hours: [1, 2, 3, 4, 5].map((weekday) => ({ weekday, from: "08:00", to: "20:00" })) };
+  const special = { ...today, dateHours: [{ date: "2026-09-28", ranges: [{ from: "17:00", to: "19:00" }] }] };
+
+  test("ese día solo se ofrecen horas dentro de la franja especial; los demás días, el horario normal", () => {
+    const slots = findFreeSlots({ config: special, durationMin: 15, busy: [], timezone: TZ, now: monday6am });
+    const monday = slots.filter((s) => s.dateKey === "2026-09-28").map((s) => s.time);
+    expect(monday[0]).toBe("17:00");
+    expect(monday.every((t) => t >= "17:00" && t <= "18:45")).toBe(true);
+    expect(slots.find((s) => s.dateKey === "2026-09-29")?.time).toBe("08:00");
+  });
+
+  test("ranges vacío = ese día cerrado", () => {
+    const closed = { ...today, dateHours: [{ date: "2026-09-28", ranges: [] }] };
+    const slots = findFreeSlots({ config: closed, durationMin: 15, busy: [], timezone: TZ, now: monday6am });
+    expect(slots.some((s) => s.dateKey === "2026-09-28")).toBe(false);
+  });
+
+  test("agendar o mover fuera de la franja especial se rechaza (12:15 y 13:15 de Negra)", () => {
+    expect(isWithinBookingHours(special, new Date("2026-09-28T17:15:00Z"), 15, TZ)).toBe(false); // 12:15 Bogotá
+    expect(isWithinBookingHours(special, new Date("2026-09-28T18:15:00Z"), 15, TZ)).toBe(false); // 13:15
+    expect(isWithinBookingHours(special, new Date("2026-09-28T22:15:00Z"), 15, TZ)).toBe(true); // 17:15
+  });
+
+  test("con bloques «Disponible» del calendario la franja especial también manda", () => {
+    const windows: Busy[] = [{ start: at("2026-09-28T13:00:00Z"), end: at("2026-09-29T01:00:00Z") }]; // 08:00–20:00
+    const slots = findFreeSlots({ config: special, durationMin: 15, busy: [], timezone: TZ, now: monday6am, windows });
+    expect(slots.every((s) => s.time >= "17:00" && s.time <= "18:45")).toBe(true);
+  });
+});

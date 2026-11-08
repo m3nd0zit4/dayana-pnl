@@ -119,6 +119,23 @@ export const outcomeFromChat = (
   return null;
 };
 
+/**
+ * Dayana (desde su teléfono o el CRM, no la IA ni un envío automático) le
+ * escribió a la persona desde poco antes de la llamada: ella lo está llevando.
+ * Negra, 8-nov: Dayana le escribió «qué pena por la confusión horaria…» y 14 min
+ * después la IA preguntó «¿Pudiste hablar con Dayana?» y le mandó horas.
+ */
+export const dayanaWroteSince = (messages: OutcomeMessage[], startsAt: Date): boolean =>
+  messages.some(
+    (m) =>
+      m.direction === "OUTBOUND" &&
+      !m.isAutoReply &&
+      !isAutoSend(m) &&
+      m.source !== "approval" &&
+      Boolean(m.body?.trim()) &&
+      m.sentAt.getTime() >= startsAt.getTime() - NO_SIGNAL_BEFORE_MIN * 60_000
+  );
+
 /** La respuesta a «¿Pudiste hablar con Dayana?». `null` si no se entiende. */
 export const checkReply = (text: string): CallOutcome | null => {
   const t = foldForSearch(text).replace(/[!¡.?¿,]+/g, " ").replace(/\s+/g, " ").trim();
@@ -139,7 +156,9 @@ export const checkReply = (text: string): CallOutcome | null => {
 export const rescheduleMessage = (name: string | null | undefined, slotLabels: string[]): string => {
   const first = personFirstName(name);
   const hi = first ? `Hola ${first}` : "Hola";
-  const head = `${hi} 🙏 Dayana te llamó a la hora de tu llamada gratis y no lograron comunicarse. Con gusto la reagendamos.`;
+  // Never «Dayana te llamó»: the code doesn't know if she called (8-nov:
+  // Patricia and Karla got it when nobody had called them).
+  const head = `${hi} 🙏 Veo que no pudieron hablar a la hora de tu llamada gratis, disculpa. Con gusto la reagendamos.`;
   if (slotLabels.length === 0) return `${head} Escríbeme qué día y hora te quedan bien y te la agendo de nuevo.`;
   return `${head} Estos son los espacios libres de Dayana:\n${slotLabels.map((l) => `• ${l}`).join("\n")}\n¿Cuál te queda mejor?`;
 };
@@ -188,7 +207,9 @@ export type FollowUpStep =
   /** El chat está en silencio para la asistente (no se escribe nada). */
   | { kind: "silenced" }
   /** Muy vieja para preguntar: queda para que Dayana la marque. */
-  | { kind: "too_old" };
+  | { kind: "too_old" }
+  /** Dayana ya le escribió desde la hora de la llamada: no se le pregunta nada, la marca ella. */
+  | { kind: "dayana" };
 
 /**
  * Lo que el reloj hace con una llamada gratis que ya terminó y aún no tiene
@@ -210,6 +231,8 @@ export const followUpStep = (input: {
   /** Silencio del chat o IA apagada: solo se decide, no se escribe. */
   blocked: boolean;
   assumeMissedAfterHours: number;
+  /** Dayana le escribió desde la hora de la llamada ({@link dayanaWroteSince}). */
+  dayanaWrote?: boolean;
 }): FollowUpStep => {
   const age = input.now.getTime() - input.endsAt.getTime();
   if (input.fromChat) {
@@ -218,10 +241,13 @@ export const followUpStep = (input: {
       outcome: input.fromChat.outcome,
       source: "chat",
       reason: input.fromChat.reason,
-      reschedule: input.fromChat.outcome === "no_answer" && !input.blocked && age < RESCHEDULE_FROM_CHAT_MAX_AGE_HOURS * HOUR,
+      // With Dayana in the chat, she offers the new hours herself.
+      reschedule:
+        input.fromChat.outcome === "no_answer" && !input.blocked && !input.dayanaWrote && age < RESCHEDULE_FROM_CHAT_MAX_AGE_HOURS * HOUR,
     };
   }
   if (input.blocked) return { kind: "silenced" };
+  if (input.dayanaWrote && !input.checkSentAt) return { kind: "dayana" };
   if (!input.checkSentAt) return age < CHECK_MAX_AGE_HOURS * HOUR ? { kind: "ask" } : { kind: "too_old" };
   if (input.now.getTime() - input.checkSentAt.getTime() >= input.assumeMissedAfterHours * HOUR) {
     return { kind: "settle", outcome: "no_answer", source: "timeout", reason: `Sin respuesta en ${input.assumeMissedAfterHours} h.`, reschedule: true };
