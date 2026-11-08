@@ -13,8 +13,9 @@ import {
 } from "@/app/components/ui/dropdown-menu";
 import { Input } from "@/app/components/ui/input";
 import { cn } from "@/lib/utils";
-import { DayanaAiLogo } from "@/app/components/admin/crm/DayanaAiLogo";
+import { agentPlaceholder } from "@/lib/agent-ui/agents";
 import { useCrm } from "@/app/components/admin/crm/CrmProvider";
+import { AgentChip, rememberAgentChoice, shortAgentPlaceholder, useAgentChoice } from "./AgentPicker";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
 import { VoiceBars } from "./VoiceBars";
 
@@ -24,12 +25,15 @@ import { VoiceBars } from "./VoiceBars";
  * dashboard-only `HeroAskAgentBox`. Mounted once from `CrmShell`, visible on
  * every /admin page, never rendered at `lg`+ where the desktop aside/toggle
  * already cover this.
+ *
+ * The chip on the left picks who answers (the same list as the panel's
+ * header); the message opens a new conversation with that agent.
  */
 const AgentAskPill = () => {
   const isMobile = useIsMobile();
   const { agentEnabled, agentPanelOpen, askAgent } = useCrm();
+  const agent = useAgentChoice();
   const [value, setValue] = useState("");
-  const [hovered, setHovered] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dictationBaseRef = useRef("");
@@ -55,7 +59,7 @@ const AgentAskPill = () => {
     if (stt.isRecording) stt.stop();
     const message = value.trim();
     if (!message && files.length === 0) return;
-    askAgent(message, files.length > 0 ? files : undefined);
+    askAgent(message, files.length > 0 ? files : undefined, { agent });
     setValue("");
     setFiles([]);
   };
@@ -91,24 +95,24 @@ const AgentAskPill = () => {
           e.preventDefault();
           submit();
         }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className="flex w-full items-center gap-3 rounded-full border border-border bg-card px-4 py-2.5 shadow-lg"
+        data-testid="agent-ask-pill"
+        className="flex w-full min-w-0 items-center gap-1 rounded-full border border-border bg-card py-1 pr-1 pl-1 shadow-lg"
       >
-        <div className="relative size-8 shrink-0">
-          <DayanaAiLogo
-            className="absolute top-1/2 left-1/2 size-14 -translate-x-1/2 -translate-y-1/2"
-            active={hovered}
-          />
-        </div>
+        <AgentChip
+          agent={agent}
+          onPick={rememberAgentChoice}
+          label="Preguntarle a…"
+          testId="agent-pill-picker"
+        />
         {stt.isRecording ? (
           <VoiceBars bands={stt.bands} className="px-1" />
         ) : (
           <Input
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder="Pregunta"
-            className="h-auto border-0 py-1.5 text-base shadow-none focus-visible:ring-0"
+            placeholder={shortAgentPlaceholder(agent)}
+            aria-label={agentPlaceholder(agent)}
+            className="h-auto min-w-0 flex-1 truncate border-0 bg-transparent px-1 py-1.5 text-base shadow-none focus-visible:ring-0 dark:bg-transparent"
           />
         )}
         {!stt.isRecording && (
@@ -118,7 +122,7 @@ const AgentAskPill = () => {
               type="button"
               size="icon"
               variant="ghost"
-              className="shrink-0 rounded-full"
+              className="size-10 shrink-0 rounded-full"
               aria-label="Adjuntar archivo"
               onClick={() => fileInputRef.current?.click()}
             >
@@ -132,7 +136,7 @@ const AgentAskPill = () => {
               type="button"
               size="icon"
               variant="ghost"
-              className={cn("rounded-full", stt.isRecording && "text-destructive")}
+              className={cn("size-10 rounded-full", stt.isRecording && "text-destructive")}
               disabled={stt.isRequesting}
               aria-label={stt.isRecording ? "Detener grabación" : "Dictar por voz"}
               onClick={handleMicToggle}
@@ -145,7 +149,7 @@ const AgentAskPill = () => {
                 <DropdownMenu>
                   <DropdownMenuTrigger
                     render={
-                      <Button type="button" size="icon" variant="ghost" className="rounded-full px-1" aria-label="Idioma del dictado">
+                      <Button type="button" size="icon" variant="ghost" className="h-10 w-6 rounded-full px-0" aria-label="Idioma del dictado">
                         <ChevronDown className="size-3.5" />
                       </Button>
                     }
@@ -167,7 +171,7 @@ const AgentAskPill = () => {
           type="submit"
           size="icon"
           variant="ghost"
-          className="shrink-0 rounded-full"
+          className="size-10 shrink-0 rounded-full"
           disabled={!value.trim() && files.length === 0}
           aria-label="Preguntar"
         >
