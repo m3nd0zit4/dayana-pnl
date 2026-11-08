@@ -97,7 +97,8 @@ const run = async (label: string, contextOptions: BrowserContextOptions) => {
     args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"],
   });
   const context = await browser.newContext({ ...contextOptions, storageState: storage, permissions: ["microphone"] });
-  await context.addInitScript(FAKES);
+  // tsx/esbuild envuelve las funciones con `__name(...)`, que en la página no existe.
+  await context.addInitScript({ content: `var __name = (f) => f; (${FAKES.toString()})();` });
   const page = await context.newPage();
   const shot = async (name: string) => {
     await page.screenshot({ path: path.join(outDir, `${label}-${name}.png`) });
