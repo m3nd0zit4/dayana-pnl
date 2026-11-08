@@ -2,6 +2,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getContactById } from "@/lib/crm/contacts";
 import { requireStaff } from "@/agent/lib/guard";
+import { shownPhone } from "@/agent/lib/phone";
 
 export default defineTool({
   description:
@@ -17,7 +18,7 @@ export default defineTool({
       contact: {
         id: contact.id,
         name: contact.displayName ?? `${contact.firstName} ${contact.lastName ?? ""}`.trim(),
-        phone: contact.phoneE164,
+        phone: shownPhone(contact.phoneE164),
         email: contact.email,
         countryIso: contact.countryIso,
         notes: contact.notes,

@@ -58,6 +58,17 @@ export const EVAL_CASES: EvalCase[] = [
     goal: "Da el número de contactos nuevos de los últimos 7 días y las fuentes principales.",
   },
   {
+    // Production 8-nov: after the 30-day answer, «¿y en 7 días?» got a number
+    // derived from the 30-day series (41 instead of 9).
+    id: "stats-contactos-cambia-periodo",
+    agent: "auto",
+    turns: [
+      { say: "¿Cuántos contactos nuevos llegaron en los últimos 30 días?", expect: { anyTool: ["crm_stats"] } },
+      { say: "¿Y en los últimos 7 días?", expect: { anyTool: ["crm_stats"] } },
+    ],
+    goal: "Para la segunda pregunta vuelve a consultar las estadísticas con el periodo de 7 días y da ese número, sin deducirlo de los 30 días.",
+  },
+  {
     id: "stats-embudo",
     agent: "auto",
     turns: [{ say: "¿Cómo va el embudo del diagnóstico en los últimos 90 días?", expect: { anyTool: ["crm_stats", "ventas"] } }],

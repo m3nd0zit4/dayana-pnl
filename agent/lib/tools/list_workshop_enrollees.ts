@@ -5,6 +5,7 @@ import type { DisplayBlock } from "@/agent/lib/display";
 import { getWorkshopEditionBySlug } from "@/lib/crm/workshop-editions";
 import { listWorkshopInterests } from "@/lib/crm/workshop-interests";
 import { listWorkshopEnrollments, workshopEnrollmentStats } from "@/lib/crm/workshop-panel";
+import { shownPhone } from "@/agent/lib/phone";
 
 const day = (d: Date | string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
 
@@ -33,7 +34,7 @@ export default defineTool({
     const enrolledRows = enrolled.map((e) => ({
       enrollmentId: e.id,
       name: e.name,
-      phone: e.phoneE164,
+      phone: shownPhone(e.phoneE164),
       email: e.email,
       status: e.status,
       paidAt: e.paidAtIso,

@@ -2,28 +2,32 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { requireStaff } from "@/agent/lib/guard";
 import { prisma } from "@/lib/db";
+import { messageAuthor } from "@/agent/lib/message-author";
 
 const BODY_MAX = 1500;
 
-/** Quién escribió, en una palabra que el modelo no tenga que adivinar. */
+/** Quién escribió: the same words as get_conversation (`agent/lib/message-author.ts`). */
 const author = (m: {
   direction: string;
   isAutoReply: boolean;
   kind: string;
   source: string | null;
+  clientKey: string | null;
   staffUser: { displayName: string } | null;
-}) => {
-  if (m.kind === "system") return "sistema";
-  if (m.direction === "INBOUND") return "persona";
-  if (m.isAutoReply) return "asistente_ia";
-  if (m.source?.startsWith("bulk:") || m.source?.startsWith("recordatorio")) return "envio_automatico";
-  if (m.staffUser) return `equipo:${m.staffUser.displayName}`;
-  return "dayana";
-};
+}) =>
+  m.kind === "system"
+    ? "sistema"
+    : messageAuthor({
+        direction: m.direction,
+        isAutoReply: m.isAutoReply,
+        source: m.source,
+        clientKey: m.clientKey,
+        staffName: m.staffUser?.displayName ?? null,
+      });
 
 export default defineTool({
   description:
-    "Page through the messages of ONE WhatsApp (or Instagram/Messenger) conversation, newest page first but each page in chronological order. Use `before` (the `nextBefore` of the previous page) to go further back. `from` says who wrote: persona (the customer), dayana (from her phone or the CRM), asistente_ia, envio_automatico (bulk, reminders), equipo:<name>, sistema. get_conversation gives a quick summary; this one is for reading history.",
+    "Page through the messages of ONE WhatsApp (or Instagram/Messenger) conversation, newest page first but each page in chronological order. Use `before` (the `nextBefore` of the previous page) to go further back. `from` says who wrote: persona (the customer), IA de WhatsApp, Dayana (desde su teléfono), <name> (desde el CRM), envío automático (bulk, reminders), sistema. get_conversation gives a quick summary; this one is for reading history.",
   inputSchema: z.object({
     conversationId: z.string().min(1),
     before: z.string().datetime().optional().describe("ISO timestamp: only messages sent before it"),
@@ -57,6 +61,7 @@ export default defineTool({
         isAutoReply: true,
         kind: true,
         source: true,
+        clientKey: true,
         sentAt: true,
         readAt: true,
         failedReason: true,

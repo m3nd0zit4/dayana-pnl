@@ -4,6 +4,7 @@ import { requireStaff } from "@/agent/lib/guard";
 import type { DisplayBlock } from "@/agent/lib/display";
 import { listFreeEventPeople, listFreeEvents } from "@/lib/crm/free-events";
 import { getCurrentFreeEvent } from "@/lib/crm/free-webinar";
+import { shownPhone } from "@/agent/lib/phone";
 
 export default defineTool({
   description:
@@ -26,7 +27,7 @@ export default defineTool({
     const result = await listFreeEventPeople({ eventId: targetId, q, page, pageSize });
     const people = result.people.map((p) => ({
       name: p.name,
-      phone: p.phoneE164?.startsWith("+nophone") ? null : p.phoneE164,
+      phone: shownPhone(p.phoneE164),
       email: p.email,
       lastRegisteredAt: p.lastRegisteredAt.toISOString(),
       eventsCount: p.events.length,

@@ -4,6 +4,7 @@ import { requireStaff } from "@/agent/lib/guard";
 import { prisma } from "@/lib/db";
 import { formatMoneyMinor } from "@/lib/crm/money";
 import { paymentProviderLabel } from "@/lib/crm/payment-labels";
+import { shownPhone } from "@/agent/lib/phone";
 
 const money = (minor: number | null, currency: string) =>
   minor == null ? null : `${formatMoneyMinor(minor, currency)} ${currency}`;
@@ -98,7 +99,7 @@ export default defineTool({
         id: c.id,
         name: c.displayName ?? `${c.firstName} ${c.lastName ?? ""}`.trim(),
         email: c.email,
-        phone: c.phoneE164.startsWith("+pending:") || c.phoneE164.startsWith("+nophone") ? null : c.phoneE164,
+        phone: shownPhone(c.phoneE164),
         ref: { type: "contact" as const, id: c.id, href: `/admin/contacts/${c.id}` },
       },
       whatsappReceipts: receipts.map((r) => ({

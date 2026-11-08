@@ -2,6 +2,7 @@ import { defineTool } from "eve/tools";
 import { z } from "zod";
 import { getEnrollmentById } from "@/lib/crm/enrollments";
 import { requireStaff } from "@/agent/lib/guard";
+import { shownPhone } from "@/agent/lib/phone";
 
 export default defineTool({
   description:
@@ -19,7 +20,7 @@ export default defineTool({
         status: e.status,
         productTitle: e.product.title,
         contactName: `${e.contact.firstName} ${e.contact.lastName ?? ""}`.trim(),
-        contactPhone: e.contact.phoneE164,
+        contactPhone: shownPhone(e.contact.phoneE164),
         sessionsUsed: e.sessionsUsed,
         sessionsTotal: e.sessionsTotal,
         ref: { type: "enrollment" as const, id: e.id, href: `/admin/enrollments/${e.id}` },
