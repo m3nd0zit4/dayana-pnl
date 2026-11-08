@@ -45,6 +45,15 @@ const LEADING_PET = new RegExp(
   String.raw`(^|[.!?¡¿\n]\s*|\b(?:hola|buenas|buenos días|buenas tardes|buenas noches|gracias)\s+)(${PET_VOCATIVE})(\s*,\s*|\s+(?=[¿¡]))`,
   "giu"
 );
+// «Te entiendo, hermosa, es normal» → «Te entiendo, es normal». Only words that
+// are never anything else: «paz, amor, salud» is a list, not a vocative.
+const MID_PET = new RegExp(String.raw`,\s*(?:${PET_BEFORE_NAME_WORDS})\s*,`, "gu");
+// «Sí, hermosa, …» / «Claro hermosa, …» / «Ay amiga, …»: right after a short
+// interjection (Ailén, 8-nov: «Sí, hermosa…»).
+const AFTER_INTERJECTION_PET = new RegExp(
+  String.raw`(^|[.!?¡¿\n]\s*)((?:s[ií]|claro|ay|ok|okey|vale|listo|bueno|perfecto|tranquil[ao]|con gusto)[,]?)\s+(${PET_VOCATIVE})(?=\s*(?:[,.!?…\n]|$))`,
+  "giu"
+);
 // «Querida María» → «María».
 const PET_BEFORE_NAME = new RegExp(String.raw`\b(?:${PET_BEFORE_NAME_WORDS})\s+(?=\p{Lu}\p{Ll})`, "gu");
 const HEART = /(?:💛|❤️|❤|🤍|💖|💕|💗|💓|🥰|😍|💙|💜|🧡|💚|😘|💞|💝)/gu;
@@ -101,6 +110,10 @@ export const dropEndearments = (text: string): string =>
       // Después de «Hola»/«Gracias» queda la coma; al empezar una frase, nada.
       return /[\p{L}]\s+$/u.test(lead) ? `${lead.trimEnd()}, ` : lead;
     })
+    .replace(AFTER_INTERJECTION_PET, (m: string, lead: string, word: string, pet: string) =>
+      isPet(pet) ? `${lead}${word.replace(/,$/, "")}` : m
+    )
+    .replace(MID_PET, ",")
     .replace(PET_BEFORE_NAME, "");
 
 /** Quita un corazón; si separaba dos frases («… 💛 Me alegra»), deja un punto. */

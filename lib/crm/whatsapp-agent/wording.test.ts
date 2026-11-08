@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { polishReply, softenForPrompt, withDayanaWording } from "./wording";
+import { dropEndearments, polishReply, softenForPrompt, withDayanaWording } from "./wording";
 
 test("«De nada» se vuelve «Con gusto»", () => {
   expect(withDayanaWording("De nada, mi hermosa")).toBe("Con gusto, mi hermosa");
@@ -60,6 +60,15 @@ describe("sin apodos cariñosos ni corazones (tono serio y amable)", () => {
     expect(polishReply("Hola, linda.")).toBe("Hola.");
     expect(polishReply("Querida María, te escribo de parte de Dayana.")).toBe("María, te escribo de parte de Dayana.");
     expect(polishReply("Hola mi reina, ¿cómo vas?")).toBe("Hola, ¿cómo vas?");
+    // Ailén, 8-nov: «Sí, hermosa…» went out.
+    expect(dropEndearments("Sí, hermosa, te entiendo.")).toBe("Sí, te entiendo.");
+    expect(dropEndearments("Claro hermosa, te paso el enlace.")).toBe("Claro, te paso el enlace.");
+    expect(dropEndearments("Te entiendo, hermosa, es normal.")).toBe("Te entiendo, es normal.");
+    expect(dropEndearments("Ay amiga, qué bueno.")).toBe("Ay, qué bueno.");
+  });
+  test("una lista no es un apodo", () => {
+    expect(dropEndearments("Te deseo paz, amor, salud.")).toBe("Te deseo paz, amor, salud.");
+    expect(dropEndearments("Sí, Bella, te entiendo.")).toBe("Sí, Bella, te entiendo.");
   });
   test("no toca palabras que no son apodos", () => {
     expect(polishReply("Hola Bella, ¿cómo estás?")).toBe("Hola Bella, ¿cómo estás?");

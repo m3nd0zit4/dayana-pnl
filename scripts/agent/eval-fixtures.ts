@@ -32,10 +32,19 @@ export const FIXTURE = {
   controlPhone: "+573005550198",
   /** What both test chats last said. */
   chatQuestion: "Hola, ¿cuánto cuesta la terapia con Dayana?",
+  /**
+   * Production 8-nov (Ailén): the WhatsApp AI answered, then Dayana answered
+   * from her phone; the agent summarized «Dayana no ha respondido». This chat
+   * ends with Dayana's own reply, and holds a receipt Dayana confirmed whose
+   * payment was never recorded (Claudia Rico, Diana Ochoa… in production).
+   */
+  authorshipPhone: "+573005550197",
+  authorshipName: "Ailén Prueba Eval",
+  receiptPayer: "Pagadora Externa Eval",
 } as const;
 
 /** WhatsApp thread ids of the test chats (digits). */
-const CHAT_DIGITS = [FIXTURE.phone, FIXTURE.controlPhone].map((p) => p.replace(/\D/g, ""));
+const CHAT_DIGITS = [FIXTURE.phone, FIXTURE.controlPhone, FIXTURE.authorshipPhone].map((p) => p.replace(/\D/g, ""));
 
 const DAY = 24 * 3600_000;
 
@@ -94,6 +103,36 @@ const create = async () => {
     });
     await prisma.conversation.update({ where: { id: chat.id }, data: { lastMessageAt: new Date(now - 10 * 60_000), lastInboundAt: new Date(now - 10 * 60_000), participantName: name } });
   }
+  // Ailén: person → WhatsApp AI → person → Dayana from her phone (last).
+  const ailen = await ensureWhatsAppConversation({ phoneE164: FIXTURE.authorshipPhone, contactId: null, name: FIXTURE.authorshipName });
+  const thread: Array<[number, "INBOUND" | "OUTBOUND", string, boolean]> = [
+    [90, "INBOUND", "Hola, quiero saber cómo es el proceso con Dayana", false],
+    [88, "OUTBOUND", "Hola Ailén, te bendigo. Soy la asistente de Dayana. ¿Te gustaría una llamada gratis de 15 minutos con ella?", true],
+    [60, "INBOUND", "Sí, pero ya le pagué por transferencia, ¿me confirman?", false],
+    [20, "OUTBOUND", "Ailén, ya vi tu pago, gracias. Te escribo mañana para agendar tu primera sesión.", false],
+  ];
+  for (const [minAgo, direction, body, isAutoReply] of thread) {
+    await prisma.conversationMessage.create({
+      data: { conversationId: ailen.id, direction, body, isAutoReply, isEcho: direction === "OUTBOUND" && !isAutoReply, sentAt: new Date(now - minAgo * 60_000) },
+    });
+  }
+  await prisma.conversation.update({
+    where: { id: ailen.id },
+    data: { lastMessageAt: new Date(now - 20 * 60_000), lastInboundAt: new Date(now - 60 * 60_000), participantName: FIXTURE.authorshipName },
+  });
+  await prisma.whatsAppPaymentReceipt.create({
+    data: {
+      conversationId: ailen.id,
+      status: "confirmed",
+      method: "Transferencia",
+      amountMinor: 70000,
+      currency: "USD",
+      payerName: FIXTURE.receiptPayer,
+      confirmedVia: "chat",
+      decidedAt: new Date(now - 20 * 60_000),
+      createdAt: new Date(now - 60 * 60_000),
+    },
+  });
   await prisma.payment.createMany({
     data: [
       {

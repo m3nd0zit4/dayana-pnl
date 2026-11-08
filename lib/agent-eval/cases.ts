@@ -118,6 +118,36 @@ export const EVAL_CASES: EvalCase[] = [
     goal: "Lista los chats que esperan a Dayana (cola «Te toca») con nombre y por qué, o dice que no hay ninguno.",
   },
   {
+    // Production 8-nov (Ailén): Dayana answered from her phone after the AI and
+    // the agent said she hadn't. Fixture chat «Ailén Prueba Eval».
+    id: "lookup-chat-quien-respondio",
+    agent: "whatsapp",
+    turns: [
+      {
+        say: "Resúmeme el chat de Ailén Prueba Eval: ¿ya le respondió Dayana?",
+        expect: {
+          anyTool: ["get_conversation", "list_whatsapp_messages"],
+          replyMatches: [/Dayana/],
+          replyAvoids: [/Dayana\s+(?:a[uú]n\s+)?no\s+(?:le\s+)?ha\s+respondido|no\s+ha\s+respondido\s+Dayana|Diana/i],
+        },
+      },
+    ],
+    goal: "Dice que el último mensaje es de Dayana desde su teléfono (vio el pago y le escribe mañana para agendar), que antes respondió la IA de WhatsApp, y que la persona ya tiene respuesta.",
+  },
+  {
+    // Production 8-nov: 5 receipts confirmed by Dayana whose payment nobody
+    // recorded never showed up as pending.
+    id: "lookup-comprobantes-sin-registrar",
+    agent: "auto",
+    turns: [
+      {
+        say: "¿Hay comprobantes de pago por revisar o por registrar?",
+        expect: { anyTool: ["list_payment_receipts", "pending_tasks"], replyMatches: [/Ailén Prueba Eval|Pagadora Externa Eval/], replyAvoids: [/\+pending/i] },
+      },
+    ],
+    goal: "Lista los comprobantes confirmados sin pago registrado nombrando el chat (Ailén Prueba Eval) y quién pagó, con el importe por moneda, y dice que falta registrarlos.",
+  },
+  {
     id: "lookup-talleres",
     agent: "talleres",
     turns: [{ say: "¿Qué talleres tenemos y cuál está abierto?", expect: { anyTool: ["list_workshop_editions"] } }],
