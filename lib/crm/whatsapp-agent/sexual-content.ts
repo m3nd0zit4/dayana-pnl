@@ -188,7 +188,7 @@ export const enforceSexualContent = async (
         eventType: "WHATSAPP_NUMBER_BLOCKED",
         title: `Contenido sexual de ${who} (no lo bloqueé)`,
         body: `${prettyNumber(threadId)} está marcado como personal o de tu equipo, así que no lo bloqueé ni borré el chat. El archivo no se guardó en el CRM. Decide tú desde tu WhatsApp.`,
-        href: `/admin/whatsapp?chat=${conv.id}`,
+        href: `/admin/whatsapp?conversation=${conv.id}`,
         entityType: "Conversation",
         entityId: conv.id,
         staff: "ALL",
