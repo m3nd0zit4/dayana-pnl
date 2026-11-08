@@ -193,7 +193,20 @@ const main = async () => {
   check("la lista lo vio (queda marcado)", Boolean((await prisma.whatsAppBlockedNumber.findUnique({ where: { phoneHash: blockHash(SEXUAL)! } }))?.apiBlockedAt));
   const s3 = await syncBlockList({ list: async () => [APP] });
   check("contenido sexual no se suelta aunque falte en la lista", s3.removed === 0 && (await isBlockedNumber(SEXUAL)), s3);
-  await syncBlockList({ list: async () => [] });
+
+  console.log("5b. Ya bloqueada en la app y después «Bloquear por contenido sexual» (Roldán)");
+  const appConv = await prisma.conversation.findFirst({ where: { externalThreadId: APP }, select: { id: true } });
+  await syncBlockList({ list: async () => [APP] });
+  const f5 = fakes();
+  const r5 = await enforceSexualContent({ conversationId: appConv!.id, signal: { source: "staff", reason: "e2e" } }, f5.deps);
+  const appRow = await prisma.whatsAppBlockedNumber.findUnique({ where: { phoneHash: blockHash(APP)! } });
+  check(
+    "pasa a contenido sexual y borra el chat, sin aviso ni API",
+    r5.status === "blocked" && appRow?.reason === "sexual_content" && f5.calls.notice.length === 0 && f5.calls.block.length === 0 && (await prisma.conversation.count({ where: { id: appConv!.id } })) === 0,
+    { r5, reason: appRow?.reason }
+  );
+  const s4 = await syncBlockList({ list: async () => [] });
+  check("y ya no se suelta aunque la desbloqueen en la app", s4.removed === 0 && (await isBlockedNumber(APP)), s4);
 
   console.log("6. Un chat con comprobante de pago no se borra: se vacía y se oculta");
   const k = await ingestMessage(msg(KEEP, "te mando el comprobante", 1));

@@ -203,6 +203,45 @@ export const enforceSexualContent = async (
   // La misma persona con su otro id (número ↔ id de usuario): no vuelve por ahí.
   const alt = [...new Set((input.altThreadIds ?? []).filter((id) => id && id !== threadId))];
   for (const id of alt) await recordBlock({ threadId: id, reason: "sexual_content", source, detail: label }).catch(() => null);
+  if (!claim.created && claim.reason !== "sexual_content") {
+    // Ya estaba bloqueado por otra razón (Dayana lo bloqueó en su app antes:
+    // Roldán, 8-nov). Pasa a contenido sexual (nunca se suelta solo) y se borra
+    // el chat. Sin aviso ni bloqueo por la API: WhatsApp ya no deja escribirle.
+    await prisma.whatsAppBlockedNumber.update({
+      where: { phoneHash: claim.hash },
+      data: { reason: "sexual_content", source, detail: label },
+    });
+    const purged = await purgeNumberFromCrm([threadId, ...alt], deps);
+    await noteBlockActions(claim.hash, {
+      upgradedFrom: claim.reason,
+      noticeSent: false,
+      noticeError: "already_blocked",
+      deletedChats: purged.chats,
+      keptChats: purged.keptChats,
+      deletedMessages: purged.messages,
+      deletedFiles: purged.blobs,
+      hiddenContacts: purged.contacts,
+      reportedToMeta: false,
+    });
+    fireAuditLog({
+      action: "WHATSAPP_NUMBER_BLOCKED",
+      entityType: "WhatsAppBlockedNumber",
+      entityId: claim.hash.slice(0, 16),
+      changes: { reason: "sexual_content", upgradedFrom: claim.reason, signal: label, ...purged },
+    });
+    if (!deps.silent) {
+      fireNotification({
+        eventType: "WHATSAPP_NUMBER_BLOCKED",
+        title: `Borré el chat de ${who} (contenido sexual)`,
+        body: `${prettyNumber(threadId)} ya estaba bloqueado en tu WhatsApp, así que no se le pudo avisar. Borré el chat del CRM. Si no lo reportaste al bloquearlo: abre ese chat en tu WhatsApp Business, toca el nombre → «Reportar».`,
+        href: "/admin/whatsapp/ajustes?tab=avanzado#wa-blocked",
+        entityType: "WhatsAppBlockedNumber",
+        entityId: claim.hash.slice(0, 16),
+        staff: "ALL",
+      });
+    }
+    return { status: "blocked", noticeSent: false, apiBlocked: true, deletedChats: purged.chats, deletedMessages: purged.messages };
+  }
   if (!claim.created) {
     // Otro mensaje de la misma ráfaga ya lo está bloqueando: mientras manda el
     // aviso no se le borra el chat (el aviso se quedaría sin chat). Pasado un
