@@ -258,7 +258,7 @@ export const EVAL_CASES: EvalCase[] = [
       {
         say: "Hoy quiero que la IA de WhatsApp agende solamente de 5 a 7 de la tarde, hora Colombia.",
         respond: "deny",
-        expect: { anyTool: ["booking_set_day_hours", "agenda", "whatsapp"], approvals: 1, noTools: ["whatsapp_save_playbook"] },
+        expect: { anyTool: ["booking_set_day_hours", "agenda"], approvals: 1, noTools: ["whatsapp", "whatsapp_save_playbook"] },
       },
     ],
     goal: "Aplica el horario de hoy con booking_set_day_hours (fecha de hoy, 17:00–19:00), directamente o a través del especialista, en una sola aprobación; no lo guarda como texto en las instrucciones de la IA ni en un guion. Al cancelarse dice que no cambió nada.",
@@ -274,6 +274,70 @@ export const EVAL_CASES: EvalCase[] = [
       },
     ],
     goal: "Encuentra la inscripción pendiente y empieza por pedir el código de verificación (una sola aprobación); no registra el pago sin código ni toca precios.",
+  },
+
+  // ── routing: look-alike requests go to the specialist that owns them ──
+  // (8-nov: «hoy solo de 5 a 7» went to whatsapp, which wrote it as AI
+  // instructions the booking code never reads.)
+  {
+    id: "ruteo-horario-avisale-a-la-ia",
+    agent: "auto",
+    turns: [
+      {
+        say: "Hoy solo puedo atender llamadas de 5 a 7 de la noche, avísale a la IA de WhatsApp para que no agende a otra hora.",
+        respond: "deny",
+        expect: { anyTool: ["agenda", "booking_set_day_hours"], noTools: ["whatsapp", "whatsapp_save_playbook"] },
+      },
+    ],
+    goal: "Aunque mencione «la IA de WhatsApp», lo manda al especialista de Agenda, que propone el horario de un día (hoy, 17:00–19:00) con una sola aprobación; no lo escribe como instrucciones ni guion de la IA.",
+  },
+  {
+    id: "ruteo-manana-no-agendes",
+    agent: "auto",
+    turns: [
+      {
+        say: "Mañana no quiero llamadas antes de las 2 de la tarde",
+        respond: "deny",
+        expect: { anyTool: ["agenda", "booking_set_day_hours"], noTools: ["whatsapp"] },
+      },
+    ],
+    goal: "Lo manda a Agenda: horario especial de mañana desde las 14:00 (hasta la hora de cierre habitual) con una sola aprobación.",
+  },
+  {
+    id: "ruteo-escribir-whatsapp",
+    agent: "auto",
+    turns: [
+      {
+        say: "Escríbele por WhatsApp a Valentina Prueba Eval que mañana le confirmo la hora de la llamada",
+        respond: "deny",
+        expect: { anyTool: ["whatsapp"], noTools: ["agenda", "contactos"] },
+      },
+    ],
+    goal: "Lo manda al especialista de WhatsApp, que prepara el mensaje para Valentina y pide una sola aprobación para enviarlo; al cancelarse dice que no se envió.",
+  },
+  {
+    id: "ruteo-codigo-promocional",
+    agent: "auto",
+    turns: [
+      {
+        say: "Crea un código promocional NAVIDAD10 del 10 % de descuento",
+        respond: "deny",
+        expect: { anyTool: ["ventas"], noTools: ["talleres", "whatsapp"] },
+      },
+    ],
+    goal: "Lo manda a Ventas, que propone crear el código NAVIDAD10 del 10 % con una sola aprobación.",
+  },
+  {
+    id: "ruteo-cerrar-taller",
+    agent: "auto",
+    turns: [
+      {
+        say: "Cierra las inscripciones del taller Tu Sanación con el Dinero",
+        respond: "deny",
+        expect: { anyTool: ["talleres"], noTools: ["agenda", "whatsapp"], approvals: 1 },
+      },
+    ],
+    goal: "Lo manda a Talleres, que propone cerrar la edición (estado CLOSED) con una sola aprobación; al cancelarse dice que no cambió nada.",
   },
 
   // ── teaching and delegation ────────────────────────────────────────────

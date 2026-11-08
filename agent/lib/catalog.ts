@@ -35,7 +35,12 @@ export type AgentProfile = {
   label: string;
   /** One line under the name in the picker. */
   tagline: string;
-  /** What the router reads to decide whether to delegate. */
+  /**
+   * What the router reads to decide whether to delegate (and eve shows it as
+   * the specialist tool's description). Owns · ask it for · NOT its job (→ who).
+   * 8-nov: one-line descriptions sent «hoy solo de 5 a 7» to the WhatsApp
+   * specialist, which wrote it as text the AI's hours never read.
+   */
   description: string;
   /** Starter prompts for the empty state. */
   suggestions: string[];
@@ -46,7 +51,8 @@ export const AGENT_PROFILES: Record<AgentId, AgentProfile> = {
     id: "auto",
     label: "Asistente",
     tagline: "Responde y reparte el trabajo entre los especialistas",
-    description: "Router: answers quick lookups and statistics itself and delegates domain work.",
+    description:
+      "Router: answers quick lookups and statistics itself and hands every domain task to the specialist that owns it.",
     suggestions: [
       "¿Cuánto vendimos este mes comparado con el anterior?",
       "¿Qué tengo pendiente hoy?",
@@ -58,7 +64,7 @@ export const AGENT_PROFILES: Record<AgentId, AgentProfile> = {
     label: "Ventas",
     tagline: "Estadísticas, pagos, inscripciones, precios y códigos",
     description:
-      "Sales & statistics specialist: revenue, conversion and funnel stats, payments (lists, totals, manual payments with OTP), enrollments, products, prices, promo codes, the USD→COP rate.",
+      "Sales & money specialist. OWNS: sales and funnel statistics (revenue per currency, conversion, failed payments and why, best products, comparisons between periods), the payments list and totals, recording a manual payment (cash, transfer, Nequi… with the owner's e-mailed code), enrollments (who bought what, pending payment, creating a therapy enrollment), products and prices, promo codes, the USD→COP rate. ASK IT FOR: «¿cuánto vendimos?», «¿quién no ha pagado?», «registra el pago de Ana», «sube el precio del paquete de 6», «crea un código del 10 %». NOT ITS JOB: payment receipts that arrived by WhatsApp and the WhatsApp AI's payment messages (→ whatsapp), workshop seats and workshop products (→ talleres), calendar or booking hours (→ agenda).",
     suggestions: [
       "Ventas de los últimos 30 días por producto",
       "¿Qué pagos fallaron esta semana y por qué?",
@@ -70,7 +76,7 @@ export const AGENT_PROFILES: Record<AgentId, AgentProfile> = {
     label: "WhatsApp",
     tagline: "Chats, la IA de WhatsApp y cómo responde",
     description:
-      "WhatsApp specialist: finds chats, reads conversations, explains and corrects what the WhatsApp AI answered, turns corrections into playbooks, changes its configuration, drafts and sends WhatsApp messages.",
+      "WhatsApp specialist. OWNS: Dayana's WhatsApp chats and the WhatsApp AI that answers them — finding a chat, reading what was said and who wrote it, the «Te toca» queue, what the AI answered and why, correcting HOW it answers (tone, rules, playbooks, instructions for one person), pausing/resuming the AI or choosing who handles a chat, writing or sending a WhatsApp to one person (also chats with no contact), bulk WhatsApp (with a dry run first), receipts sent by WhatsApp, the Instagram/Messenger inbox drafts. ASK IT FOR: «escríbele a Laura que…», «¿qué le dijo la IA a Rosa?», «la IA no debe ofrecer X», «pausa la IA en el chat de Ana», «¿qué chats me tocan?». NOT ITS JOB: WHEN Dayana can take calls — hours of a day, days off, blocking time, moving or cancelling an appointment in the calendar (→ agenda; never written as AI instructions); money and payments registered in the CRM (→ ventas); contacts, e-mail and SMS (→ contactos).",
     suggestions: [
       "¿Qué chats me tocan ahora?",
       "No me gustó lo que la IA le respondió a Laura, revísalo",
@@ -82,7 +88,7 @@ export const AGENT_PROFILES: Record<AgentId, AgentProfile> = {
     label: "Agenda",
     tagline: "Calendario, citas, reservas y días de descanso",
     description:
-      "Calendar specialist: Google Calendar events, appointments and WhatsApp bookings, blocking time off so nothing gets booked, booking hours of the WhatsApp AI, time-zone conversions.",
+      "Calendar & availability specialist. OWNS: Dayana's Google Calendar (events, appointments, free calls booked by the WhatsApp AI), WHEN she can take calls — the hours of one specific day («hoy solo de 5 a 7», «mañana solo en la mañana», «el sábado no agendes») with booking_set_day_hours, days off and blocked time, the weekly booking hours and services, creating, moving or cancelling an appointment, what is booked on a day, time-zone conversions («¿qué hora es en Argentina?»). ASK IT FOR: «¿qué tengo hoy?», «hoy solo agenda de 5 a 7», «bloquéame el viernes», «mueve la cita de Patricia al lunes 9:45», «¿a qué hora es el taller en España?». NOT ITS JOB: writing the WhatsApp message to the person (→ whatsapp: when a call is moved, the agenda moves the appointment and the whatsapp specialist writes to her), how the WhatsApp AI talks (→ whatsapp), payments (→ ventas).",
     suggestions: [
       "¿Qué tengo agendado esta semana?",
       "Bloquéame el viernes, no quiero citas ese día",
@@ -94,7 +100,7 @@ export const AGENT_PROFILES: Record<AgentId, AgentProfile> = {
     label: "Talleres y eventos",
     tagline: "Talleres, eventos gratuitos, inscritas e interesadas",
     description:
-      "Workshops & free events specialist: workshop editions, their product and prices, enrollees and interested people, free webinars/events and their registrations, documents, bulk WhatsApp to an event audience.",
+      "Workshops & free events specialist. OWNS: workshop editions (creating, editing, opening/closing sign-ups, date and schedule labels), the workshop's product and price, who enrolled and paid, the «Interesadas» list, free webinars/events, their registrations and their Meet link (a workshop edition has no Meet field), workshop documents, bulk WhatsApp to an event or workshop audience. ASK IT FOR: «crea el taller de diciembre», «¿cuántas inscritas tiene el taller?», «¿quiénes se registraron al webinar?», «cambia el enlace de Meet del evento». NOT ITS JOB: one person's chat or a one-to-one WhatsApp (→ whatsapp), the calendar and booking hours (→ agenda), therapy payments and general sales numbers (→ ventas).",
     suggestions: [
       "¿Cuántas inscritas tiene el próximo taller?",
       "Crea un taller nuevo para diciembre",
@@ -106,7 +112,7 @@ export const AGENT_PROFILES: Record<AgentId, AgentProfile> = {
     label: "Contactos y equipo",
     tagline: "Personas, correos, SMS, Google y el equipo",
     description:
-      "Contacts specialist: search, create and dedupe contacts, Google contacts import, one-off and bulk email, SMS, Drive uploads, staff accounts.",
+      "Contacts & team specialist. OWNS: CRM contacts (search, create, fix data, duplicates), importing from Google Contacts, e-mail to one person or many (templates, campaigns), SMS, uploading files to Drive, staff accounts and who did what (audit log). ASK IT FOR: «crea el contacto de Ana +57…», «mándale un correo a Paula», «envía un SMS a…», «¿quién cambió el precio?», «crea un usuario para Laura del equipo». NOT ITS JOB: WhatsApp messages and chats (→ whatsapp), calendar (→ agenda), payments (→ ventas), workshops and events (→ talleres).",
     suggestions: [
       "Crea el contacto de Ana, +57 300 123 4567",
       "Mándale un correo a Paula con el enlace del taller",

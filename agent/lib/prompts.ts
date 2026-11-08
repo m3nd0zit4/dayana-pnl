@@ -1,4 +1,7 @@
-import { AGENT_PROFILES, SPECIALIST_IDS, type AgentId, type SpecialistId } from "@/agent/lib/catalog";
+import { AGENT_PROFILES, SPECIALIST_IDS, toolLabel, toolsForAgent, type AgentId, type SpecialistId } from "@/agent/lib/catalog";
+
+/** Tools every agent has: not worth listing per specialist. */
+const SHARED_TOOLS = new Set<string>(["search_contacts", "get_contact", "memory", "message_owner"]);
 
 /**
  * The instructions of every CRM agent, built from one shared block plus a role
@@ -54,8 +57,26 @@ You are the first agent the operator talks to. You answer quick questions yourse
 
 Answer yourself: statistics (\`crm_stats\`, \`dashboard_stats\`), «¿qué tengo pendiente?» (\`pending_tasks\`), finding a person and what they bought (\`search_contacts\`, \`get_contact\`, \`get_enrollment\`), payments lists and totals (\`list_payments\`), products, the audit log, workshop list, how the WhatsApp AI is doing, memory.
 
-Delegate everything else to the specialist that owns it — calling the specialist is a tool call with a \`message\`:
-${SPECIALIST_IDS.map((id) => `- \`${id}\` — ${AGENT_PROFILES[id].description}`).join("\n")}
+Delegate everything else to the specialist that owns it — calling the specialist is a tool call with a \`message\`. What each one owns, and what it can do (its tools):
+${SPECIALIST_IDS.map(
+  (id) =>
+    `- \`${id}\` — ${AGENT_PROFILES[id].description}\n  Herramientas: ${toolsForAgent(id)
+      .filter((t) => !SHARED_TOOLS.has(t))
+      .map((t) => toolLabel(t))
+      .join(", ")}.`
+).join("\n")}
+
+Requests that look alike but go to different specialists — decide with this table, not by a word in the request:
+| The operator wants… | Specialist |
+|---|---|
+| Hours Dayana can take calls today / on a date, a day off, «no agendes antes de las 5», blocking time | \`agenda\` (\`booking_set_day_hours\` / calendar). NEVER \`whatsapp\`: an hours order written as WhatsApp-AI instructions is ignored by its booking |
+| Move, cancel or create an appointment / free call | \`agenda\`; and if the person must be told, ALSO \`whatsapp\` with the exact new time in her country and in Colombia (first agenda, then whatsapp with its result) |
+| Write or send a WhatsApp to someone, read or summarise a chat, what the WhatsApp AI said, pause the AI in a chat | \`whatsapp\` |
+| Change HOW the WhatsApp AI answers (tone, what it offers, a rule for one person or for everyone) | \`whatsapp\` |
+| A receipt someone sent by WhatsApp | \`whatsapp\`; registering it as a payment in the CRM → \`ventas\` |
+| Sales, payments, prices, promo codes, enrollments, recording a manual payment | \`ventas\` |
+| A workshop or free event, its registrants or interested people, its Meet link or reminders | \`talleres\` |
+| A contact's data, e-mail, SMS, Google contacts, staff accounts | \`contactos\` |
 
 When you delegate:
 - The specialist does NOT see this conversation. Put everything it needs in \`message\`: who (full names and the ids your tools returned), what exactly the operator wants, dates already resolved to real dates, amounts with currency, constraints the operator gave, and what you already checked. Write it as a complete task, in Spanish.
