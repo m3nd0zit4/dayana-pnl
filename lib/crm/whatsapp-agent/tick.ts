@@ -61,6 +61,7 @@ export const CLOCK_EVENTS_KEY = "whatsapp.clock.events_at";
 export const CLOCK_NOSHOW_KEY = "whatsapp.clock.noshow_at";
 export const CLOCK_ARRIVAL_KEY = "whatsapp.clock.arrival_at";
 export const CLOCK_QUOTE_KEY = "whatsapp.clock.quote_at";
+export const CLOCK_BLOCKLIST_KEY = "whatsapp.clock.blocklist_at";
 export const CLOCK_SYNC_EVERY_MS = 15 * 60_000;
 export const CLOCK_REMINDERS_EVERY_MS = 5 * 60_000;
 export const CLOCK_FOLLOWUP_EVERY_MS = 5 * 60_000;
@@ -69,6 +70,8 @@ export const CLOCK_EVENTS_EVERY_MS = 10 * 60_000;
 export const CLOCK_NOSHOW_EVERY_MS = 3 * 60_000;
 export const CLOCK_ARRIVAL_EVERY_MS = 60_000;
 export const CLOCK_QUOTE_EVERY_MS = 15 * 60_000;
+/** La lista de bloqueados de WhatsApp (Meta no avisa cuando Dayana bloquea desde su app). */
+export const CLOCK_BLOCKLIST_EVERY_MS = 30 * 60_000;
 
 /** El turno guardado (milisegundos, como texto). Lo que no se entienda cuenta como «nunca». */
 export const parseClockValue = (raw: string | null | undefined): number => {
@@ -127,6 +130,8 @@ export type ClockTickDeps = {
   arrival?: (config: WhatsAppAiConfig) => Promise<unknown>;
   /** El seguimiento del cierre (solo con `quoteFollowUp.enabled`). */
   quote?: (config: WhatsAppAiConfig) => Promise<unknown>;
+  /** Leer la lista de bloqueados de WhatsApp y ocultar/mostrar esos chats. */
+  blocklist?: () => Promise<unknown>;
   /**
    * Solo los pasos cortos (citas, recordatorios, seguimiento): el stream del
    * CRM puede cortarse en cualquier momento, y «pendientes» y «eventos»
@@ -146,7 +151,7 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
     // Primero una lectura (lo normal es que no toque nada); el turno solo se
     // intenta tomar si ya venció, y ahí el `UPDATE` decide quién gana.
     const rows = await prisma.siteSetting.findMany({
-      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY, CLOCK_NOSHOW_KEY, CLOCK_ARRIVAL_KEY, CLOCK_QUOTE_KEY] } },
+      where: { key: { in: [CLOCK_SYNC_KEY, CLOCK_REMINDERS_KEY, CLOCK_FOLLOWUP_KEY, CLOCK_PENDING_KEY, CLOCK_EVENTS_KEY, CLOCK_NOSHOW_KEY, CLOCK_ARRIVAL_KEY, CLOCK_QUOTE_KEY, CLOCK_BLOCKLIST_KEY] } },
       select: { key: true, value: true },
     });
     const due = (key: string, everyMs: number) =>
@@ -220,6 +225,21 @@ export const runClockTick = async (deps: ClockTickDeps = {}): Promise<StepResult
           if (!config.quoteFollowUp.enabled) return { off: true };
           return (deps.quote ?? ((c: WhatsAppAiConfig) => sweepQuoteFollowUps(c, now)))(config);
         })
+      );
+    }
+    // Bloqueados en el WhatsApp de Dayana: salen del CRM (y vuelven si los desbloquea).
+    if (!deps.light && due(CLOCK_BLOCKLIST_KEY, CLOCK_BLOCKLIST_EVERY_MS) && (await claimClockSlot(CLOCK_BLOCKLIST_KEY, CLOCK_BLOCKLIST_EVERY_MS, now))) {
+      steps.push(
+        await step(
+          "bloqueados",
+          deps.blocklist ??
+            (async () => {
+              const { getSiteSetting } = await import("../site-settings");
+              if (((await getSiteSetting("whatsapp.blocklist.sync")) ?? "").trim().toLowerCase() === "off") return { off: true };
+              const { syncBlockList } = await import("../whatsapp-blocked-numbers");
+              return syncBlockList({ now });
+            })
+        )
       );
     }
     // Los pesados: solo desde los webhooks (con `after()`), y uno por pasada.

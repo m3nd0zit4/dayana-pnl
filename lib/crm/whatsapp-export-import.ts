@@ -10,6 +10,7 @@ import { classifyWithAi } from "./chat-category-ai";
 import { isTeamThread } from "./chat-category-rules";
 import { getTeamPhones } from "./chat-category";
 import { isIgnoredNumber } from "./whatsapp-ignored-numbers";
+import { isBlockedNumber } from "./whatsapp-blocked-numbers";
 import {
   classifyExportRules,
   decideExport,
@@ -236,7 +237,10 @@ const previewOf = async (
     const ai = await classifyWithModel(parsed, dayanaAuthor);
     if (ai) classification = ai;
   }
-  const ignored = phoneE164 ? await isIgnoredNumber(whatsAppDigits(phoneE164)) : false;
+  // Un número bloqueado tampoco se importa (cuenta como «no se sube»).
+  const ignored = phoneE164
+    ? (await isIgnoredNumber(whatsAppDigits(phoneE164))) || (await isBlockedNumber(whatsAppDigits(phoneE164)))
+    : false;
 
   return {
     fileName: file.fileName,
@@ -278,7 +282,7 @@ export type ExportImportResult = {
 };
 
 export class ExportImportError extends Error {
-  constructor(public code: "invalid_phone" | "no_messages" | "group_chat" | "ignored_number") {
+  constructor(public code: "invalid_phone" | "no_messages" | "group_chat" | "ignored_number" | "blocked_number") {
     super(code);
   }
 }
@@ -310,6 +314,8 @@ export const importExportChat = async (input: {
   if (parsed.authors.length > 2) throw new ExportImportError("group_chat");
   // Un número personal de Dayana no se sube, aunque alguien lo intente.
   if (await isIgnoredNumber(whatsAppDigits(phone))) throw new ExportImportError("ignored_number");
+  // Bloqueado en WhatsApp (por Dayana o por contenido sexual): nunca vuelve a entrar.
+  if (await isBlockedNumber(whatsAppDigits(phone))) throw new ExportImportError("blocked_number");
 
   const threadId = whatsAppDigits(phone);
   const legacyId = phone.replace(/\D/g, "");

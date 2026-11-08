@@ -55,7 +55,7 @@ export const getDashboardStats = async () => {
         product: { kind: "THERAPY" },
       },
     }),
-    prisma.contact.count(),
+    prisma.contact.count({ where: { blockedAt: null } }),
     // Agregado en SQL, no 14 días de filas traídas para sumarlas en JS. El
     // volumen de pagos sigue al de contactos, así que esto crecía sin tope en
     // cada carga del panel.

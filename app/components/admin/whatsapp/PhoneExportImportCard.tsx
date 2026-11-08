@@ -61,6 +61,7 @@ const ERRORS: Record<string, string> = {
   no_messages: "No se reconoció ningún mensaje en el archivo.",
   group_chat: "Es un chat de grupo: solo se importan chats de una persona.",
   ignored_number: "Es un número personal: no se importa.",
+  blocked_number: "Ese número está bloqueado en WhatsApp: no se importa.",
   too_large: "El chat es demasiado grande para subirlo de una vez.",
   unreadable_file: "No se pudo leer el archivo.",
 };

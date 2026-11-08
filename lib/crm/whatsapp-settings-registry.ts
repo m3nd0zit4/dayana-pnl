@@ -507,6 +507,12 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "avanzado",
   },
   {
+    id: "wa-blocked",
+    label: "Números bloqueados",
+    keywords: ["bloquear", "bloqueados", "reportar", "contenido sexual", "acoso", "spam"],
+    tab: "avanzado",
+  },
+  {
     id: "wa-retention",
     label: "Cuánto tiempo se guardan los datos",
     keywords: ["retención", "borrar", "datos", "privacidad", "días", "guardan"],

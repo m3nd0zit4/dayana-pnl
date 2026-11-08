@@ -8,6 +8,12 @@ import { resolveWhatsAppCredentials } from "./whatsapp-provider";
 import { resolvePageCredentials } from "./credentials";
 import type { NormalizedEvent, NormalizedMessage } from "./inbound";
 import { rehostAttachment, type StoredAttachment } from "./media";
+import {
+  explicitSexualText,
+  sexualHint,
+  textVerdictBlocks,
+  type SexualSignal,
+} from "@/lib/crm/whatsapp-agent/sexual-content-rules";
 import { applyStatus } from "./status";
 import { resolveWhatsAppThreadId } from "./whatsapp-thread";
 
@@ -98,7 +104,8 @@ export const withTranscript = (body: string | null | undefined, transcript: stri
 };
 
 const storeAttachments = async (
-  message: NormalizedMessage
+  message: NormalizedMessage,
+  options: { screen?: boolean } = {}
 ): Promise<StoredAttachment[]> => {
   if (message.attachments.length === 0) return [];
 
@@ -115,7 +122,7 @@ const storeAttachments = async (
 
   return Promise.all(
     message.attachments.map((attachment) =>
-      rehostAttachment(attachment, credentials)
+      rehostAttachment(attachment, credentials, options)
     )
   );
 };
@@ -160,10 +167,45 @@ const applyMessageAction = async (message: NormalizedMessage): Promise<IngestRes
 };
 
 export type IngestResult =
-  | { outcome: "stored"; conversationId: string; isInbound: boolean }
+  | {
+      outcome: "stored";
+      conversationId: string;
+      isInbound: boolean;
+      /** Contenido sexual detectado al guardar (foto/sticker/video revisado o texto inequívoco). */
+      sexual?: SexualSignal;
+    }
   | { outcome: "contact_synced" }
   | { outcome: "duplicate" }
   | { outcome: "ignored"; reason: string };
+
+/** Interruptor (sitio): `whatsapp.safety.sexualContent` = "off" lo apaga. Encendido por defecto (owner, 8-nov). */
+const sexualGuardOn = async (): Promise<boolean> => {
+  const { getSiteSetting } = await import("@/lib/crm/site-settings");
+  const v = await getSiteSetting("whatsapp.safety.sexualContent").catch(() => null);
+  return (v ?? "").trim().toLowerCase() !== "off";
+};
+
+/**
+ * Un texto que solo «suena» sexual (`sexualHint`): lo decide el modelo con los
+ * mensajes anteriores de contexto, y solo bloquea con confianza alta
+ * (`textVerdictBlocks`). Terapia, salud o abuso contado nunca.
+ */
+const doubtfulTextSignal = async (event: NormalizedMessage, conversationId: string): Promise<SexualSignal | undefined> => {
+  if (event.isEcho || event.isHistory || event.system || !sexualHint(event.body)) return undefined;
+  if (!(await sexualGuardOn())) return undefined;
+  const previous = await prisma.conversationMessage.findMany({
+    where: { conversationId, externalMessageId: { not: event.externalMessageId }, body: { not: null } },
+    orderBy: { sentAt: "desc" },
+    take: 4,
+    select: { body: true, direction: true },
+  });
+  const { classifySexualText } = await import("@/lib/crm/whatsapp-agent/content-screen");
+  const verdict = await classifySexualText(
+    event.body!,
+    previous.reverse().map((m) => `${m.direction === "INBOUND" ? "Persona" : "Nosotras"}: ${m.body}`)
+  );
+  return textVerdictBlocks(verdict) ? { source: "text", reason: `model:${verdict!.kind}` } : undefined;
+};
 
 /** Guarda un mensaje entrante (o un eco saliente) y actualiza su hilo. */
 export const ingestMessage = async (
@@ -181,6 +223,13 @@ export const ingestMessage = async (
   });
   if (already) return { outcome: "duplicate" };
 
+  // Un número bloqueado (por Dayana en su WhatsApp, por contenido sexual o
+  // desde el CRM) no vuelve a entrar: ni mensajes, ni ecos, ni historial.
+  if (message.channel === "WHATSAPP") {
+    const { isBlockedNumber } = await import("@/lib/crm/whatsapp-blocked-numbers");
+    if (await isBlockedNumber(message.threadId)) return { outcome: "ignored", reason: "blocked_number" };
+  }
+
   // Una reacción, edición o eliminación se aplica al mensaje original.
   if (message.action) {
     const applied = await applyMessageAction(message);
@@ -188,7 +237,18 @@ export const ingestMessage = async (
     // El original aún no está: queda como aviso gris (no se pierde).
   }
 
-  const attachments = await storeAttachments(message);
+  // Lo que manda una persona (no Dayana, no el historial) se revisa antes de
+  // guardarse: el contenido sexual nunca llega a Blob ni al CRM.
+  const screen =
+    message.channel === "WHATSAPP" && !message.isEcho && !message.isHistory && !message.system && (await sexualGuardOn());
+  const attachments = await storeAttachments(message, { screen });
+  const quarantined = attachments.find((a) => a.quarantined)?.quarantined;
+  const explicitText = screen ? explicitSexualText(message.body) : null;
+  const sexual: SexualSignal | undefined = quarantined
+    ? { source: "vision", reason: quarantined }
+    : explicitText
+      ? { source: "text", reason: explicitText }
+      : undefined;
   const contactId = await resolveContactId(message.channel, message.threadId, message.altThreadIds);
 
   const where = {
@@ -311,7 +371,9 @@ export const ingestMessage = async (
         replyToExternalId: message.replyToExternalId,
         // La nota de voz en texto. Si ya trae texto (p. ej. «Llegó desde un
         // anuncio»), va debajo: antes el texto del audio se perdía.
-        body: withTranscript(message.body, attachments.find((a) => a.transcript)?.transcript),
+        body: quarantined
+          ? "🚫 Archivo no guardado: contenido sexual."
+          : withTranscript(message.body, attachments.find((a) => a.transcript)?.transcript),
         attachments:
           attachments.length > 0
             ? (attachments as unknown as Prisma.InputJsonValue)
@@ -368,6 +430,7 @@ export const ingestMessage = async (
     outcome: "stored",
     conversationId: conversation.id,
     isInbound: !message.isEcho,
+    ...(sexual ? { sexual } : {}),
   };
 };
 
@@ -518,6 +581,21 @@ export const processNormalizedEvent = async (
     await learnIfCorrectingAutoReply(result.conversationId).catch(
       () => undefined
     );
+  }
+
+  // Contenido sexual: aviso, bloqueo, chat borrado y aviso a Dayana. Ni
+  // notificación del mensaje, ni IA (`sexual-content.ts`).
+  if (result.isInbound && event.channel === "WHATSAPP") {
+    const signal = result.sexual ?? (await doubtfulTextSignal(event, result.conversationId));
+    if (signal) {
+      const { enforceSexualContent } = await import("@/lib/crm/whatsapp-agent/sexual-content");
+      const r = await enforceSexualContent({ conversationId: result.conversationId, signal }).catch((e: unknown) => {
+        console.error("[contenido] no se pudo aplicar el bloqueo", e);
+        return null;
+      });
+      console.warn(`[contenido] ${signal.source}:${signal.reason} → ${r?.status ?? "error"}`);
+      if (r && r.status !== "spared") return result;
+    }
   }
 
   if (result.outcome === "stored" && result.isInbound) {

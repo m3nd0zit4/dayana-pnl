@@ -652,6 +652,14 @@ const CLINICAL_LEGACY =
 const CLINICAL_SALES =
   "- category=clinical: casi nunca, siempre severity=normal. Lo que cuenta de su vida (tristeza, ansiedad, duelo, problemas…) no se escala: una frase de apoyo y el siguiente paso (la llamada gratis, o el pago si ya la tuvo). Nunca hables de líneas de emergencia ni de urgencias.";
 
+/**
+ * Contenido sexual (owner, 8-nov). Lo explícito (fotos, videos, stickers, pedir
+ * «pack», proponer sexo) lo bloquea el código antes de que la IA lo vea
+ * (`sexual-content.ts`); esto es para lo que se escape: nunca seguirle el juego.
+ */
+const SEXUAL_RULE =
+  "- CONTENIDO SEXUAL: si la persona te propone algo sexual, te pide fotos íntimas, coquetea con insinuaciones sexuales o te manda algo sexual, no le sigas la conversación, no coquetees ni bromees: escala con category=other, reason «contenido sexual: …» y SIN holdingReply. Hablar de su sexualidad, de su pareja, de su cuerpo o de un abuso que sufrió NO es eso: es lo que trabaja con Dayana y se responde como siempre.";
+
 /** Cuándo y cómo se comparten las formas de pago y se reciben los comprobantes. */
 const paymentRules = (config: WhatsAppAiConfig): string => {
   const methods = paymentMethodsForPrompt(config);
@@ -696,7 +704,8 @@ const systemPrompt = (
   opts: { salesFlow: boolean; autoBook: boolean; clientMode?: boolean } = { salesFlow: false, autoBook: false }
 ): string => {
   const leadRules = opts.salesFlow ? salesFlowRules(config, { autoBook: opts.autoBook }) : LEGACY_LEAD_RULES;
-  const clinicalRule = opts.salesFlow ? CLINICAL_SALES : CLINICAL_LEGACY;
+  const clinicalRule = `${opts.salesFlow ? CLINICAL_SALES : CLINICAL_LEGACY}
+${SEXUAL_RULE}`;
   const parts = [
     `Contestas el WhatsApp de ${BRAND.name}.
 

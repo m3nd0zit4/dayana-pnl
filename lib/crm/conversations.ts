@@ -70,7 +70,8 @@ export const listConversations = async (filters: ConversationFilters = {}) => {
   };
 
   const rows = await prisma.conversation.findMany({
-    where,
+    // Un número bloqueado en WhatsApp sale de la bandeja (`whatsapp-blocked-numbers.ts`).
+    where: { ...where, blockedAt: null },
     orderBy: { lastMessageAt: "desc" },
     take: INBOX_PAGE_SIZE + 1,
     ...(filters.cursor

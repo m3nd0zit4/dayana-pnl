@@ -21,6 +21,16 @@ export type StoredAttachment = {
   mediaId?: string;
   /** Lo que dice una nota de voz, transcrito al recibirla. */
   transcript?: string;
+  /**
+   * Contenido sexual (revisado antes de guardar): el archivo NO se guardó en
+   * Blob y no se puede ver en el CRM (sin url ni mediaId). Lo que lo detectó.
+   */
+  quarantined?: string;
+};
+
+export type RehostOptions = {
+  /** Revisar fotos, stickers y videos antes de guardarlos (lo que manda una persona). */
+  screen?: boolean;
 };
 
 const EXTENSION_BY_MIME: Record<string, string> = {
@@ -75,7 +85,8 @@ const resolveWhatsAppMediaUrl = async (
  */
 export const rehostAttachment = async (
   attachment: NormalizedAttachment,
-  credentials: Pick<MetaCredentials, "token">
+  credentials: Pick<MetaCredentials, "token">,
+  options: RehostOptions = {}
 ): Promise<StoredAttachment> => {
   const base: StoredAttachment = {
     kind: attachment.kind,
@@ -113,6 +124,27 @@ export const rehostAttachment = async (
   }
 
   const contentType = mimeType ?? downloaded.contentType;
+
+  // Contenido sexual: se revisa ANTES de guardar. Si lo es, el archivo no se
+  // guarda, no queda su id (el CRM no lo puede pedir a WhatsApp) y el que
+  // procesa el mensaje aplica la regla (`sexual-content.ts`).
+  if (options.screen) {
+    const { isScreenableAttachment } = await import("@/lib/crm/whatsapp-agent/sexual-content-rules");
+    if (isScreenableAttachment(attachment.kind, contentType)) {
+      const { screenMedia } = await import("@/lib/crm/whatsapp-agent/content-screen");
+      const verdict = await screenMedia(downloaded.buffer, contentType);
+      if (verdict.verdict === "sexual") {
+        return {
+          kind: attachment.kind,
+          url: null,
+          mimeType: contentType,
+          caption: null,
+          unavailableReason: "sexual_content",
+          quarantined: verdict.reason,
+        };
+      }
+    }
+  }
 
   // Una nota de voz se transcribe ya, ANTES de guardarla: la IA contesta y
   // aprende del texto, y el texto no depende de que Blob acepte el archivo

@@ -12,6 +12,7 @@ import {
 } from "@/lib/crm/whatsapp-reply-pairs";
 import { useCrm } from "../../crm/CrmProvider";
 import { WHATSAPP_AI_API, useSettings, type LearningSummaryDto } from "./context";
+import BlockedSection from "./BlockedSection";
 import SettingRow, { SettingsGroup } from "./SettingRow";
 import { WaSwitch } from "./ToggleRow";
 
@@ -288,6 +289,10 @@ const AdvancedTab = () => (
     <SettingsGroup title="Aprendizaje">
       <LearningTools />
       <Examples />
+    </SettingsGroup>
+
+    <SettingsGroup title="Seguridad">
+      <BlockedSection />
     </SettingsGroup>
 
     <SettingsGroup title="Datos">

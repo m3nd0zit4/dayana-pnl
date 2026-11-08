@@ -577,6 +577,18 @@ export const NOTIFICATION_CATALOG: Record<
     roles: WRITE_ROLES,
     immediate: true,
   },
+  WHATSAPP_NUMBER_BLOCKED: {
+    label: "WhatsApp: número bloqueado",
+    description:
+      "Un número se bloqueó por mandar contenido sexual (aviso, bloqueo y chat borrado), o lo bloqueaste en tu WhatsApp y salió del CRM. Reportarlo a WhatsApp solo se puede desde tu app.",
+    group: "Sistema y seguridad",
+    defaultSeverity: "WARNING",
+    audience: "STAFF",
+    defaultInApp: true,
+    defaultEmail: false,
+    roles: WRITE_ROLES,
+    immediate: true,
+  },
 };
 
 const ALL_EVENT_TYPES = Object.keys(

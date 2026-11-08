@@ -97,7 +97,13 @@ export type SendInput = {
    * `context.message_id` y se guarda en la fila para pintar la cita.
    */
   replyToExternalId?: string | null;
+  /**
+   * Solo el aviso de bloqueo por contenido sexual: sale aunque el número ya
+   * esté anotado como bloqueado (se anota antes, para que nada más le salga).
+   */
+  allowBlocked?: boolean;
 };
+
 
 type MediaKind = "image" | "video" | "audio" | "document";
 
@@ -115,6 +121,20 @@ export type SendResult = {
 };
 
 export class MetaSendError extends Error {}
+
+/** Un número bloqueado no recibe nada: ni texto, ni plantillas, ni reacciones. */
+export class BlockedRecipientError extends MetaSendError {
+  constructor() {
+    super("Este número está bloqueado en WhatsApp: no se le puede escribir.");
+    this.name = "BlockedRecipientError";
+  }
+}
+
+const assertNotBlocked = async (channel: string, threadId: string): Promise<void> => {
+  if (channel !== "WHATSAPP") return;
+  const { isBlockedNumber } = await import("@/lib/crm/whatsapp-blocked-numbers");
+  if (await isBlockedNumber(threadId)) throw new BlockedRecipientError();
+};
 export class MetaWindowError extends MetaSendError {
   readonly window: WindowState;
   constructor(message: string, window: WindowState) {
@@ -331,6 +351,7 @@ export const sendWhatsAppReaction = async (
       window
     );
   }
+  await assertNotBlocked(conversation.channel, conversation.externalThreadId);
   if (await resolveDryRun()) return { dryRun: true };
   const credentials = await resolveWhatsAppCredentials();
   if (!credentials) {
@@ -445,6 +466,7 @@ export const sendMetaMessage = async (
     where: { id: input.conversationId },
   });
   if (!conversation) throw new MetaSendError("La conversación no existe.");
+  if (!input.allowBlocked) await assertNotBlocked(conversation.channel, conversation.externalThreadId);
 
   const window = resolveWindow(conversation.channel, conversation.lastInboundAt);
 

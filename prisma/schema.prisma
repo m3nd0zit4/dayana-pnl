@@ -266,6 +266,7 @@ enum NotificationEventType {
   SYSTEM_ALERT
   // Bandeja de entrada
   INBOX_MESSAGE_RECEIVED
+  WHATSAPP_NUMBER_BLOCKED
   // Publicación en redes
   SOCIAL_POST_PUBLISHED
   SOCIAL_POST_FAILED
@@ -284,6 +285,9 @@ model Contact {
   preferredLocale     String        @default("es") @map("preferred_locale")
   avatarUrl           String?       @map("avatar_url")
   workDescription     String?       @map("work_description")
+  /// Número bloqueado en WhatsApp: el contacto se oculta de las listas (nunca
+  /// se borra si tiene pagos o inscripciones). Nulo = visible.
+  blockedAt           DateTime?     @map("blocked_at")
   themePreference     String        @default("system") @map("theme_preference")
   notifyEmail         Boolean       @default(true) @map("notify_email")
   notifySms           Boolean       @default(true) @map("notify_sms")
@@ -1330,6 +1334,12 @@ model Conversation {
   categorizedThroughAt DateTime? @map("categorized_through_at")
   /// La IA no estaba segura (confianza < 0,7): la pantalla dice «revisar».
   categoryReview       Boolean   @default(false) @map("category_review")
+
+  /// El número está bloqueado (Dayana lo bloqueó en su WhatsApp o se bloqueó
+  /// por contenido sexual): el chat sale de todas las listas del CRM y la IA no
+  /// le contesta. Vuelve (nulo) si Dayana lo desbloquea. Ver
+  /// `lib/crm/whatsapp-blocked-numbers.ts`.
+  blockedAt            DateTime? @map("blocked_at")
 
   @@unique([channel, externalThreadId])
   @@index([channel, lastMessageAt(sort: Desc)])
@@ -2415,6 +2425,31 @@ model WhatsAppIgnoredNumber {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("whatsapp_ignored_numbers")
+}
+
+/// Números bloqueados en WhatsApp. Igual que los números personales, solo se
+/// guarda una huella (HMAC) del número. La fila queda aunque se desbloquee
+/// (`unblockedAt`): es también el registro mínimo de lo que pasó (cuándo y
+/// por qué), sin mensajes ni archivos.
+model WhatsAppBlockedNumber {
+  phoneHash   String    @id @map("phone_hash")
+  /// app (Dayana lo bloqueó en su WhatsApp) | sexual_content | manual (desde el CRM)
+  reason      String
+  /// sync (leído de la lista de bloqueados) | auto | staff
+  source      String
+  /// Qué lo detectó (sexual_content): `vision:PROHIBITED_CONTENT`, `text:…`. Nunca el contenido.
+  detail      String?
+  /// Cuándo WhatsApp aceptó el bloqueo por la API (nulo = no se pudo o vino de la app).
+  apiBlockedAt DateTime? @map("api_blocked_at")
+  apiError    String?   @map("api_error")
+  /// Lo que se hizo al bloquear (aviso enviado, chats y mensajes borrados…): solo conteos.
+  actions     Json?
+  blockedAt   DateTime  @default(now()) @map("blocked_at")
+  unblockedAt DateTime? @map("unblocked_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([unblockedAt])
+  @@map("whatsapp_blocked_numbers")
 }
 
 enum WhatsAppAiMode {

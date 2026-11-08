@@ -26,6 +26,12 @@ const toWhatsAppRecipient = (e164: string): string => e164.replace(/\D/g, "");
 export const sendWhatsAppTemplateMessage = async (
   input: SendWhatsAppInput
 ): Promise<SendWhatsAppResult> => {
+  // Un número bloqueado en WhatsApp no recibe nada (ni pagos, ni recordatorios).
+  const { isBlockedPhone } = await import("@/lib/crm/whatsapp-blocked-numbers");
+  if (await isBlockedPhone(input.toE164)) {
+    throw new Error("Número bloqueado en WhatsApp: no se le envía nada.");
+  }
+
   if (await resolveDryRun()) {
     console.info("[notifications:dry-run] whatsapp", {
       to: input.toE164,

@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  Ban,
   Bot,
   CheckCheck,
   ChevronDown,
@@ -22,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +52,7 @@ import {
   agoLabel,
   isRunLive,
 } from "../status";
+import CrmConfirmDialog from "../../crm/CrmConfirmDialog";
 import { useCrm } from "../../crm/CrmProvider";
 import { wa } from "./chatTheme";
 import { ActionButton, Avatar } from "./ui";
@@ -255,7 +257,60 @@ const ChatMenu = ({
 }) => {
   const mine = chat.aiMode === "MANUAL" || chat.priority;
   const disabled = !canWrite || busy !== null;
+  const { role, toast } = useCrm();
+  const [blocking, setBlocking] = useState<"plain" | "sexual" | null>(null);
+  // Bloquear desde el CRM (solo la dueña): WhatsApp lo bloquea por la API y el
+  // chat sale de las listas. Reportarlo sigue siendo desde su app.
+  const blockNumber = async () => {
+    const kind = blocking;
+    setBlocking(null);
+    const res = await fetch("/api/admin/whatsapp/blocked", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: kind === "sexual" ? "sexual_content" : "block_chat", conversationId: chat.id }),
+    }).catch(() => null);
+    const data = (await res?.json().catch(() => null)) as {
+      apiBlocked?: boolean;
+      already?: boolean;
+      result?: { status?: string; apiBlocked?: boolean; noticeSent?: boolean };
+    } | null;
+    if (!res?.ok) {
+      toast("No se pudo bloquear. No se cambió nada.", "error");
+      return;
+    }
+    if (kind === "sexual") {
+      const r = data?.result;
+      toast(
+        r?.status === "spared"
+          ? "Es un número personal o de tu equipo: no se bloqueó. Decide tú desde tu WhatsApp."
+          : `${r?.noticeSent ? "Se le avisó" : "No se le pudo avisar (más de 24 h)"}, ${r?.apiBlocked ? "se bloqueó" : "WhatsApp no aceptó el bloqueo: bloquéalo en tu app"} y el chat se borró. Repórtalo desde tu WhatsApp.`,
+        "success"
+      );
+    } else {
+      toast(
+        data?.apiBlocked || data?.already
+          ? "Número bloqueado: salió del CRM. Para reportarlo, hazlo desde tu WhatsApp."
+          : "Salió del CRM, pero WhatsApp no aceptó el bloqueo (escribió hace más de 24 h): bloquéalo en tu app.",
+        "success"
+      );
+    }
+    window.location.assign("/admin/whatsapp");
+  };
   return (
+    <>
+    <CrmConfirmDialog
+      open={blocking !== null}
+      title={blocking === "sexual" ? "¿Bloquear por contenido sexual?" : "¿Bloquear este número?"}
+      message={
+        blocking === "sexual"
+          ? "Se le manda UN mensaje («Este número va a ser reportado a WhatsApp y Meta debido a estas acciones…»), WhatsApp lo bloquea y el chat se BORRA del CRM con sus archivos (no se puede deshacer). Reportarlo solo se puede desde tu app."
+          : "WhatsApp lo bloquea (solo si escribió en las últimas 24 h), el chat y el contacto salen del CRM y nada más le sale. Si lo desbloqueas en tu WhatsApp, vuelve. Reportarlo solo se puede desde tu app."
+      }
+      confirmLabel={blocking === "sexual" ? "Bloquear y borrar" : "Bloquear"}
+      destructive
+      onClose={() => setBlocking(null)}
+      onConfirm={blockNumber}
+    />
     <DropdownMenu>
       <DropdownMenuTrigger className={wa.iconButton} aria-label="Más opciones del chat" title="Más opciones">
         <MoreVertical className="size-5" />
@@ -346,8 +401,20 @@ const ChatMenu = ({
             <UserRound /> Ver ficha
           </DropdownMenuItem>
         )}
+        {role === "OWNER" && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className={ITEM} variant="destructive" disabled={busy !== null} onClick={() => setBlocking("plain")}>
+              <Ban /> Bloquear número
+            </DropdownMenuItem>
+            <DropdownMenuItem className={ITEM} variant="destructive" disabled={busy !== null} onClick={() => setBlocking("sexual")}>
+              <ShieldAlert /> Bloquear por contenido sexual
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
+    </>
   );
 };
 

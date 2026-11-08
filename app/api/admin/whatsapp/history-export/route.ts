@@ -40,6 +40,7 @@ const ERROR_STATUS: Record<ExportImportError["code"], number> = {
   no_messages: 422,
   group_chat: 422,
   ignored_number: 409,
+  blocked_number: 409,
 };
 
 /**

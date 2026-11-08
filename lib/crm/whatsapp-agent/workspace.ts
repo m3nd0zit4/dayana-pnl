@@ -238,6 +238,8 @@ export const listChats = async (input: {
   const rows = await prisma.conversation.findMany({
     where: {
       channel: "WHATSAPP",
+      // Un número bloqueado no aparece ni buscándolo (`whatsapp-blocked-numbers.ts`).
+      blockedAt: null,
       // Buscar busca en todos los chats, esté en la pestaña o el filtro que
       // esté (se abre en «Te toca»: buscar a alguien ahí casi nunca lo encontraría).
       AND: [
@@ -404,7 +406,7 @@ export type QueueCounts = { attention: number; seguimiento: number; mine: number
 
 /** Los números de las pestañas (y del menú, la portada y los pendientes del CRM). */
 export const queueCounts = async (): Promise<QueueCounts> => {
-  const base = { channel: "WHATSAPP" as const };
+  const base = { channel: "WHATSAPP" as const, blockedAt: null };
   const count = async (queue: ChatQueue) =>
     prisma.conversation.count({ where: { AND: [base, await queueWhere(queue)] } });
   const [attention, seguimiento, mine, ai, unread] = await Promise.all([

@@ -22,6 +22,7 @@ export const GET = withStaff("read", async ({ req }) => {
   const chats = await prisma.conversation.findMany({
     where: {
       channel: "WHATSAPP",
+      blockedAt: null,
       AND: [
         q
           ? {

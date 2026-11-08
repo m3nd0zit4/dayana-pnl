@@ -36,6 +36,7 @@ import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer }
 import { categoryGate, type CategoryGate } from "./category-gate";
 import { conversationSituation, situationText } from "./situation";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
+import { isBlockedNumber } from "../whatsapp-blocked-numbers";
 import { dossierText, getDossier, updateDossier, type Dossier } from "./dossier";
 import { olderSnippets } from "./context";
 import { decideRoute, maxPerDayFor, strictest, type RouteDecision } from "./route";
@@ -1423,6 +1424,10 @@ const gate = async (
 
   const conversation = await loadConversation(conversationId);
   if (!conversation) return { skip: true, reason: "not_found" };
+  // Número bloqueado (WhatsApp de Dayana, contenido sexual o CRM): nunca, ni con «responde siempre».
+  if (await isBlockedNumber(conversation.externalThreadId)) {
+    return { skip: true, reason: "blocked_number" };
+  }
   const mode = route.mode;
   if (mode === "MANUAL") return { skip: true, reason: route.skip ?? "manual" };
   if (conversation.priorityAt && !always) return { skip: true, reason: "favorite" };

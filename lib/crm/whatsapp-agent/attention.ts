@@ -73,6 +73,7 @@ export const attentionWhere = async (): Promise<Prisma.ConversationWhereInput> =
   const enabled = await isClassifyEnabled();
   return {
     channel: "WHATSAPP",
+    blockedAt: null,
     OR: [
       { aiRuns: { some: { status: "AWAITING_APPROVAL" } } },
       {

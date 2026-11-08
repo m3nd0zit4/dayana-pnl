@@ -438,6 +438,8 @@ const buildContactWhere = (filters: ContactSearchFilters): Prisma.ContactWhereIn
   const q = (filters.q ?? "").trim();
   const and: Prisma.ContactWhereInput[] = [
     { NOT: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } } },
+    // Número bloqueado en WhatsApp: oculto (sus pagos siguen en Pagos).
+    { blockedAt: null },
   ];
 
   if (q) {

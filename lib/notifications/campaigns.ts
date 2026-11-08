@@ -34,8 +34,8 @@ export type CampaignContactRow = Pick<
 
 const audienceWhere = (audience: NotificationAudience) =>
   audience === "MARKETING_CONSENT"
-    ? { consentMarketingAt: { not: null } }
-    : {};
+    ? { consentMarketingAt: { not: null }, blockedAt: null }
+    : { blockedAt: null };
 
 /** El tamaño de la audiencia sin materializarla. */
 export const countCampaignAudience = (audience: NotificationAudience) =>
