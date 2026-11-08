@@ -271,6 +271,15 @@ const calendarSummary: Summarizer = (input) => {
 };
 
 const SUMMARIZERS: Record<string, Summarizer> = {
+  call_owner: (input) => {
+    const lines: ApprovalLine[] = [];
+    push(lines, "Te dirá", str(input.message) && truncate(str(input.message)!));
+    return {
+      recipient: "Tu celular",
+      lines,
+      note: "Suena tu teléfono; lo que respondas llega aquí como mensaje y nada se hace sin tu toque.",
+    };
+  },
   send_whatsapp_to_contact: (input, ctx) => {
     const lines: ApprovalLine[] = [];
     push(lines, "Mensaje", str(input.text) && truncate(str(input.text)!));

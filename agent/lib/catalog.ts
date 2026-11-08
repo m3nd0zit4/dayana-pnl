@@ -139,6 +139,8 @@ export const TOOL_CATALOG = {
   get_contact: { access: "read", agents: ALL, label: "Ver contacto" },
   memory: { access: "edit", agents: ALL, label: "Memoria", mcp: false },
   message_owner: { access: "execute", agents: ALL, label: "Escribirle a Dayana" },
+  send_owner_voice_note: { access: "execute", agents: ALL, label: "Nota de voz a Dayana" },
+  call_owner: { access: "execute", agents: ALL, label: "Llamar a Dayana" },
   crm_stats: { access: "read", agents: ["auto", "ventas", "whatsapp", "talleres"], label: "Estadísticas" },
   dashboard_stats: { access: "read", agents: ["auto", "ventas"], label: "Resumen del panel" },
   pending_tasks: { access: "read", agents: ["auto", "ventas", "whatsapp"], label: "Pendientes" },

@@ -252,5 +252,7 @@ export const useSpeechToText = (onTranscript: (text: string) => void) => {
 
   useEffect(() => stop, [stop]);
 
-  return { isSupported, isRecording, isRequesting, language, setLanguage, toggle, stop, bands, error };
+  // `start` también lo usa el modo voz, que vuelve a abrir el micrófono solo
+  // cuando el asistente termina de hablar.
+  return { isSupported, isRecording, isRequesting, language, setLanguage, toggle, start, stop, bands, error };
 };

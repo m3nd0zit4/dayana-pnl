@@ -4,10 +4,20 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { UserContent } from "ai";
 import { defaultMessageReducer, type HandleMessageStreamEvent } from "eve/client";
 import { useEveAgent, type EveMessage } from "eve/react";
-import { Check, ChevronDown, ChevronsLeftRight, Lightbulb, Mic, Paperclip, Send, Square, UserRound, X } from "lucide-react";
+import { AudioLines, Check, ChevronDown, ChevronsLeftRight, Lightbulb, Mic, Paperclip, Send, Square, UserRound, X } from "lucide-react";
 import type { AgentId } from "@/agent/lib/catalog";
 import { agentPlaceholder } from "@/lib/agent-ui/agents";
 import { isApprovalPart } from "@/lib/agent-ui/approval";
+import { summarizeApproval } from "@/lib/agent-ui/approval-summary";
+import {
+  lastAssistantText,
+  matchSpokenOption,
+  nextVoiceAction,
+  voicePhase,
+  VOICE_APPROVAL_COUNTDOWN_S,
+  VOICE_SILENCE_MS,
+} from "@/lib/agent-ui/voice-mode";
+import { spokenApprovalPrompt, spokenDecision, toSpeechText } from "@/lib/voice/speech-text";
 import { describeAgentError, lastFailureMessage } from "@/lib/agent-ui/errors";
 import { collectNames } from "@/lib/agent-ui/refs";
 import { withProxiedInputs } from "@/lib/agent-ui/proxied-input";
@@ -55,6 +65,8 @@ import {
 } from "./thread-store";
 import type { AgentMessageSeed } from "./AgentMessageParam";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
+import { useSpeechSynthesis } from "./use-speech-synthesis";
+import { VoiceModeBar } from "./VoiceModeBar";
 import { VoiceBars } from "./VoiceBars";
 
 const newThreadId = () => crypto.randomUUID();
@@ -231,7 +243,10 @@ export const AgentPanelSession = ({
   onTitleChange,
   onRemoteUpdate,
   onPickAgent,
+  startInVoice,
 }: {
+  /** Esta conversación nace en modo voz (botón «Modo voz» de la pastilla del teléfono). */
+  startInVoice?: boolean;
   threadId: string;
   agent: AgentId;
   seedMessage?: string;
@@ -275,9 +290,26 @@ export const AgentPanelSession = ({
   // after it and replaced wholesale on every recognition event (interim included),
   // rather than accumulated, so partial words correct themselves as you speak.
   const dictationBaseRef = useRef("");
-  const stt = useSpeechToText((text) =>
-    setInput(dictationBaseRef.current ? `${dictationBaseRef.current} ${text}` : text),
-  );
+  // Modo voz: lo que dice va a `voiceHeard` (no a la caja) y se manda solo
+  // tras un silencio; la respuesta del asistente se lee en voz alta.
+  const [voiceMode, setVoiceMode] = useState(false);
+  const voiceModeRef = useRef(false);
+  const [voicePaused, setVoicePaused] = useState(false);
+  const [voiceHeard, setVoiceHeard] = useState("");
+  const voiceHeardRef = useRef("");
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const finalizeRef = useRef<() => void>(() => {});
+  const stt = useSpeechToText((text) => {
+    if (voiceModeRef.current) {
+      voiceHeardRef.current = text;
+      setVoiceHeard(text);
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = setTimeout(() => finalizeRef.current(), VOICE_SILENCE_MS);
+      return;
+    }
+    setInput(dictationBaseRef.current ? `${dictationBaseRef.current} ${text}` : text);
+  });
+  const tts = useSpeechSynthesis();
   const handleMicToggle = () => {
     if (!stt.isRecording) dictationBaseRef.current = input;
     stt.toggle();
@@ -527,13 +559,188 @@ export const AgentPanelSession = ({
     : null;
   const isEmpty = !opener && pastItems.length === 0 && agent.data.messages.length === 0 && !isError;
 
+  // ── Modo voz ──────────────────────────────────────────────────────────
+  // Lo ya leído en voz alta (o que ya estaba en pantalla al encender el modo).
+  const [spoken, setSpoken] = useState<ReadonlySet<string>>(() => new Set());
+  const markSpoken = (...ids: (string | null | undefined)[]) =>
+    setSpoken((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) if (id) next.add(id);
+      return next;
+    });
+  const [confirming, setConfirming] = useState<{ requestId: string; title: string; endsAt: number } | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+  const lastReply = useMemo(() => lastAssistantText(agent.data.messages), [agent.data.messages]);
+  const replyForVoice = isError && errorReason ? { id: `error-${agent.events.length}`, text: errorReason } : lastReply;
+  const pendingRequest = pendingPart?.toolMetadata?.eve?.inputRequest;
+  const pendingVoiceId = pendingPart && pendingRequest ? `pending-${pendingPart.toolCallId}` : null;
+  // La cuenta atrás solo vale mientras esa misma tarjeta espera (un toque en ella la termina).
+  const activeConfirm = confirming && pendingRequest?.requestId === confirming.requestId ? confirming : null;
+
+  const stopVoice = () => {
+    voiceModeRef.current = false;
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    voiceHeardRef.current = "";
+    setVoiceHeard("");
+    setConfirming(null);
+    setVoiceMode(false);
+    setVoicePaused(false);
+    tts.cancel();
+    stt.stop();
+  };
+
+  const startVoice = () => {
+    // Dentro del toque: desbloquea la voz en iPhone y pide el micrófono.
+    tts.unlock();
+    // Lo que ya estaba en pantalla no se lee: solo lo que llegue de aquí en adelante.
+    markSpoken(replyForVoice?.id, pendingVoiceId);
+    if (stt.isRecording) stt.stop();
+    setInput("");
+    voiceModeRef.current = true;
+    setVoiceMode(true);
+    setVoicePaused(false);
+    void stt.start();
+  };
+
+  const voiceSay = async (text: string) => {
+    if (!voiceModeRef.current) return;
+    await tts.speak(text);
+  };
+
+  // Lo dicho mientras el stream del turno anterior sigue abierto.
+  const [queuedVoice, setQueuedVoice] = useState<string | null>(null);
+
+  /** Ella terminó de hablar (silencio o botón): se decide qué hacer con lo dicho. */
+  const finalizeUtterance = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    const text = voiceHeardRef.current.trim();
+    voiceHeardRef.current = "";
+    setVoiceHeard("");
+    stt.stop();
+    if (!voiceModeRef.current || !text) return;
+    if (pendingPart && pendingRequest?.requestId) {
+      if (isApprovalPart(pendingPart)) {
+        const decision = spokenDecision(text);
+        if (decision === "approve") {
+          // Un «sí» hablado no aprueba solo: cuenta atrás en pantalla, cancelable.
+          const summary = summarizeApproval(pendingPart.toolName, "input" in pendingPart ? pendingPart.input : undefined, { names });
+          setNow(Date.now());
+          setConfirming({ requestId: pendingRequest.requestId, title: summary.title, endsAt: Date.now() + VOICE_APPROVAL_COUNTDOWN_S * 1000 });
+        } else if (decision === "deny") {
+          handleRespond(pendingRequest.requestId, { optionId: "deny" });
+          void voiceSay("Listo, no lo hago.");
+        } else {
+          void voiceSay("No te entendí. Di sí o no, o toca Aprobar en la pantalla.");
+        }
+        return;
+      }
+      const optionId = matchSpokenOption(text, pendingRequest.options ?? []);
+      if (optionId) handleRespond(pendingRequest.requestId, { optionId });
+      else if (pendingRequest.allowFreeform || !pendingRequest.options?.length) handleRespond(pendingRequest.requestId, { text });
+      else void voiceSay("No te entendí cuál. Dime el número de la opción o tócala en la pantalla.");
+      return;
+    }
+    // El stream del turno anterior puede seguir abierto unos segundos (la caja
+    // de texto también espera): lo dicho queda en cola y sale al cerrarse.
+    if (isBusy) setQueuedVoice(text);
+    else void handleSubmit({ text, files: [] }).catch(() => {});
+  };
+  useEffect(() => {
+    finalizeRef.current = finalizeUtterance;
+  });
+  useEffect(() => {
+    if (!queuedVoice || isBusy) return;
+    const text = queuedVoice;
+    setQueuedVoice(null);
+    if (voiceModeRef.current) void handleSubmit({ text, files: [] }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queuedVoice, isBusy]);
+
+  // El motor de dictado se cerró solo (el teléfono corta tras un silencio): lo dicho se manda.
+  const wasRecordingRef = useRef(false);
+  useEffect(() => {
+    const was = wasRecordingRef.current;
+    wasRecordingRef.current = stt.isRecording;
+    if (was && !stt.isRecording && voiceModeRef.current && voiceHeardRef.current.trim()) finalizeRef.current();
+  }, [stt.isRecording]);
+
+  // Un error del micrófono (permiso negado, sin red) pausa el modo voz en vez
+  // de reintentar en bucle; «Hablar» lo limpia (`stt.start` borra el error).
+  const voiceError = voiceMode ? stt.error : null;
+  const effectivePaused = voicePaused || (voiceError !== null && !stt.isRecording);
+
+  // eve deja el stream abierto ~10 s después de `turn.completed`: la respuesta
+  // se lee en cuanto el turno termina, no cuando se cierra el stream.
+  const turnDone = lastEventType === "turn.completed" || lastEventType === "session.waiting";
+  const voiceInputs = {
+    enabled: voiceMode,
+    busy: agent.status === "submitted" || (agent.status === "streaming" && !turnDone) || queuedVoice !== null,
+    speaking: tts.isSpeaking,
+    listening: stt.isRecording || stt.isRequesting,
+    confirming: activeConfirm !== null,
+    paused: effectivePaused,
+    unspokenReplyId: replyForVoice && !spoken.has(replyForVoice.id) ? replyForVoice.id : null,
+    unspokenPendingId: pendingVoiceId && !spoken.has(pendingVoiceId) ? pendingVoiceId : null,
+  };
+  const phase = voicePhase(voiceInputs);
+  const voiceAction = nextVoiceAction(voiceInputs);
+  const voiceActionKey = `${voiceAction.type}:${"id" in voiceAction ? voiceAction.id : ""}`;
+  useEffect(() => {
+    if (voiceAction.type === "stop-listening") {
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      stt.stop();
+    } else if (voiceAction.type === "listen") {
+      void stt.start();
+    } else if (voiceAction.type === "speak-reply" && replyForVoice) {
+      markSpoken(voiceAction.id);
+      void voiceSay(toSpeechText(replyForVoice.text, { maxChars: 700 }));
+    } else if (voiceAction.type === "speak-pending" && pendingPart && pendingRequest) {
+      markSpoken(voiceAction.id);
+      if (isApprovalPart(pendingPart)) {
+        const summary = summarizeApproval(pendingPart.toolName, "input" in pendingPart ? pendingPart.input : undefined, { names });
+        void voiceSay(spokenApprovalPrompt(summary));
+      } else {
+        const options = (pendingRequest.options ?? []).map((o, i) => `${i + 1}, ${o.label ?? o.id}`).join(". ");
+        void voiceSay(`${toSpeechText(pendingRequest.prompt ?? "", { maxChars: 300 })}${options ? ` Opciones: ${options}.` : ""}`);
+      }
+    }
+    // Se decide otra vez en cada cambio de estado; cada acción corre una vez por clave.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceActionKey]);
+
+  // Cuenta atrás de la aprobación hablada.
+  useEffect(() => {
+    if (!activeConfirm) return;
+    const t = setInterval(() => {
+      const at = Date.now();
+      setNow(at);
+      if (at >= activeConfirm.endsAt) {
+        setConfirming(null);
+        handleRespond(activeConfirm.requestId, { optionId: "approve" });
+      }
+    }, 250);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConfirm?.requestId, activeConfirm?.endsAt]);
+
+  useEffect(() => {
+    // Abierto desde el botón «Modo voz» de la pastilla del teléfono.
+    if (startInVoice) startVoice();
+    return () => {
+      voiceModeRef.current = false;
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    };
+    // Solo al montar esta conversación.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Another device continued this thread (the sync pulled more events than
   // this session holds): reload it from the cache, the same remount as
   // switching threads, but only while idle: never mid-turn, with an
   // approval waiting or while dictating. What is typed in the box is kept.
   const threadsVersion = useThreadsVersion();
   const sessionEventCount = history.length + agent.events.length;
-  const idle = !isBusy && !pendingPart && !retrying && !stt.isRecording;
+  const idle = !isBusy && !pendingPart && !retrying && !stt.isRecording && !voiceMode;
   const inputRef = useRef(input);
   useEffect(() => {
     inputRef.current = input;
@@ -613,6 +820,46 @@ export const AgentPanelSession = ({
             <SubPanelContent panel={subPanel} onInsertText={insertText} />
           </div>
         )}
+        {voiceMode ? (
+          <VoiceModeBar
+            phase={phase}
+            heard={voiceHeard}
+            bands={stt.bands}
+            error={voiceError}
+            confirm={
+              activeConfirm
+                ? { title: activeConfirm.title, secondsLeft: Math.max(1, Math.ceil((activeConfirm.endsAt - now) / 1000)) }
+                : null
+            }
+            onInterrupt={() => {
+              tts.cancel();
+              setVoicePaused(false);
+            }}
+            onTogglePause={() => {
+              if (effectivePaused) {
+                setVoicePaused(false);
+                void stt.start();
+              } else {
+                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+                voiceHeardRef.current = "";
+                setVoiceHeard("");
+                setVoicePaused(true);
+                stt.stop();
+              }
+            }}
+            onSendNow={() => finalizeRef.current()}
+            onExit={stopVoice}
+            onApproveNow={() => {
+              if (!activeConfirm) return;
+              setConfirming(null);
+              handleRespond(activeConfirm.requestId, { optionId: "approve" });
+            }}
+            onCancelConfirm={() => {
+              setConfirming(null);
+              void voiceSay("Cancelado. Queda esperando tu aprobación en la pantalla.");
+            }}
+          />
+        ) : (
         <PromptInput
           onSubmit={(message) => void handleSubmit(message).catch(() => {})}
           onError={(err) => console.error(err)}
@@ -672,6 +919,17 @@ export const AgentPanelSession = ({
                 </PromptInputActionMenuContent>
               </PromptInputActionMenu>
             )}
+            {stt.isSupported && tts.isSupported && !stt.isRecording && (
+              <PromptInputButton
+                type="button"
+                tooltip="Modo voz: hablas y el asistente te responde en voz alta"
+                aria-label="Modo voz"
+                onClick={startVoice}
+                data-testid="voice-mode-toggle"
+              >
+                <AudioLines className="size-4" />
+              </PromptInputButton>
+            )}
             {stt.isSupported && (
               <ButtonGroup>
                 <PromptInputButton
@@ -728,6 +986,7 @@ export const AgentPanelSession = ({
             <Send className="size-4" />
           </PromptInputSubmit>
         </PromptInput>
+        )}
       </div>
     </div>
   );
@@ -745,6 +1004,8 @@ type PanelThread = {
   rev?: number;
   /** The box's text carried over that remount. */
   draft?: string;
+  /** Started from the phone pill's «Modo voz»: the session opens listening. */
+  voice?: boolean;
 };
 
 const freshThread = (agent: AgentId): PanelThread => ({ id: newThreadId(), title: DEFAULT_THREAD_TITLE, agent });
@@ -790,8 +1051,9 @@ const AgentPanel = () => {
         seedFiles: pendingAgentAction.files,
       });
     } else if (pendingAgentAction.type === "new") {
-      if (!(pendingAgentAction.keepIfSame && thread.agent === pendingAgentAction.agent)) {
-        setThread(freshThread(pendingAgentAction.agent));
+      const voice = pendingAgentAction.voice === true;
+      if (voice || !(pendingAgentAction.keepIfSame && thread.agent === pendingAgentAction.agent)) {
+        setThread({ ...freshThread(pendingAgentAction.agent), voice });
       }
     } else if (pendingAgentAction.type === "opener") {
       const { seed } = pendingAgentAction;
@@ -898,6 +1160,7 @@ const AgentPanel = () => {
       onTitleChange={setTitle}
       onRemoteUpdate={reloadFromCache}
       onPickAgent={isMobile ? startNewThread : undefined}
+      startInVoice={thread.voice}
     />
   );
 

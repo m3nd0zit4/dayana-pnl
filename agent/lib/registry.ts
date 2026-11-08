@@ -38,6 +38,8 @@ import listWorkshopEditions from "@/agent/lib/tools/list_workshop_editions";
 import listWorkshopEnrollees from "@/agent/lib/tools/list_workshop_enrollees";
 import memory from "@/agent/lib/tools/memory";
 import messageOwner from "@/agent/lib/tools/message_owner";
+import callOwner from "@/agent/lib/tools/call_owner";
+import sendOwnerVoiceNote from "@/agent/lib/tools/send_owner_voice_note";
 import pendingTasks from "@/agent/lib/tools/pending_tasks";
 import prepareCustomerWhatsappMessage from "@/agent/lib/tools/prepare_customer_whatsapp_message";
 import queryAuditLog from "@/agent/lib/tools/query_audit_log";
@@ -114,6 +116,8 @@ export const TOOL_DEFINITIONS = {
   list_workshop_enrollees: listWorkshopEnrollees,
   memory: memory,
   message_owner: messageOwner,
+  send_owner_voice_note: sendOwnerVoiceNote,
+  call_owner: callOwner,
   pending_tasks: pendingTasks,
   prepare_customer_whatsapp_message: prepareCustomerWhatsappMessage,
   query_audit_log: queryAuditLog,

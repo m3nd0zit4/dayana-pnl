@@ -4,6 +4,8 @@ import { prisma } from "@/lib/db";
 import { getPendientes } from "@/lib/crm/pendientes";
 import { getSiteSettingBoolean } from "@/lib/crm/site-settings";
 import { emitPlatformNotification } from "@/lib/notifications/platform/emit";
+import { getAgentVoiceSettings } from "@/lib/voice/settings";
+import { sendOwnerVoiceNote } from "@/lib/voice/owner-voice-note";
 
 /**
  * The panel assistant starting a conversation with Dayana. A message becomes
@@ -43,7 +45,29 @@ export const startOwnerConversation = async (input: {
     metadata: { agent: input.agent, message, source: input.source },
     staff: "ALL",
   });
+  await alsoAsVoiceNote(key, input);
   return { key, notificationId, href };
+};
+
+/**
+ * Si Dayana lo pidió en Ajustes («también como nota de voz»), el mismo mensaje
+ * le llega leído a su WhatsApp. Nunca para la respuesta de una llamada (ya
+ * estaba al teléfono). Un fallo aquí no tumba el aviso de la campana.
+ */
+const alsoAsVoiceNote = async (key: string, input: { title: string; message: string; source: string }) => {
+  if (input.source.startsWith("call:")) return;
+  try {
+    const voice = await getAgentVoiceSettings();
+    if (!voice.voiceNotes || !voice.voiceNotesProactive) return;
+    const result = await sendOwnerVoiceNote({
+      text: `${input.title.trim()}. ${input.message.trim()}`,
+      reason: "proactive",
+      source: `aviso:${key}`,
+    });
+    if (!result.sent && result.reason !== "quiet_hours") console.warn(`[agent-messages] nota de voz no enviada: ${result.detail}`);
+  } catch (err) {
+    console.warn("[agent-messages] nota de voz falló", err);
+  }
 };
 
 /** The message behind a notification, only for a staff member who received it. */

@@ -14,6 +14,9 @@ const NO_APPROVAL_WRITES = new Set<ToolName>([
   // A note to Dayana herself (bell + push), never to a client; an approval card
   // would land on the very person it is addressed to.
   "message_owner",
+  // The same note read aloud, to her own phone (the number is fixed in
+  // settings, never chosen by the model), rate-limited per hour and day.
+  "send_owner_voice_note",
 ]);
 
 describe("tool catalog", () => {

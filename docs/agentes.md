@@ -16,6 +16,12 @@ En el panel se elige con quién hablar (menú arriba). Cada conversación queda 
 su agente. «Asistente» delega en el especialista cuando hace falta; la
 aprobación de lo que el especialista quiera hacer llega igual al panel, una vez.
 
+## Voz
+
+El panel tiene «Modo voz» (habla y escucha con la voz del navegador, gratis) y
+el asistente puede mandarle notas de voz a Dayana por WhatsApp y llamarla
+(apagado por defecto). Ver `docs/voz-del-asistente.md`.
+
 ## Cómo está hecho
 
 - `agent/lib/catalog.ts` — la única lista: cada herramienta con su nivel

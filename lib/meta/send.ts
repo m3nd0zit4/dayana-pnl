@@ -52,6 +52,15 @@ export type SendAttachment = {
   filename: string;
   /** Un sticker se envía como sticker (sin pie), no como imagen. */
   kind?: "sticker";
+  /**
+   * Los bytes ya en memoria (una nota de voz generada en el servidor): no se
+   * bajan de Blob. Con ellos `url` puede ir vacía.
+   */
+  bytes?: Uint8Array;
+  /** Audio Ogg/Opus que WhatsApp debe mostrar como nota de voz (`voice: true`). */
+  voice?: boolean;
+  /** Lo que dice el audio, para que el chat del CRM lo muestre como a las notas recibidas. */
+  transcript?: string;
 };
 
 export type SendInput = {
@@ -226,8 +235,17 @@ const sendWhatsApp = async (
     // don't take one either.
     const caption =
       kind !== "audio" && kind !== "sticker" && input.body ? input.body : undefined;
-    const bytes = await fetchAttachmentBytes(input.attachment);
+    const own = input.attachment.bytes;
+    const bytes = own
+      ? (own.buffer.slice(own.byteOffset, own.byteOffset + own.byteLength) as ArrayBuffer)
+      : await fetchAttachmentBytes(input.attachment);
     const mediaId = await uploadWhatsAppMedia(bytes, input.attachment.mimeType, credentials);
+    const media = buildMediaPayload({
+      kind,
+      media: { id: mediaId },
+      caption,
+      filename: input.attachment.filename,
+    });
     const res = await graphPost<GraphMessageResponse>(
       `${credentials.accountId}/messages`,
       {
@@ -236,12 +254,7 @@ const sendWhatsApp = async (
         ...target,
         ...context,
         type: kind,
-        [kind]: buildMediaPayload({
-          kind,
-          media: { id: mediaId },
-          caption,
-          filename: input.attachment.filename,
-        }),
+        [kind]: kind === "audio" && input.attachment.voice ? { ...media, voice: true } : media,
       },
       credentials
     );
@@ -497,9 +510,10 @@ export const sendMetaMessage = async (
             input.attachment.kind === "sticker"
               ? "sticker"
               : mediaKindFor(input.attachment.mimeType),
-          url: input.attachment.url,
+          url: input.attachment.url || null,
           mimeType: input.attachment.mimeType,
           caption: input.body || null,
+          ...(input.attachment.transcript ? { transcript: input.attachment.transcript } : {}),
         },
       ]
     : sentImage

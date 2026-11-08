@@ -36,7 +36,7 @@ export type PendingAgentAction =
   | { type: "message"; value: string; files?: File[]; agent?: AgentId }
   | { type: "thread"; value: string }
   /** A fresh conversation with this agent; `keepIfSame` keeps the open one if it's already that agent's. */
-  | { type: "new"; agent: AgentId; keepIfSame?: boolean }
+  | { type: "new"; agent: AgentId; keepIfSame?: boolean; voice?: boolean }
   /** The assistant started this conversation (`?agentMessage=<key>`): reopen its thread, or start it with that message. */
   | { type: "opener"; seed: AgentMessageSeed };
 
@@ -76,7 +76,8 @@ type CrmContextValue = {
   /** Abre el panel en una conversación nueva que empieza con este mensaje del asistente (p. ej. desde un chat de WhatsApp). */
   openAgentMessage: (seed: AgentMessageSeed) => void;
   /** Abre el panel en una conversación nueva con ese agente (con `keepIfSame`, deja la abierta si ya es suya). */
-  startAgentConversation: (agent: AgentId, options?: { keepIfSame?: boolean }) => void;
+  /** `voice`: the new conversation opens in «modo voz» (the phone pill's button). */
+  startAgentConversation: (agent: AgentId, options?: { keepIfSame?: boolean; voice?: boolean }) => void;
   /** Abre el panel del agente sobre un hilo existente (p.ej. desde la lista del sidebar). */
   openAgentThread: (threadId: string) => void;
   toast: {
@@ -151,8 +152,8 @@ const CrmProvider = ({
     setAgentPanelOpen(true);
   }, []);
 
-  const startAgentConversation = useCallback((agent: AgentId, options?: { keepIfSame?: boolean }) => {
-    setPendingAgentAction({ type: "new", agent, keepIfSame: options?.keepIfSame });
+  const startAgentConversation = useCallback((agent: AgentId, options?: { keepIfSame?: boolean; voice?: boolean }) => {
+    setPendingAgentAction({ type: "new", agent, keepIfSame: options?.keepIfSame, voice: options?.voice });
     setAgentPanelOpen(true);
   }, []);
 

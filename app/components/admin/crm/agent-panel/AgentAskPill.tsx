@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Check, ChevronDown, Mic, Paperclip, Send, Square, X } from "lucide-react";
+import { AudioLines, Check, ChevronDown, Mic, Paperclip, Send, Square, X } from "lucide-react";
 import { useIsMobile } from "@/app/hooks/use-mobile";
 import { Button } from "@/app/components/ui/button";
 import { ButtonGroup, ButtonGroupSeparator } from "@/app/components/ui/button-group";
@@ -18,6 +18,7 @@ import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { AgentChip, rememberAgentChoice, shortAgentPlaceholder, useAgentChoice } from "./AgentPicker";
 import { STT_LANGUAGES, useSpeechToText } from "./use-speech-to-text";
 import { VoiceBars } from "./VoiceBars";
+import { unlockSpeechSynthesis } from "./voice-mode-request";
 
 /**
  * Global floating "Ask anything" pill for mobile — the phone-width
@@ -31,7 +32,7 @@ import { VoiceBars } from "./VoiceBars";
  */
 const AgentAskPill = () => {
   const isMobile = useIsMobile();
-  const { agentEnabled, agentPanelOpen, askAgent } = useCrm();
+  const { agentEnabled, agentPanelOpen, askAgent, startAgentConversation } = useCrm();
   const agent = useAgentChoice();
   const [value, setValue] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -167,16 +168,37 @@ const AgentAskPill = () => {
             )}
           </ButtonGroup>
         )}
-        <Button
-          type="submit"
-          size="icon"
-          variant="ghost"
-          className="size-10 shrink-0 rounded-full"
-          disabled={!value.trim() && files.length === 0}
-          aria-label="Preguntar"
-        >
-          <Send className="size-4" />
-        </Button>
+        {/* Con la caja vacía, el botón de enviar no sirve: ahí va el modo voz
+            (hablar y que el asistente conteste en voz alta), como en los
+            asistentes de voz del teléfono. */}
+        {!value.trim() && files.length === 0 && !stt.isRecording && stt.isSupported ? (
+          <Button
+            type="button"
+            size="icon"
+            className="size-10 shrink-0 rounded-full"
+            aria-label="Modo voz"
+            title="Modo voz: hablas y el asistente te responde en voz alta"
+            data-testid="pill-voice-mode"
+            onClick={() => {
+              // Dentro del toque: en iPhone la voz solo se desbloquea así.
+              unlockSpeechSynthesis();
+              startAgentConversation(agent, { voice: true });
+            }}
+          >
+            <AudioLines className="size-4" />
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            size="icon"
+            variant="ghost"
+            className="size-10 shrink-0 rounded-full"
+            disabled={!value.trim() && files.length === 0}
+            aria-label="Preguntar"
+          >
+            <Send className="size-4" />
+          </Button>
+        )}
       </form>
       {stt.error && <p className="mt-1.5 px-4 text-center text-xs text-destructive">{stt.error}</p>}
     </div>

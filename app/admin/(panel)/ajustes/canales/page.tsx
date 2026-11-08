@@ -1,4 +1,9 @@
 import AgentChannelsClient from "@/app/components/admin/crm/settings/AgentChannelsClient";
+import AgentVoiceSettingsCard from "@/app/components/admin/crm/settings/AgentVoiceSettingsCard";
+import { isCrmUiPreview } from "@/lib/auth/preview";
+import { providerFor } from "@/lib/voice/calls/providers";
+import { getAgentVoiceSettings } from "@/lib/voice/settings";
+import { DEFAULT_AGENT_VOICE } from "@/lib/voice/settings-rules";
 import WhatsAppSettingsLinkCard from "@/app/components/admin/whatsapp/settings/WhatsAppSettingsLinkCard";
 import { requireOwnerSettings } from "@/app/admin/(panel)/ajustes/owner-gate";
 import { isAgentChannelEnabled } from "@/lib/crm/agent-channels";
@@ -25,6 +30,8 @@ const Page = async () => {
       resolveWhatsAppCredentials(),
     ]);
   const whatsAppConfigured = whatsAppCredentials !== null;
+  const voice = isCrmUiPreview() ? DEFAULT_AGENT_VOICE : await getAgentVoiceSettings();
+  const callProviders = (["fake", "twilio", "whatsapp"] as const).map((id) => ({ id, missing: providerFor(id).missing() }));
 
   return (
     <>
@@ -53,6 +60,7 @@ const Page = async () => {
         },
       ]}
     />
+    <AgentVoiceSettingsCard initial={voice} providers={callProviders} />
     {/* Proveedor, saludo y todo lo demás de WhatsApp viven en su sección. */}
     <WhatsAppSettingsLinkCard />
     </>
