@@ -1,5 +1,6 @@
-// Sin `server-only`: el agente del panel (eve, `agent/lib/tools/crm_stats.ts`) también
-// lo importa, y fuera de Next ese paquete lanza al cargarse.
+// Sin `server-only`: la herramienta `crm_stats` (`lib/crm-tools/tools/crm_stats.ts`)
+// también lo importa, y corre fuera de Next (MCP por stdio, scripts), donde ese
+// paquete lanza al cargarse.
 
 import { prisma } from "@/lib/db";
 import { diagnosticSourceLabel } from "@/lib/crm/diagnostic-answers";
@@ -32,9 +33,10 @@ import type { StatsRange } from "./types";
  * diagnóstico acabó en venta.
  */
 // The purchase condition is written inline in the query below, not as a
-// nested `Prisma.sql` fragment: the panel agent (eve) loads this module in a
-// bundle whose Prisma copy is not the client's, and a fragment from another
-// copy reaches `$queryRaw` as a JSON value (Postgres `22P02`).
+// nested `Prisma.sql` fragment: the old panel agent (eve, removed 2026-11)
+// loaded this module in a bundle whose Prisma copy was not the client's, and a
+// fragment from another copy reaches `$queryRaw` as a JSON value (Postgres
+// `22P02`). Kept inline: it costs nothing and any future bundler can repeat it.
 
 type StepsRow = {
   started: bigint;

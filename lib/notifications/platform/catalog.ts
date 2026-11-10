@@ -550,21 +550,21 @@ export const NOTIFICATION_CATALOG: Record<
     defaultEmail: false,
     roles: WRITE_ROLES,
   },
-  // Lo que pasa a la hora de una sesión con Meet: suena en el celular. Sin
-  // correo: cuando se lea, la sesión ya empezó.
-  // El asistente del panel empieza una conversación: la notificación abre el
-  // panel con su mensaje y Dayana le responde ahí. Suena (push) porque pide algo.
+  // Sin uso desde 2026-11: el asistente del panel que empezaba conversaciones
+  // con Dayana se quitó. Queda en el enum (las filas viejas siguen leyéndose);
+  // sin roles no sale en las preferencias de nadie y nada lo emite.
   AGENT_MESSAGE: {
     label: "Mensaje del asistente",
-    description: "El asistente del panel te escribe para preguntarte o avisarte algo; ábrelo para responderle.",
+    description: "El asistente del panel te escribía para preguntarte o avisarte algo (ya no existe).",
     group: "Sistema y seguridad",
     defaultSeverity: "INFO",
     audience: "STAFF",
     defaultInApp: true,
     defaultEmail: false,
-    roles: OWNER_DEV,
-    immediate: true,
+    roles: [],
   },
+  // Lo que pasa a la hora de una sesión con Meet: suena en el celular. Sin
+  // correo: cuando se lea, la sesión ya empezó.
   WHATSAPP_SESSION_WAITING: {
     label: "WhatsApp: tus sesiones en Meet",
     description:

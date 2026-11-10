@@ -8,7 +8,6 @@ import {
   Send,
   MessageCircle,
   Settings2,
-  Sparkles,
   Users,
   UsersRound,
 } from "lucide-react";
@@ -42,7 +41,6 @@ const ITEMS = [
   { href: "/admin/whatsapp/envios", label: "Envíos", icon: Send },
   { href: "/admin/whatsapp/comunidades", label: "Comunidades", icon: UsersRound },
   { href: "/admin/whatsapp/plantillas", label: "Plantillas", icon: FileText },
-  { href: "/admin/whatsapp/asistente", label: "Hablar con la IA", icon: Sparkles, ownerOnly: true },
   { href: "/admin/whatsapp/ajustes", label: "Ajustes", icon: Settings2, ownerOnly: true },
 ] as const;
 

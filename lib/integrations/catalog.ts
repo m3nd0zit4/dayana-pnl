@@ -7,8 +7,7 @@ import type { IntegrationHealthId } from "@/lib/notifications/health";
  * exhaustivo, puro (sin Prisma, sin React), que agrupa y describe cada
  * conexión externa para que la pantalla de Ajustes > Integraciones no tenga
  * que decidir por su cuenta cómo se llama, en qué grupo va, o qué modelo de
- * autenticación usa. Los canales del agente (por dónde se le puede hablar,
- * no a qué llama) no viven aquí — ver `lib/crm/agent-channels.ts`.
+ * autenticación usa.
  *
  * Al agregar una integración: si es solo variables de entorno, añade su
  * entrada a `getIntegrationHealth()` (`lib/notifications/health.ts`) primero
@@ -48,7 +47,7 @@ export type IntegrationCatalogEntry = {
   authModel: IntegrationAuthModel;
   /**
    * `true` cuando el valor de entorno tiene una capa de override en base de
-   * datos por encima (ver `lib/notifications/*` y `lib/agent/*`/`lib/tiktok/*`
+   * datos por encima (ver `lib/notifications/*` y `lib/tiktok/*`
    * para dónde se resuelve cada una). Puramente informativo por ahora — nada
    * lee este campo todavía — para cuando la UI necesite distinguir "solo
    * entorno" de "entorno con override" sin repetir la lista a mano.
@@ -120,11 +119,5 @@ export const INTEGRATION_CATALOG: Record<IntegrationId, IntegrationCatalogEntry>
     label: "Base de datos",
     group: "Sistema",
     authModel: "static-env",
-  },
-  agent: {
-    label: "Asistente IA",
-    group: "Sistema",
-    authModel: "static-env",
-    overridable: true,
   },
 };

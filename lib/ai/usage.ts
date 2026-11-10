@@ -4,8 +4,8 @@ import { OPERATIONAL_TZ, getDateKeyInTz } from "@/lib/datetime/zoned-time";
  * Lo que gasta la IA, anotado en un solo sitio.
  *
  * Todas las llamadas a Gemini pasan por `geminiProvider()` (`./gemini.ts`):
- * las respuestas de WhatsApp, el asistente del panel, las fichas, las notas de
- * voz, la clasificación de chats, la revisión de fotos. Antes solo las
+ * las respuestas de WhatsApp, las fichas, las notas de voz, la clasificación
+ * de chats, la revisión de fotos. Antes solo las
  * respuestas de WhatsApp dejaban sus tokens (`whatsapp_ai_runs`), así que la
  * cuenta de lo que cuesta la IA se quedaba corta. Aquí cada respuesta de
  * Google suma sus tokens a una fila por día y modelo (`ai_usage_daily`), que
@@ -119,9 +119,10 @@ export const observeAiUsage = (url: string, res: Response, onUsage: (usage: AiUs
 
 /**
  * Suma el uso a la fila del día. Las importaciones son dinámicas a propósito:
- * `./gemini.ts` está en el grafo del agente del panel (eve), y un `import`
- * estático de `next/server` o de la base tumbaría ese arranque (ver
- * `lib/notifications/platform/emit.ts`).
+ * `./gemini.ts` está en el grafo de las herramientas del CRM
+ * (`lib/crm-tools`), que también corren fuera de Next (MCP por stdio,
+ * scripts): ahí un `import` estático de `next/server` no resuelve y tumba el
+ * arranque (ver `lib/notifications/platform/emit.ts`).
  */
 const writeAiUsage = async (usage: AiUsage, now: Date): Promise<void> => {
   const { prisma } = await import("@/lib/db");
@@ -145,7 +146,7 @@ export const recordAiUsageNow = (usage: AiUsage, now: Date = new Date()): Promis
 /**
  * Anota el uso sin bloquear. Dentro de una petición usa `after()`, para que
  * Vercel no congele la invocación antes de que se escriba; fuera de una
- * petición (crons, el agente del panel) la invocación ya es larga y se espera.
+ * petición (crons, scripts, MCP por stdio) la invocación ya es larga y se espera.
  * Sin base de datos configurada (vista previa, pruebas) no hace nada.
  */
 export const recordAiUsage = (usage: AiUsage): void => {

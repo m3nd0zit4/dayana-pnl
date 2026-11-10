@@ -1,5 +1,6 @@
-// Sin `server-only`, como `lib/crm/stats/*`: así el agente del panel puede
-// leer los costos el día que haga falta sin que el paquete lance al cargarse.
+// Sin `server-only`, como `lib/crm/stats/*`: así una herramienta del CRM
+// (MCP, CLI), que también corre fuera de Next, puede leer los costos el día
+// que haga falta sin que el paquete lance al cargarse.
 
 import { prisma } from "@/lib/db";
 import { getDateKeyInTz, getStartOfDayInTz } from "@/lib/datetime/zoned-time";

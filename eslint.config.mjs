@@ -12,8 +12,6 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // eve (CRM agent) dev/build artifacts — bundled output, not source.
-    ".eve/**",
     ".output/**",
     // Worktrees de git: copias completas del repo dentro del proyecto. Sin
     // esto ESLint lintea cada archivo dos veces y duplica cada error.

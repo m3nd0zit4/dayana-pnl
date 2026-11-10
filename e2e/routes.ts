@@ -199,7 +199,6 @@ export const CRM_ROUTES: CrmRoute[] = [
     tier: "auth",
     width: "narrow",
   },
-  { path: "/admin/ajustes/canales", name: "Ajustes · Canales", tier: "auth", width: "narrow" },
   { path: "/admin/ajustes/registro", name: "Ajustes · Registro", tier: "auth", width: "narrow" },
 ];
 

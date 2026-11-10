@@ -42,9 +42,6 @@ export const siteSettingsGroups: SettingsNavGroup[] = [
       // Un solo hub agrupado (Pagos / Redes sociales / Google / Sistema) en
       // vez de tres pantallas sin enlazar — ver lib/integrations/catalog.ts.
       { href: "/admin/ajustes/integraciones", label: "Integraciones" },
-      // Por dónde se puede hablar con el asistente, no a qué llama — ver
-      // lib/crm/agent-channels.ts.
-      { href: "/admin/ajustes/canales", label: "Canales del agente" },
       // Qué contesta la IA por WhatsApp y qué ha aprendido de Dayana.
       { href: "/admin/whatsapp/ajustes", label: "Asistente de WhatsApp" },
     ],

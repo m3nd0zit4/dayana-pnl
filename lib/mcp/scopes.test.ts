@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { TOOL_CATALOG, type ToolName } from "@/agent/lib/catalog";
+import { TOOL_CATALOG, type ToolName } from "@/lib/crm-tools/catalog";
 import {
   canUseTool,
   effectiveScopes,
@@ -77,10 +77,11 @@ describe("visibilidad de herramientas", () => {
     expect(visible).not.toContain("send_whatsapp_to_contact");
   });
 
-  test("todos los scopes = todo el catálogo menos la memoria del asistente", () => {
+  test("todos los scopes = todo el catálogo", () => {
     const all = visibleTools(["read", "edit", "execute"]);
-    expect(all).toHaveLength(names.length - 1);
+    expect(all).toHaveLength(names.length);
     expect(all).not.toContain("memory");
+    expect(all).not.toContain("message_owner");
   });
 
   test("sin scopes, nada", () => {

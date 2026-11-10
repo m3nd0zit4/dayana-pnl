@@ -255,6 +255,8 @@ enum NotificationEventType {
   LOGIN_SUCCEEDED
   STAFF_USER_CREATED
   AGENT_ACTION_EXECUTED
+  // SIN USO desde 2026-11: lo emitía el asistente del panel (quitado). Se deja
+  // en el enum para no hacer una migración destructiva; nada lo emite ya.
   AGENT_MESSAGE
   WHATSAPP_AI_ESCALATED
   WHATSAPP_AI_BOOKED
@@ -1026,6 +1028,7 @@ model StaffUser {
   pushSubscriptions        PushSubscription[]
   mcpAccessTokens          McpAccessToken[]
   mcpOAuthCodes            McpOAuthCode[]
+  // SIN USO desde 2026-11 (asistente del panel quitado); ver AgentMemory / AgentThread.
   agentMemories            AgentMemory[]
   agentThreads             AgentThread[]
   uiStates                 StaffUiState[]
@@ -2958,6 +2961,8 @@ model McpOAuthToken {
   @@map("mcp_oauth_tokens")
 }
 
+// SIN USO desde 2026-11: el asistente del panel se quitó y nada lee ni escribe
+// esta tabla. Se conserva (sin migración destructiva) con sus filas.
 /// Lo que el equipo le enseña al asistente del panel: preferencias, correcciones
 /// y reglas de trabajo («no me agendes los viernes», «los totales en COP»). Se
 /// inyecta en las instrucciones de cada conversación del agente indicado.
@@ -2976,6 +2981,8 @@ model AgentMemory {
   @@map("agent_memories")
 }
 
+// SIN USO desde 2026-11: el asistente del panel se quitó y nada lee ni escribe
+// esta tabla. Se conserva (sin migración destructiva) con sus filas.
 /// A conversation with the panel assistant, saved per staff user so it is the
 /// same on every device. `events` is eve's stream for the thread (what the
 /// panel replays to draw it); `session` is the eve session cursor that lets

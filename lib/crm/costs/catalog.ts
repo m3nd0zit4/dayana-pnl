@@ -88,7 +88,7 @@ export const COST_SERVICES: Record<CostServiceId, CostService> = {
   },
   gemini: {
     name: "Gemini (Google AI)",
-    what: "La inteligencia artificial: respuestas de WhatsApp, asistente del panel, notas de voz, fichas, clasificación de chats.",
+    what: "La inteligencia artificial: respuestas de WhatsApp, notas de voz, fichas, clasificación de chats, revisión de fotos.",
     billing: "Por uso: cada texto que lee y escribe.",
     billingUrl: "https://aistudio.google.com",
     source: "usage",

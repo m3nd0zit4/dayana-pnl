@@ -34,8 +34,10 @@ export type { CloseBy };
  *   su cuenta: sale al aprobarlo, cancelarlo o contestar ella.
  *
  * Importes estáticos a propósito: esto lo usan `run.ts`, `approvals.ts` y
- * `workspace.ts`, que se empaquetan también para el agente (eve no admite un
- * `import()` dinámico nuevo en ese árbol).
+ * `workspace.ts`, que
+ * también alcanzan las herramientas del CRM (MCP por stdio, scripts). Se
+ * escribió así porque el antiguo asistente del panel (eve) no admitía un
+ * `import()` dinámico nuevo en ese árbol; no hace falta cambiarlo.
  */
 
 /**

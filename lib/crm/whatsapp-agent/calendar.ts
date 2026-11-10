@@ -1,4 +1,4 @@
-import { resolveGoogleAccount } from "@/agent/lib/google";
+import { resolveGoogleAccount } from "@/lib/crm-tools/google";
 import { createEvent, listEvents, patchEventTime } from "@/lib/google/calendar";
 import { getSiteUrl } from "@/lib/site-url";
 import { zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";

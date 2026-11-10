@@ -1,17 +1,20 @@
 import crypto from "node:crypto";
 import { McpServer, type AuthInfo, type CallToolResult, type StandardSchemaWithJSON } from "@modelcontextprotocol/server";
-import type { ToolContext } from "eve/tools";
 import { createMcpHandler } from "mcp-handler";
-import { TOOL_CATALOG, type ToolName } from "@/agent/lib/catalog";
-import { toolDefinition } from "@/agent/lib/registry";
+import { TOOL_CATALOG, type ToolName } from "@/lib/crm-tools/catalog";
+import type { ToolContext } from "@/lib/crm-tools/define-tool";
+import { plainJson } from "@/lib/crm-tools/plain-json";
+import { toolDefinition } from "@/lib/crm-tools/registry";
 import { writeAuditLog } from "@/lib/crm/audit";
 import { sanitizeToolInput } from "./audit-input";
 import { canUseTool, visibleTools } from "./scopes";
 import type { McpCaller } from "./tokens";
 
 /**
- * El servidor MCP del CRM: las mismas herramientas que usan los agentes del
- * panel (`agent/lib/registry.ts`), filtradas por los scopes del que llama.
+ * El servidor MCP del CRM: las herramientas de `lib/crm-tools/registry.ts`,
+ * filtradas por los scopes del que llama. Es la única puerta de una IA al CRM
+ * (el asistente del panel se quitó en 2026-11); la CLI `bun run crm` habla
+ * con esta misma ruta.
  *
  * Se construye por petición (sin estado, sin Redis): así `tools/list` enseña
  * solo lo que ESTE token puede usar, y lo que no puede ni aparece.
@@ -29,37 +32,30 @@ export const MCP_INSTRUCTIONS = [
   "Todo lo que cambia datos queda en el registro de auditoría con el nombre de tu conexión.",
 ].join("\n");
 
-/** Lo mismo que la tool le da al modelo del panel, sin `display` (solo sirve para dibujar). */
+/** El resultado en JSON puro, sin `display` (bloques que dibujaba el panel del asistente). */
 const toPlain = (output: unknown): unknown => {
   if (output && typeof output === "object" && !Array.isArray(output) && "display" in output) {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { display, ...rest } = output as Record<string, unknown>;
     output = rest;
   }
-  return output === undefined ? null : JSON.parse(JSON.stringify(output));
+  return output === undefined ? null : plainJson(output);
 };
 
-/** El contexto que esperan las tools de eve, con la identidad del token (ver `agent/lib/guard.ts`). */
-const toolContext = (caller: McpCaller, name: string, signal?: AbortSignal): ToolContext => {
-  const unavailable = () => {
-    throw new Error("Esta herramienta necesita una conexión que no está disponible por MCP.");
-  };
-  return {
-    session: {
-      auth: {
-        current: {
-          principalId: caller.staffId,
-          attributes: { role: caller.role, channel: "mcp", tokenId: caller.tokenId },
-        },
+/** El contexto de las tools, con la identidad del token (ver `lib/crm-tools/guard.ts`). */
+const toolContext = (caller: McpCaller, name: string, signal?: AbortSignal): ToolContext => ({
+  session: {
+    auth: {
+      current: {
+        principalId: caller.staffId,
+        attributes: { role: caller.role, channel: "mcp", tokenId: caller.tokenId },
       },
     },
-    abortSignal: signal ?? new AbortController().signal,
-    callId: `mcp_${crypto.randomUUID()}`,
-    toolName: name,
-    getToken: unavailable,
-    requireAuth: unavailable,
-  } as unknown as ToolContext;
-};
+  },
+  abortSignal: signal ?? new AbortController().signal,
+  callId: `mcp_${crypto.randomUUID()}`,
+  toolName: name,
+});
 
 const errorResult = (message: string): CallToolResult => ({
   isError: true,

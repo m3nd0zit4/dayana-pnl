@@ -1,17 +1,24 @@
 # Servidor MCP del CRM
 
 `/api/mcp` expone las herramientas del CRM a cualquier cliente MCP: Claude Code,
-Claude Desktop, Cursor o el agente de otra persona. Son **las mismas
-herramientas que usan los agentes del panel** (`agent/lib/registry.ts`), con los
-mismos guardas de rol (`agent/lib/guard.ts`), filtradas por los permisos del
-token.
+Claude Desktop, Cursor, Codex o el agente de otra persona. **Es la única puerta
+de una IA al CRM**: el asistente que vivía dentro del panel (eve) se quitó en
+noviembre de 2026. Dentro del CRM solo queda la IA que contesta WhatsApp
+(`lib/crm/whatsapp-agent/`), que no usa estas herramientas.
+
+Las herramientas están en `lib/crm-tools/` (`registry.ts` las lista,
+`catalog.ts` dice el nivel de cada una), con los guardas de rol de
+`lib/crm-tools/guard.ts`, filtradas por los permisos del token. Para usarlas
+desde una terminal o un script sin cliente MCP está la [CLI](#cli-bun-run-crm).
 
 - **Transporte:** Streamable HTTP, sin estado (sin sesiones ni Redis). Lo sirve
   `mcp-handler` 2.3.0 sobre `@modelcontextprotocol/server` 2.4.0; responde a
   clientes de la especificación 2026-07-28 y a los de 2025.
 - **Código:** `app/api/mcp/route.ts` (ruta), `lib/mcp/tokens.ts` (tokens),
   `lib/mcp/scopes.ts` (permisos, puro), `lib/mcp/server.ts` (registro de
-  herramientas, ejecución, auditoría), `lib/mcp/oauth*.ts` (OAuth).
+  herramientas, ejecución, auditoría), `lib/mcp/oauth*.ts` (OAuth),
+  `lib/crm-tools/` (las herramientas: `catalog.ts`, `registry.ts`, `tools/*.ts`,
+  `define-tool.ts`), `scripts/crm-cli.ts` (la CLI).
 - **Autenticación:** `Authorization: Bearer dpnl_…` (token personal) o
   `Bearer dpat_…` (access token de OAuth, ver [Conectar con OAuth](#conectar-con-oauth-claudeai-y-otros)).
   Sin token, o con uno inválido, revocado o caducado: **401** con
@@ -28,7 +35,7 @@ el token puede usar; lo demás ni aparece.
 | Scope | Qué permite | OWNER | OPERATOR | READONLY | DEVELOPER |
 |---|---|:-:|:-:|:-:|:-:|
 | `read` | Consultar: contactos, pagos, chats, talleres, eventos, citas, estadísticas | ✓ | ✓ | ✓ | — |
-| `edit` | Cambiar datos que solo ve el equipo: contactos, borradores, talleres, la memoria del agente | ✓ | ✓ | — | — |
+| `edit` | Cambiar datos que solo ve el equipo: contactos, borradores, talleres | ✓ | ✓ | — | — |
 | `execute` | Lo que sale del CRM o mueve dinero: WhatsApp, correo, SMS, envíos masivos, pagos manuales, precios, cuentas del equipo | ✓ | — | — | — |
 
 - Los scopes se eligen al crear el token y **nunca superan el rol**.
@@ -37,6 +44,13 @@ el token puede usar; lo demás ni aparece.
   desactiva su cuenta, todos sus tokens dejan de valer.
 - Las herramientas siguen comprobando el rol por su cuenta (p. ej. los envíos
   masivos son solo del OWNER), así que el scope es un mínimo, no un pase.
+- No hay tarjeta de aprobación: el scope es la aprobación. Las herramientas
+  `edit`/`execute` llevan `approval: always()` (`lib/crm-tools/define-tool.ts`)
+  solo como marca, y el servidor la traduce en `readOnlyHint` /
+  `destructiveHint` para que el cliente pida confirmación si quiere (Claude
+  Code lo hace). `lib/crm-tools/catalog.test.ts` comprueba que toda escritura
+  la lleve.
+- `memory` y `message_owner` ya no existen: eran del asistente del panel.
 
 ## Crear un token
 
@@ -98,6 +112,83 @@ los argumentos con espacios.
 **Genérico:** `POST /api/mcp` con `Content-Type: application/json`,
 `Accept: application/json, text/event-stream` y el `Authorization` de arriba.
 
+## CLI (`bun run crm`)
+
+`scripts/crm-cli.ts` habla con `/api/mcp` por HTTP, como cualquier cliente MCP
+(JSON-RPC sobre Streamable HTTP, entiende respuestas JSON y SSE). No toca la
+base ni importa el servidor: puede exactamente lo que el token puede por MCP, y
+todo lo que cambia queda auditado con el nombre de la conexión.
+
+```bash
+export CRM_MCP_TOKEN=dpnl_…        # Ajustes → Conexiones MCP (o un dpat_… de OAuth)
+export CRM_MCP_URL=https://www.dayanabeltran.com/api/mcp   # el valor por defecto
+
+bun run --silent crm tools                 # lo que tu token puede usar, con su nivel
+bun run --silent crm tools --json          # lo mismo en JSON: [{name, access, title}]
+bun run --silent crm describe crm_stats    # descripción + JSON Schema de entrada
+bun run --silent crm call crm_stats '{"area":"ventas"}'
+echo '{"q":"María"}' | bun run --silent crm call search_contacts -   # argumentos por stdin
+bun run --silent crm call get_contact @args.json                     # o desde un archivo
+bun run --silent crm info                  # servidor, versión e instrucciones
+```
+
+- **Token solo por variable de entorno**, nunca como argumento (quedaría en el
+  historial). Sin `CRM_MCP_URL` va contra producción; para desarrollo,
+  `http://localhost:3100/api/mcp` con un token creado en el CRM local (los
+  tokens solo valen en la base donde se crearon). La URL tiene que ser https o
+  localhost.
+- **Salida:** el resultado va a stdout en JSON (el `structuredContent` de la
+  herramienta; si no lo hay, su texto). Los errores van a stderr como
+  `{"error": "…", …}`. `--silent` quita la línea `$ bun scripts/crm-cli.ts …`
+  que `bun run` imprime antes.
+- **Códigos de salida:** `0` bien · `1` la herramienta falló (p. ej. «Ese
+  contacto no existe.») · `2` uso incorrecto, JSON inválido, entrada que no
+  cumple el esquema, herramienta inexistente (con `didYouMean`) o sin permiso
+  (con `needs`: el scope que falta) · `3` conexión, `401` (token inventado,
+  revocado, caducado o de otra base), `429` (120 peticiones por minuto y
+  token) o una redirección (el ápice sin `www`) · `4` resultado desconocido:
+  una llamada a herramienta que se cortó o recibió un 5xx (p. ej. el 504 de
+  Vercel a los 60 s) pudo haberse ejecutado — un envío masivo pudo salir —, así
+  que no se repite sin comprobar antes en el CRM.
+- **PowerShell 5.1** quita las comillas de dentro de un argumento: ahí pasa el
+  JSON por stdin (`'{"area":"ventas"}' | bun scripts/crm-cli.ts call crm_stats -`)
+  o con `@archivo.json`. El BOM que PowerShell antepone se ignora.
+- El nivel que enseña `tools` sale de las anotaciones del servidor
+  (`readOnlyHint` → `read`, `destructiveHint` → `execute`, si no `edit`), igual
+  que `TOOL_CATALOG[name].access`.
+
+## Cómo la usa una IA externa (Claude Code, Codex, Cursor…)
+
+Dos caminos, con el mismo token y los mismos permisos:
+
+1. **MCP (lo normal).** Si el cliente habla MCP, se conecta a
+   `https://www.dayanabeltran.com/api/mcp` como en
+   [Conectar un cliente](#conectar-un-cliente) (cabecera con el token) o con
+   OAuth (solo la URL). Ve las herramientas con sus esquemas, sus títulos en
+   español y las anotaciones `readOnlyHint` / `destructiveHint`; el servidor le
+   manda además unas instrucciones (`MCP_INSTRUCTIONS` en `lib/mcp/server.ts`:
+   monedas, cómo buscar a una persona, el pago manual con código).
+2. **CLI (sin cliente MCP, o desde un script).** Un agente con terminal (Codex,
+   Claude Code en otro repo, un cron) exporta `CRM_MCP_TOKEN` y llama a
+   `bun run --silent crm …` desde este repositorio. El flujo que funciona:
+   `crm tools --json` para saber qué hay → `crm describe <herramienta>` para el
+   esquema → `crm call <herramienta> '<json>'` y leer el JSON de stdout; si el
+   código de salida no es 0, leer el `error` de stderr y no reintentar a ciegas.
+
+Reglas para cualquier IA que entre:
+
+- Las herramientas `execute` (WhatsApp, correo, SMS, envíos masivos, precios,
+  pagos, cuentas del equipo) llegan a personas reales. **Confirma con la persona
+  que te pidió la tarea antes de llamarlas**: el servidor no pregunta por ti.
+- Dale a cada IA su propia conexión, con el mínimo scope que necesite
+  (`read` para consultar): así cada una se revoca por separado en Ajustes →
+  Conexiones MCP y la auditoría dice cuál hizo qué.
+- Contra desarrollo (`neondb_dev`) las herramientas de envío **también mandan
+  de verdad** (la base de dev tiene una clave real de WhatsApp): para pruebas,
+  solo lecturas o herramientas `edit` con ids inventados.
+- El pago manual exige el código que llega al correo de Dayana
+  (`request_payment_otp` → `record_manual_payment`): nunca lo inventes.
+
 ## Seguridad
 
 - **Auditoría.** Toda llamada de `edit` o `execute` deja una fila
@@ -141,9 +232,11 @@ Pruebas:
 - `bun --env-file=../dayana-pnl/.env scripts/mcp/mcp-e2e.ts` — llama a la ruta
   dentro del proceso: 401 sin token / inventado / revocado / caducado,
   `initialize`, `tools/list` por scope, una lectura de cada herramienta nueva,
-  la fila `MCP_TOOL_CALL` de una edición, y que un token de solo lectura no ve
-  ni puede llamar edición. Borra sus tokens al terminar. No llama a ninguna
-  herramienta de envío.
+  la fila `MCP_TOOL_CALL` de una edición, que un token de solo lectura no ve
+  ni puede llamar edición, y que `memory` / `message_owner` ya no existen.
+  Borra sus tokens al terminar. No llama a ninguna herramienta de envío.
+- `bun test ./lib/crm-tools` — el catálogo (toda escritura marcada, ninguna
+  lectura marcada, cada herramienta con descripción y esquema).
 - `bun --env-file=../dayana-pnl/.env scripts/mcp/mcp-oauth-e2e.ts` — el OAuth
   entero como claude.ai (ver abajo), dentro del proceso. Con
   `--base=http://localhost:3100` va por HTTP contra un `next dev` local y pasa

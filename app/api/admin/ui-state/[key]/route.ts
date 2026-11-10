@@ -1,5 +1,5 @@
 import { apiError, readJson, withStaff } from "@/lib/api/handler";
-import { getUiState, isUiStateKey, setUiState } from "@/lib/crm/agent-threads";
+import { getUiState, isUiStateKey, setUiState } from "@/lib/crm/ui-state";
 
 /** Small UI state that follows the staff member across devices (allow-listed keys only). */
 export const GET = withStaff<{ key: string }>("read", async ({ staff, params }) => {

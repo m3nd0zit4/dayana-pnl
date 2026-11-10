@@ -1,0 +1,22 @@
+import { defineTool } from "@/lib/crm-tools/define-tool";
+import { z } from "zod";
+import { getActiveProducts } from "@/lib/crm/products";
+import { requireStaff } from "@/lib/crm-tools/guard";
+
+export default defineTool({
+  description: "List active products (therapies, courses, workshops) with their kind and session count.",
+  inputSchema: z.object({}),
+  async execute(_input, ctx) {
+    requireStaff(ctx);
+    const products = await getActiveProducts();
+    return {
+      products: products.map((p) => ({
+        id: p.id,
+        title: p.title,
+        kind: p.kind,
+        sessionsCount: p.sessionsCount,
+        prices: p.prices.map((pr) => ({ currency: pr.currency, amountMinor: pr.amountMinor })),
+      })),
+    };
+  },
+});

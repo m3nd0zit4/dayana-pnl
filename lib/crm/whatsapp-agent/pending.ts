@@ -12,8 +12,10 @@ import { closeAttention, type CloseBy } from "./attention";
  * agendó o pagó). «Listo» vive en `./attention` (`markAttended`).
  *
  * Importes estáticos a propósito: esto lo usan `approvals.ts` y
- * `appointments.ts`, que se empaquetan también para el agente (eve no admite
- * un `import()` dinámico nuevo en ese árbol).
+ * `appointments.ts`, que
+ * también alcanzan las herramientas del CRM (MCP por stdio, scripts). Se
+ * escribió así porque el antiguo asistente del panel (eve) no admitía un
+ * `import()` dinámico nuevo en ese árbol; no hace falta cambiarlo.
  */
 
 const clean = (values: (string | null | undefined)[] | undefined): string[] =>

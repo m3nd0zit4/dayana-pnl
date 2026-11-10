@@ -3,8 +3,8 @@
  * estándar; aistudio.google.com/docs/pricing, leído el 9-nov-2026). Lo que
  * «piensa» el modelo se cobra como salida, y ya viene sumado ahí.
  *
- * `gemini-3.5-flash` —el modelo por defecto del asistente del panel— NO
- * aparece en la página de precios. Mientras no se sepa su tarifa se cuenta al
+ * `gemini-3.5-flash` —el modelo que se usa cuando `GEMINI_MODEL` no dice
+ * otro— NO aparece en la página de precios. Mientras no se sepa su tarifa se cuenta al
  * precio de `gemini-3.5-flash-lite` y la pantalla lo dice: es un piso, lo
  * real será igual o más. Cuando se sepa, se añade aquí una línea.
  *

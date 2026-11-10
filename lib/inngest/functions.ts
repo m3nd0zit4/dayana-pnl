@@ -24,7 +24,6 @@ import {
   NOTIFICATION_RETENTION_RULES,
   runNotificationRetentionRule,
 } from "../notifications/platform/retention";
-import { sendMorningBrief } from "../crm/agent-messages";
 import { findDuePosts } from "../crm/social-posts";
 import {
   drainWebinarMail,
@@ -871,17 +870,6 @@ export const subscriptionPricePropagateMpFn = inngest.createFunction(
   }
 );
 
-/**
- * 12:30 UTC = 7:30 a. m. in Bogotá. The panel assistant writes to Dayana
- * with what is waiting today, as a conversation she can answer. Off unless
- * `agent.brief.enabled` is on (`lib/crm/agent-messages.ts`).
- */
-export const agentMorningBriefFn = inngest.createFunction(
-  { id: "agent-morning-brief" },
-  { cron: "30 12 * * *" },
-  async ({ step }) => step.run("brief", () => sendMorningBrief())
-);
-
 export const inngestFunctions = [
   paymentApprovedFn,
   leadStaleFn,
@@ -901,5 +889,4 @@ export const inngestFunctions = [
   webinarMeetLinkBroadcastFn,
   subscriptionPriceDriftCheckFn,
   subscriptionPricePropagateMpFn,
-  agentMorningBriefFn,
 ];

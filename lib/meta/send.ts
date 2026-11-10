@@ -1,12 +1,10 @@
 import { whatsAppRecipient } from "@/lib/whatsapp-contact";
 import { Conversation, Prisma } from "@prisma/client";
 // Imported directly (not via `lib/storage/blob.ts`, which this whole module
-// tree is reachable from through `agent/tools/*` → `lib/crm/conversations.ts`
-// → here): that file pulls in `next/server` for its route-response helper,
-// and eve's own build process — unlike Next.js's bundler — can't resolve
-// that import (same class of bug already worked around in
-// `lib/auth/agent-channel-session.ts`, which documents it). `get()` alone
-// has no such dependency.
+// tree is reachable from through `lib/crm-tools/tools/*` →
+// `lib/crm/conversations.ts` → here): that file pulls in `next/server` for its
+// route-response helper, and the tools also run outside Next (stdio MCP,
+// scripts). `get()` alone has no such dependency.
 import { get } from "@vercel/blob";
 import { prisma } from "@/lib/db";
 import { isHumanSend } from "@/lib/crm/whatsapp-attention-rules";

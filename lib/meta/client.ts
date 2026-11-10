@@ -261,6 +261,6 @@ export const pageCredentials = (): MetaCredentials | null => {
 export const instagramAccountId = (): string | null =>
   readEnv("META_INSTAGRAM_ID");
 
-/** Interruptor de la bandeja, igual que `CRM_AGENT_ENABLED` para el agente. */
+/** Interruptor de la bandeja. */
 export const isMetaInboxEnabled = (): boolean =>
   process.env.META_INBOX_ENABLED === "true";

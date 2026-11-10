@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
-import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import { useSidebar } from "@/app/components/ui/sidebar";
 import {
   CRM_BOTTOM_TABS,
@@ -31,7 +30,6 @@ const navItemClass =
 const CrmBottomNav = () => {
   const pathname = usePathname();
   const { setOpenMobile } = useSidebar();
-  const { setAgentPanelOpen } = useCrm();
 
   return (
     <nav
@@ -58,7 +56,6 @@ const CrmBottomNav = () => {
         type="button"
         className={navItemClass}
         onClick={() => {
-          setAgentPanelOpen(false);
           setOpenMobile(true);
         }}
         aria-label="Más opciones"

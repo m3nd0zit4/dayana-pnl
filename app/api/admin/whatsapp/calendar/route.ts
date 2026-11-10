@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { resolveGoogleAccount } from "@/agent/lib/google";
+import { resolveGoogleAccount } from "@/lib/crm-tools/google";
 import { apiError, withStaff } from "@/lib/api/handler";
 import { prisma } from "@/lib/db";
 import { getWhatsAppAiConfig } from "@/lib/crm/whatsapp-ai-config";

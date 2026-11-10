@@ -2,16 +2,12 @@
 
 import { ExternalLink } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
 import CrmLogo from "@/app/components/admin/crm/CrmLogo";
 import CrmNotificationBell from "@/app/components/admin/crm/CrmNotificationBell";
 import SmartContactSearch from "@/app/components/admin/crm/SmartContactSearch";
 import CrmUserMenu from "@/app/components/admin/crm/CrmUserMenu";
-import { useCrm } from "@/app/components/admin/crm/CrmProvider";
-import { DayanaAiLogo } from "@/app/components/admin/crm/DayanaAiLogo";
 import { Button } from "@/app/components/ui/button";
 import { Separator } from "@/app/components/ui/separator";
-import { cn } from "@/lib/utils";
 
 type Props = {
   displayName: string;
@@ -24,8 +20,6 @@ const iconButtonClass =
   "text-[var(--crm-topbar-foreground)]/70 hover:bg-[var(--crm-topbar-accent)] hover:text-[var(--crm-topbar-foreground)]";
 
 const CrmNavBar = ({ displayName, role, avatarUrl, preview }: Props) => {
-  const { agentEnabled, agentPanelOpen, setAgentPanelOpen } = useCrm();
-  const [agentButtonHovered, setAgentButtonHovered] = useState(false);
   const pathname = usePathname();
   // En Contactos la búsqueda de la página es la misma búsqueda, con recientes y
   // salto directo a la ficha. Dos cajas iguales en la misma pantalla obligaban
@@ -42,25 +36,6 @@ const CrmNavBar = ({ displayName, role, avatarUrl, preview }: Props) => {
       <div className="flex-1 lg:hidden" />
 
       <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
-        {agentEnabled && (
-          <Button
-            variant={agentPanelOpen ? "secondary" : "ghost"}
-            size="icon"
-            className={cn("relative hidden lg:inline-flex", iconButtonClass)}
-            aria-label="Asistente CRM"
-            onClick={() => setAgentPanelOpen(!agentPanelOpen)}
-            onMouseEnter={() => setAgentButtonHovered(true)}
-            onMouseLeave={() => setAgentButtonHovered(false)}
-          >
-            {/* Button's own hit area stays the fixed icon size; the logo
-                renders bigger and overflows it via absolute positioning. */}
-            <DayanaAiLogo
-              className="absolute top-1/2 left-1/2 size-11 -translate-x-1/2 -translate-y-1/2"
-              active={agentButtonHovered}
-            />
-          </Button>
-        )}
-
         <CrmNotificationBell className={iconButtonClass} />
 
         <Button
