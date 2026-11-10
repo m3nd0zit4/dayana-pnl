@@ -86,7 +86,7 @@ const CookieConsentBanner = () => {
               type="button"
               onClick={() => setCustomizing((v) => !v)}
               aria-expanded={customizing}
-              className="font-[font1] order-last col-span-2 whitespace-nowrap rounded-lg border border-transparent bg-transparent px-3 py-1 text-[13px] text-white/75 underline decoration-white/30 underline-offset-[3px] transition-colors hover:text-white sm:order-none sm:border-white/20 sm:px-5 sm:py-2.5 sm:text-sm sm:text-white/85 sm:no-underline sm:hover:border-white/35 sm:hover:bg-white/[0.06]"
+              className="font-[font1] order-last col-span-2 min-h-11 whitespace-nowrap rounded-lg border border-white/20 bg-transparent px-3 py-2.5 text-sm text-white/85 transition-colors hover:border-white/35 hover:bg-white/[0.06] sm:order-none sm:min-h-0 sm:px-5"
             >
               Personalizar
             </button>

@@ -124,6 +124,23 @@ const main = async () => {
     const second = slots.slots[Math.floor(slots.slots.length / 2)];
     const third = slots.slots[slots.slots.length - 1];
 
+    // 4b ───────────────────────────────────────────────────────────────────
+    // El horario de Dayana manda: ni se ofrece ni se deja agendar un día o una
+    // hora que ella no abrió (por ejemplo un martes, si no atiende los martes).
+    const openWeekdays = new Set(ai.booking.hours.map((h) => h.weekday));
+    const weekdayOf = (iso: string) => new Date(`${new Intl.DateTimeFormat("en-CA", { timeZone: slots.dayanaTz }).format(new Date(iso))}T12:00:00Z`).getUTCDay();
+    check("4b. solo días que Dayana abrió", slots.bookable.every((s) => openWeekdays.has(weekdayOf(s.startIso))), [...new Set(slots.bookable.map((s) => weekdayOf(s.startIso)))]);
+    const closedDay = [0, 1, 2, 3, 4, 5, 6].find((d) => !openWeekdays.has(d));
+    if (closedDay !== undefined) {
+      // La próxima fecha de ese día de la semana, a las 10:00 de Dayana (UTC-5 en Bogotá).
+      const probe = new Date();
+      do probe.setUTCDate(probe.getUTCDate() + 1);
+      while (probe.getUTCDay() !== closedDay || probe.getTime() < Date.now() + 5 * 86_400_000);
+      probe.setUTCHours(15, 0, 0, 0);
+      const forced = await bookCall(a.token, probe.toISOString());
+      check("4b. forzar un día cerrado no agenda", forced.status === "unavailable", forced.status);
+    }
+
     // 5 ────────────────────────────────────────────────────────────────────
     const notOffered = await bookCall(a.token, new Date(Date.parse(first.startIso) + 60_000).toISOString());
     check("5. una hora que no se ofrece no se agenda", notOffered.status === "unavailable" && notOffered.slots.length > 0, notOffered.status);
