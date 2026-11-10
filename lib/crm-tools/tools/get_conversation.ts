@@ -1,0 +1,67 @@
+import { defineTool } from "@/lib/crm-tools/define-tool";
+import { z } from "zod";
+import { getConversation } from "@/lib/crm/conversations";
+import { requireStaff } from "@/lib/crm-tools/guard";
+import { shownPhone } from "@/lib/crm-tools/phone";
+import { lastWriter, messageAuthor } from "@/lib/crm-tools/message-author";
+
+/** Cuántos mensajes ve el modelo. El hilo completo puede ser enorme. */
+const MODEL_MESSAGE_LIMIT = 20;
+
+export default defineTool({
+  description:
+    "Read one conversation from the Meta inbox: the recent messages, the linked contact if any, and whether Meta's 24-hour reply window is still open. Each message says who wrote it (`author`: the person, the WhatsApp AI, Dayana from her phone, someone from the CRM, or an automatic send) and `lastWriter` says who wrote last. Read the thread with this before summarizing it or drafting a reply: base the summary on the LAST messages and say whether Dayana already answered.",
+  inputSchema: z.object({
+    conversationId: z.string().min(1),
+  }),
+  async execute({ conversationId }, ctx) {
+    requireStaff(ctx);
+
+    const conversation = await getConversation(conversationId);
+    if (!conversation) throw new Error("Esa conversación no existe.");
+
+    return {
+      id: conversation.id,
+      channel: conversation.channel,
+      status: conversation.status,
+      participant:
+        conversation.contact?.displayName ??
+        conversation.participantName ??
+        conversation.externalThreadId,
+      contactId: conversation.contact?.id ?? null,
+      contactPhone: shownPhone(conversation.contact?.phoneE164),
+      // Que la ventana esté cerrada cambia lo que el asistente debe proponer:
+      // fuera de ella solo cabe una plantilla aprobada, no texto libre.
+      // Plain JSON: the window's `expiresAt` is a Date (every read of a chat
+      // with an open window failed in the old panel agent until 8-nov).
+      window: JSON.parse(JSON.stringify(conversation.window)) as Record<string, unknown>,
+      windowNotice: conversation.windowNotice,
+      existingDraft: conversation.draftBody,
+      messages: conversation.messages.map((message) => ({
+        direction: message.direction,
+        author: messageAuthor({
+          direction: message.direction,
+          isAutoReply: message.isAutoReply,
+          source: message.source,
+          clientKey: message.clientKey,
+          staffName: message.staffUser?.displayName ?? null,
+        }),
+        body: message.body,
+        sentAt: message.sentAt.toISOString(),
+      })),
+    };
+  },
+  toModelOutput(output) {
+    // El canal y los hooks ven el payload completo; al modelo se le entrega
+    // solo la cola del hilo para no gastar la ventana de contexto en historia.
+    return {
+      type: "json",
+      value: {
+        ...output,
+        lastWriter: lastWriter(output.messages),
+        messages: output.messages.slice(-MODEL_MESSAGE_LIMIT),
+        truncated: output.messages.length > MODEL_MESSAGE_LIMIT,
+      },
+    };
+  },
+});

@@ -1,5 +1,6 @@
-// Sin `server-only`: el agente del panel (eve, `agent/lib/tools/crm_stats.ts`) también
-// lo importa, y fuera de Next ese paquete lanza al cargarse.
+// Sin `server-only`: la herramienta `crm_stats` (`lib/crm-tools/tools/crm_stats.ts`)
+// también lo importa, y corre fuera de Next (MCP por stdio, scripts), donde ese
+// paquete lanza al cargarse.
 
 import { PaymentStatus } from "@prisma/client";
 

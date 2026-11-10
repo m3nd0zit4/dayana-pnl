@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 
-import { resolveGoogleAccount } from "@/agent/lib/google";
+import { resolveGoogleAccount } from "@/lib/crm-tools/google";
 import { prisma } from "@/lib/db";
 import { listEvents, patchEventText, type CalendarEvent } from "@/lib/google/calendar";
 import { fireNotification } from "@/lib/notifications/platform/emit";

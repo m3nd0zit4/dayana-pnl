@@ -1,4 +1,4 @@
-import { resolveGoogleAccount } from "@/agent/lib/google";
+import { resolveGoogleAccount } from "@/lib/crm-tools/google";
 import { prisma } from "@/lib/db";
 import { getOperationalTimezone } from "../operational-timezone";
 import { meetConferenceFor, googleUserId, type MeetConference } from "@/lib/google/meet";

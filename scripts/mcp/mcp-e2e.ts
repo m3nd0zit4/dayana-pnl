@@ -13,7 +13,7 @@
  * NUNCA llama herramientas de envío (WhatsApp/correo/SMS/masivos): la base de
  * dev tiene una clave real de WhatsApp.
  */
-import { TOOL_CATALOG, type ToolName } from "@/agent/lib/catalog";
+import { TOOL_CATALOG, type ToolName } from "@/lib/crm-tools/catalog";
 
 const dbName = (() => {
   try {
@@ -222,10 +222,12 @@ try {
   const changes = (audit?.changes ?? {}) as { tokenId?: string; ok?: boolean };
   check("fila MCP_TOOL_CALL", Boolean(audit) && changes.tokenId === ownerEdit.id);
 
-  // ── la memoria del asistente nunca pasa por MCP ────────────────────────
-  check("memory no está en MCP (ni con todos los permisos)", !all.names.includes("memory"));
-  const mem = await call(full.token, "memory", { action: "list" });
-  check("memory no se puede llamar por MCP", mem.isError || Boolean(mem.rpcError), mem.rpcError ?? mem.text.slice(0, 120));
+  // ── las herramientas del asistente del panel (quitado) ya no existen ──
+  for (const gone of ["memory", "message_owner"]) {
+    check(`${gone} no está en MCP (ni con todos los permisos)`, !all.names.includes(gone));
+    const r = await call(full.token, gone, {});
+    check(`${gone} no se puede llamar por MCP`, r.isError || Boolean(r.rpcError), r.rpcError ?? r.text.slice(0, 120));
+  }
 
   // ── READONLY no puede edición ─────────────────────────────────────────
   // Ids inventados: aunque se colara, no cambiaría nada.

@@ -1,5 +1,5 @@
 import type { StaffRole } from "@prisma/client";
-import { TOOL_CATALOG, type ToolAccess, type ToolName } from "@/agent/lib/catalog";
+import { TOOL_CATALOG, type ToolAccess, type ToolName } from "@/lib/crm-tools/catalog";
 
 /**
  * Qué puede hacer un token MCP. Puro (sin Prisma ni red) para probarlo con
@@ -71,7 +71,4 @@ export const canUseTool = (name: string, scopes: readonly McpScope[]): name is T
 
 /** Las herramientas que `tools/list` enseña con estos scopes. Las demás ni aparecen. */
 export const visibleTools = (scopes: readonly McpScope[]): ToolName[] =>
-  (Object.keys(TOOL_CATALOG) as ToolName[]).filter((name) => {
-    const entry: { access: McpScope; mcp?: false } = TOOL_CATALOG[name];
-    return entry.mcp !== false && scopes.includes(entry.access);
-  });
+  (Object.keys(TOOL_CATALOG) as ToolName[]).filter((name) => scopes.includes(TOOL_CATALOG[name].access));

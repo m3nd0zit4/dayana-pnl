@@ -292,10 +292,14 @@ try {
   const list = await rpc(tokens.access_token, "tools/list");
   const names = ((list.body?.result?.tools ?? []) as { name: string }[]).map((t) => t.name);
   check("tools/list = read+edit", names.length === visibleTools(["read", "edit"]).length && !names.includes("record_manual_payment"), `${names.length}`);
-  const mem = await rpc(tokens.access_token, "tools/call", { name: "memory", arguments: { action: "list" } });
-  check("llamada de edición (memory list)", mem.status === 200 && !(mem.body?.result as { isError?: boolean } | undefined)?.isError);
+  // Ids inventados: el enlace falla, pero la llamada de edición queda auditada.
+  const link = await rpc(tokens.access_token, "tools/call", {
+    name: "link_conversation_to_contact",
+    arguments: { conversationId: "e2e-none", contactId: "e2e-none" },
+  });
+  check("llamada de edición (link_conversation_to_contact) responde", link.status === 200 && Boolean(link.body?.result));
   const toolAudit = await prisma.auditLog.findFirst({
-    where: { action: "MCP_TOOL_CALL", entityId: "memory", createdAt: { gte: since } },
+    where: { action: "MCP_TOOL_CALL", entityId: "link_conversation_to_contact", createdAt: { gte: since } },
     orderBy: { createdAt: "desc" },
   });
   const toolChanges = (toolAudit?.changes ?? {}) as Record<string, unknown>;

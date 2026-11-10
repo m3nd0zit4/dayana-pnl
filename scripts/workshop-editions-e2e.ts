@@ -20,8 +20,8 @@
  *
  *   bun scripts/workshop-editions-e2e.ts   (también en `bun run e2e:whatsapp`)
  */
-import createWorkshopTool from "@/agent/lib/tools/create_workshop";
-import updateWorkshopTool from "@/agent/lib/tools/update_workshop";
+import createWorkshopTool from "@/lib/crm-tools/tools/create_workshop";
+import updateWorkshopTool from "@/lib/crm-tools/tools/update_workshop";
 import { prisma } from "@/lib/db";
 import { getSiteSetting, setSiteSetting, deleteSiteSetting } from "@/lib/crm/site-settings";
 import {

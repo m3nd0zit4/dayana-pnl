@@ -1,0 +1,32 @@
+import { defineTool } from "@/lib/crm-tools/define-tool";
+import { z } from "zod";
+import { getEnrollmentById } from "@/lib/crm/enrollments";
+import { requireStaff } from "@/lib/crm-tools/guard";
+import { shownPhone } from "@/lib/crm-tools/phone";
+
+export default defineTool({
+  description:
+    "Get full detail for one enrollment by id: status, product, contact, and payment history (status only, not amounts).",
+  inputSchema: z.object({ enrollmentId: z.string().min(1) }),
+  async execute({ enrollmentId }, ctx) {
+    requireStaff(ctx);
+    const e = await getEnrollmentById(enrollmentId);
+    if (!e) return { found: false as const };
+
+    return {
+      found: true as const,
+      enrollment: {
+        id: e.id,
+        status: e.status,
+        productTitle: e.product.title,
+        contactName: `${e.contact.firstName} ${e.contact.lastName ?? ""}`.trim(),
+        contactPhone: shownPhone(e.contact.phoneE164),
+        sessionsUsed: e.sessionsUsed,
+        sessionsTotal: e.sessionsTotal,
+        ref: { type: "enrollment" as const, id: e.id, href: `/admin/enrollments/${e.id}` },
+        contactRef: { type: "contact" as const, id: e.contact.id, href: `/admin/contacts/${e.contact.id}` },
+      },
+      payments: e.payments.map((p) => ({ id: p.id, status: p.status, provider: p.provider })),
+    };
+  },
+});
