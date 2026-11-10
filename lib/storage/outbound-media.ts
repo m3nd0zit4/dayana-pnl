@@ -7,7 +7,8 @@ import { put } from "@vercel/blob";
  * que `GET /api/admin/whatsapp/media` sirve al chat.
  *
  * Sin `next/server` a propósito (a diferencia de `./blob.ts`): este archivo
- * no debe arrastrar nada que el build de eve no sepa resolver.
+ * no debe arrastrar nada que no resuelva fuera de Next (las herramientas del
+ * CRM corren también por MCP stdio y en scripts).
  */
 
 const OUTBOUND_PATH_RE = /^\/inbox\/outbound\/[A-Za-z0-9-]+\.[a-z0-9]{2,5}$/;

@@ -5,8 +5,9 @@ import { isSilencingCategory } from "../chat-category-rules";
 /**
  * ¿La IA calla en este chat por su categoría (personal, negocio/app, equipo)?
  * Lo decide `run.ts` una vez por vuelta. Importes estáticos a propósito: esto
- * se empaqueta también para el agente (eve no admite un `import()` dinámico
- * nuevo en ese árbol).
+ * lo alcanzan también las herramientas del CRM (MCP por stdio, scripts). Se
+ * escribió así porque el antiguo asistente del panel (eve) no admitía un
+ * `import()` dinámico nuevo en ese árbol; no hace falta cambiarlo.
  *
  * - Clasificación apagada: nunca calla y no se mira nada (ni reglas ni IA).
  * - Vuelve a pasar las reglas (sin IA), por si cambió algo en el CRM.

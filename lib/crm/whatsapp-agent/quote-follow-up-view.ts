@@ -9,7 +9,7 @@ import { quoteSituation, type QuoteLine, type QuoteSituation } from "./quote-fol
  * nada: lo usan el chat del CRM (`workspace.ts`) y el envío
  * (`quote-follow-up.ts`). Aparte del envío a propósito: `workspace.ts` no
  * puede traer `segment-store` → contactos → conversaciones (ese ciclo rompe
- * el paquete de `eve build`, como el 16-oct).
+ * el arranque de las herramientas fuera de Next, como el `eve build` del 16-oct).
  */
 
 const DAY = 24 * 3600_000;

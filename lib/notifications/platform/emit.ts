@@ -254,13 +254,13 @@ export const broadcastPlatformNotification = async (
  * Ejecuta `task` después de responder, cuando hay una petición de Next; si no,
  * simplemente lo espera.
  *
- * `next/server` se carga de forma perezosa a propósito. Importarlo arriba rompe
- * al asistente: eve compila las tools a ESM y las corre con Node a secas, donde
- * el especificador `next/server` no resuelve —el paquete no declara `exports` y
- * ESM no prueba extensiones— y el sidecar muere al arrancar. Las tools llegan
- * aquí a través de `agent/lib/guard.ts`, así que basta con que el módulo exista
- * en el grafo para tumbarlo. Con la importación dinámica el especificador solo
- * se evalúa dentro de una petición, que es el único sitio donde `after` sirve.
+ * `next/server` se carga de forma perezosa a propósito. Las herramientas del
+ * CRM llegan aquí a través de `lib/crm-tools/guard.ts` y también corren fuera
+ * de Next (MCP por stdio, scripts), donde el especificador `next/server` no
+ * resuelve con Node a secas —el paquete no declara `exports` y ESM no prueba
+ * extensiones— (así murió el asistente del panel, eve, hasta 2026-11). Con la
+ * importación dinámica el especificador solo se evalúa dentro de una petición,
+ * que es el único sitio donde `after` sirve.
  *
  * El `await` previo no rompe `after()`: AsyncLocalStorage propaga el contexto de
  * la petición a través de los microtasks, así que sigue encontrándolo.
@@ -270,7 +270,7 @@ const runAfterResponse = async (task: () => Promise<void>) => {
     const { after } = await import("next/server");
     after(task);
   } catch {
-    // Fuera del ámbito de una petición (crons de Inngest, tools de eve,
+    // Fuera del ámbito de una petición (crons de Inngest, tools del CRM por stdio,
     // auth.ts) la invocación ya es de larga duración: esperar es lo correcto.
     await task();
   }
@@ -284,7 +284,7 @@ const runAfterResponse = async (task: () => Promise<void>) => {
  * que `after()` lanza fuera del ámbito de una petición, y ahí caeríamos en una
  * promesa flotante: en Vercel la invocación puede congelarse antes de que se
  * resuelva, perdiendo el correo en silencio. Justo esos son los llamadores sin
- * petición — los crons de Inngest, auth.ts y las tools de eve. Inngest además
+ * petición — los crons de Inngest, auth.ts y las tools del CRM fuera de Next. Inngest además
  * reintenta y deja rastro visible del fallo.
  *
  * `deliverNotificationEmails` es idempotente (marca `emailedAt`), así que si
@@ -317,7 +317,7 @@ const scheduleNotificationEmails = (notificationId: string) => {
  * Usa `after()` en vez de una promesa flotante: en Vercel la invocación puede
  * congelarse en cuanto se devuelve la respuesta, y una promesa suelta se pierde
  * en silencio. `after()` lanza fuera del ámbito de una petición (pasos de
- * Inngest, tools de eve, auth.ts), y ahí la invocación ya es de larga duración,
+ * Inngest, tools del CRM fuera de Next, auth.ts), y ahí la invocación ya es de larga duración,
  * así que el `void` del catch es correcto.
  */
 export const fireNotification = (input: EmitInput) => {

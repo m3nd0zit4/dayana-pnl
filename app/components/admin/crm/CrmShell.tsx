@@ -6,17 +6,12 @@ import { usePathname } from "next/navigation";
 import { Settings } from "lucide-react";
 import type { CSSProperties } from "react";
 import AdminPreviewBanner from "@/app/components/admin/AdminPreviewBanner";
-import AgentAskPill from "@/app/components/admin/crm/agent-panel/AgentAskPill";
-import AgentPanel from "@/app/components/admin/crm/agent-panel/AgentPanel";
-import AgentThreadsMenuSection from "@/app/components/admin/crm/AgentThreadsMenuSection";
 import CrmBottomNav from "@/app/components/admin/crm/CrmBottomNav";
 import CrmMenu from "@/app/components/admin/crm/CrmMenu";
 import CrmNavBar from "@/app/components/admin/crm/CrmNavBar";
-import { useCrm } from "@/app/components/admin/crm/CrmProvider";
 import WhatsAppSidebarMenu, {
   isWhatsAppWorkspacePath,
 } from "@/app/components/admin/whatsapp/WhatsAppSidebarMenu";
-import { cn } from "@/lib/utils";
 import {
   Sidebar,
   SidebarContent,
@@ -53,10 +48,6 @@ const CrmShell = ({
   avatarUrl: string | null;
   preview: boolean;
 }) => {
-  const { agentEnabled, agentPanelOpen, agentPanelExpanded } = useCrm();
-  const panelTakingOver = agentEnabled && agentPanelOpen && agentPanelExpanded;
-  const inWhatsApp = isWhatsAppWorkspacePath(usePathname());
-
   return (
     <SidebarProvider
       style={{ "--sidebar-width": "15rem" } as CSSProperties}
@@ -79,7 +70,6 @@ const CrmShell = ({
               >
                 <SidebarContent>
                   <CrmMenuWithAutoClose />
-                  {agentEnabled && !inWhatsApp && <AgentThreadsMenuSection />}
                 </SidebarContent>
                 <SidebarFooter>
                   <SidebarMenu>
@@ -96,12 +86,7 @@ const CrmShell = ({
                 </SidebarFooter>
               </Sidebar>
 
-              <SidebarInset
-                className={cn(
-                  "min-w-0 overflow-hidden bg-transparent",
-                  panelTakingOver && "hidden"
-                )}
-              >
+              <SidebarInset className="min-w-0 overflow-hidden bg-transparent">
                 <main className="crm-main-scroll crm-main-with-bottom-nav flex min-h-0 flex-1 flex-col overflow-y-auto">
                   {preview && (
                     <div className="px-4 pt-3 md:px-5 lg:px-6">
@@ -115,8 +100,6 @@ const CrmShell = ({
                 </div>
               </SidebarInset>
 
-              {agentEnabled && <AgentPanel />}
-              {agentEnabled && <AgentAskPill />}
             </div>
           </div>
         </div>

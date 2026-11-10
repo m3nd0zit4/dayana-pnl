@@ -1,4 +1,3 @@
-import { isAgentEnabled } from "@/lib/agent/is-agent-enabled";
 import { GOOGLE_CONNECTOR_ENV, isGoogleEnabled } from "@/lib/google/connect";
 import { isInngestConfigured } from "@/lib/inngest/config";
 import {
@@ -31,7 +30,6 @@ export type IntegrationHealthId =
   | "inngest"
   | "redis"
   | "database"
-  | "agent"
   | "google"
   | "paypal"
   | "mercadopago";
@@ -70,7 +68,6 @@ const envSet = (name: string): boolean =>
 export type IntegrationHealthOverrides = {
   notificationsEnabled?: boolean;
   dryRun?: boolean;
-  agentEnabled?: boolean;
 };
 
 /**
@@ -128,7 +125,6 @@ export const getIntegrationHealth = (
   const dryRun = overrides.dryRun ?? isDryRun();
   const notificationsEnabled =
     overrides.notificationsEnabled ?? isNotificationsEnabled();
-  const agentEnabled = overrides.agentEnabled ?? isAgentEnabled();
 
   const redisConfigured =
     envSet("UPSTASH_REDIS_REST_URL") && envSet("UPSTASH_REDIS_REST_TOKEN");
@@ -230,18 +226,6 @@ export const getIntegrationHealth = (
       canTest: false,
       requiredEnv: ["DATABASE_URL", "DIRECT_URL"],
       enables: "Todo el CRM y el sitio público. Sin ella no arranca nada.",
-    },
-    {
-      id: "agent",
-      label: "Asistente IA",
-      status: agentEnabled ? "ok" : "not_configured",
-      detail: agentEnabled
-        ? "Asistente habilitado (CRM_AGENT_ENABLED)."
-        : "Apagado: CRM_AGENT_ENABLED no es \"true\".",
-      canTest: false,
-      requiredEnv: ["CRM_AGENT_ENABLED", "GEMINI_API_KEY"],
-      enables:
-        "El chat del panel: consultar el CRM, redactar mensajes y ejecutar acciones con tu aprobación.",
     },
     {
       id: "google",

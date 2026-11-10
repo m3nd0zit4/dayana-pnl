@@ -38,9 +38,8 @@ const MAX_BYTES: Record<string, number> = {
 /**
  * Sube un adjunto saliente a Blob para la bandeja de entrada.
  *
- * `access: "private"` — este store está configurado sin acceso público (ver
- * el mismo problema documentado en `AgentPanel.tsx` para los adjuntos del
- * agente), y de todos modos Meta nunca alcanzaría una URL nuestra. El envío
+ * `access: "private"` — este store está configurado sin acceso público (un
+ * `put` público falla), y de todos modos Meta nunca alcanzaría una URL nuestra. El envío
  * (`lib/meta/send.ts`) baja los bytes con el token del store y se los manda
  * a la Graph API directo (`/media` de WhatsApp, adjunto binario en
  * Messenger/Instagram) — nunca por `link`/`payload.url`.

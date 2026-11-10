@@ -331,9 +331,10 @@ export const recordAdTrackingConsent = async (
 /**
  * Duplicated from lib/crm/checkout-session-contact.ts's isRealContactPhone
  * (same bar) rather than imported: that file pulls in "@/auth", and this
- * module is reachable from eve's agent tools, whose separate build step
- * can't resolve next-auth's "next/server" import — see the fix in commit
- * 242fc83 for the same class of bug. Keep this in sync with the original.
+ * module is reachable from the CRM tools (`lib/crm-tools/`), which also run
+ * outside Next (stdio MCP, scripts) where next-auth's "next/server" import
+ * doesn't resolve — see the fix in commit 242fc83 for the same class of bug
+ * (it broke the old panel agent). Keep this in sync with the original.
  */
 const isRealContactPhone = (phoneE164: string): boolean =>
   phoneE164.startsWith("+") &&

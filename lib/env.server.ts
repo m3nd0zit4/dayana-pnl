@@ -69,7 +69,6 @@ const productionSchema = z
       .string()
       .optional()
       .refine((v) => v !== "true", "CRM_UI_PREVIEW must not be true in production"),
-    CRM_AGENT_ENABLED: z.string().optional(),
     GEMINI_API_KEY: z.string().optional(),
     // Respaldo: si una clave falla por créditos o cuota, sale con la siguiente (lib/ai/gemini.ts).
     GEMINI_API_KEY_2: z.string().optional(),
@@ -87,31 +86,10 @@ const productionSchema = z
     WHATSAPP_API_TOKEN: z.string().trim().optional(),
     WHATSAPP_PHONE_NUMBER_ID: z.string().trim().optional(),
     WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().trim().optional(),
-    // Loopback-based auth bypass for the eve channel — local dev only.
-    CRM_AGENT_LOCAL_DEV_AUTH: z
-      .string()
-      .optional()
-      .refine(
-        (v) => v !== "true",
-        "CRM_AGENT_LOCAL_DEV_AUTH must not be true in production"
-      ),
-    // Bearer login for the agent eval runner against neondb_dev — never in production.
-    CRM_AGENT_EVAL_TOKEN: z
-      .string()
-      .optional()
-      .refine((v) => !v?.trim(), "CRM_AGENT_EVAL_TOKEN must not be set in production"),
   })
   .refine(
     (env) => env.NEXT_PUBLIC_PAYPAL_CLIENT_ID === env.PAYPAL_CLIENT_ID,
     "NEXT_PUBLIC_PAYPAL_CLIENT_ID must match PAYPAL_CLIENT_ID"
-  )
-  // Without the key the panel renders for the OWNER and every message fails
-  // with a provider error — fail the deploy instead of shipping a dead agent.
-  .refine(
-    (env) =>
-      env.CRM_AGENT_ENABLED !== "true" ||
-      (env.GEMINI_API_KEY?.trim().length ?? 0) > 0,
-    "CRM_AGENT_ENABLED=true requires a non-empty GEMINI_API_KEY"
   )
   // Todo o nada: con dos de las tres, smsProviderReady() es false y cada SMS
   // se registra SKIPPED sin que nadie se entere.

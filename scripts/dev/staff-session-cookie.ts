@@ -10,7 +10,8 @@
  * any non-local base URL. Revoke with the session id it prints, or let it
  * expire.
  */
-import { writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname } from "node:path";
 import { encode } from "next-auth/jwt";
 import { createStaffSession } from "@/lib/auth/staff-sessions";
 import { getStaffByEmail } from "@/lib/crm/staff";
@@ -19,7 +20,7 @@ if (new URL(process.env.DATABASE_URL ?? "postgres://x/none").pathname !== "/neon
   console.error("staff-session-cookie: solo contra /neondb_dev.");
   process.exit(1);
 }
-const out = process.argv[2] ?? ".eve/owner-storage.json";
+const out = process.argv[2] ?? ".dev/owner-storage.json";
 const baseUrl = new URL(process.argv[3] ?? "http://localhost:3100");
 if (!["localhost", "127.0.0.1"].includes(baseUrl.hostname)) {
   console.error("staff-session-cookie: solo para un servidor local.");
@@ -45,6 +46,7 @@ const value = await encode({
   token: { kind: "staff", staffId: staff.id, role: staff.role, sessionId: session.id, email: staff.email, name: staff.displayName, sub: staff.id },
 });
 
+mkdirSync(dirname(out), { recursive: true });
 writeFileSync(
   out,
   JSON.stringify({

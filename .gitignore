@@ -24,9 +24,10 @@
 /.next/
 /out/
 
-# eve (CRM agent) dev/build artifacts
-/.eve/
 /.output/
+
+# dev-only browser sessions (scripts/dev/staff-session-cookie.ts)
+/.dev/
 
 # production
 /build

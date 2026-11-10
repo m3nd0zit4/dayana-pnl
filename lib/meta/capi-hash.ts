@@ -26,8 +26,9 @@ export const hashEmail = (email: string | null | undefined): string | null => {
  *
  * Se replican los prefijos en vez de importar `isRealContactPhone` de
  * `lib/crm/checkout-session-contact.ts` porque ese módulo arrastra `@/auth`
- * (next-auth), y este código es alcanzable desde el build de eve — el mismo
- * problema que ya documenta `lib/crm/contacts.ts:289`.
+ * (next-auth), y este código es alcanzable desde las herramientas del CRM, que
+ * también corren fuera de Next (MCP por stdio, scripts e2e) — el mismo problema que documenta `isRealContactPhone` en
+ * `lib/crm/contacts.ts`.
  */
 const PLACEHOLDER_PHONE_PREFIXES = ["+pending", "+google", "+signup", "+nophone"];
 
