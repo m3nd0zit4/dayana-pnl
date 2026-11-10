@@ -12,6 +12,7 @@ import {
   MessageCircle,
   MessageSquare,
   Package,
+  Receipt,
   Sparkles,
   Tag,
   Users,
@@ -47,7 +48,8 @@ export type CrmMenuItemId =
   | "free-events-people"
   | "inbox"
   | "whatsapp"
-  | "content";
+  | "content"
+  | "costs";
 
 export type CrmMenuItem = {
   id: CrmMenuItemId;
@@ -143,8 +145,9 @@ export const crmStatsItem: CrmMenuItem = {
  *   casi no se toca — códigos, los textos para escribirle a la gente (mensajes
  *   rápidos, palabras clave) y la publicación en TikTok. Antes estaba repartido
  *   entre Ventas, Personas y Herramientas.
- * - **Herramientas** va plegado y hoy solo tiene la bandeja de Meta (Instagram
- *   y Messenger), que aparece únicamente si su interruptor está encendido.
+ * - **Herramientas** va plegado: la bandeja de Meta (Instagram y Messenger),
+ *   que aparece únicamente si su interruptor está encendido, y **Costos** (lo
+ *   que cuesta la plataforma cada mes), que solo ve la dueña.
  *
  * Nada de lo que salió se perdió:
  *
@@ -253,6 +256,8 @@ export const crmMenuSections: CrmMenuSection[] = [
         href: "/admin/inbox",
         flag: "metaInbox",
       },
+      // Se mira una vez al mes. Solo la dueña: la ruta rebota al resto.
+      { id: "costs", icon: Receipt, label: "Costos", href: "/admin/costos", ownerOnly: true },
     ],
   },
 ];

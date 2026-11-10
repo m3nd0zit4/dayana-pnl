@@ -45,7 +45,7 @@ describe("menú del CRM", () => {
   });
 
   test("lo que se configura una vez vive en un grupo plegado", () => {
-    const rarely = ["promo-codes", "messages", "magnets", "content", "inbox"];
+    const rarely = ["promo-codes", "messages", "magnets", "content", "inbox", "costs"];
     for (const id of rarely) {
       const section = crmMenuSections.find((s) => s.items.some((i) => i.id === id));
       expect(section?.collapsible).toBe(true);
@@ -85,8 +85,15 @@ describe("menú del CRM", () => {
       "magnets",
       "content",
       "inbox",
+      "costs",
     ];
     expect(allItems().map((i) => i.id).sort()).toEqual([...expected].sort());
+  });
+
+  test("Costos es solo para la dueña: su ruta rebota al resto del equipo", () => {
+    const costs = findMenuItem("costs");
+    expect(costs?.href).toBe("/admin/costos");
+    expect(costs?.ownerOnly).toBe(true);
   });
 
   test("Estadísticas no es una fila del menú, pero la entrada sigue existiendo", () => {

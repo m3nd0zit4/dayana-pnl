@@ -1760,6 +1760,34 @@ model SiteSetting {
   @@map("site_settings")
 }
 
+/// Una factura o suscripción de lo que la plataforma paga para funcionar
+/// (Vercel, Neon, 360dialog, el dominio…), registrada a mano en
+/// `/admin/costos`. Lo que se mide solo —comisiones de pago, uso de la IA— NO
+/// vive aquí: se calcula al vuelo (`lib/crm/costs/store.ts`).
+model PlatformCost {
+  id          String    @id @default(cuid())
+  /// Clave del catálogo (`lib/crm/costs/catalog.ts`): vercel, neon, gemini… u `otro`.
+  serviceId   String    @map("service_id")
+  /// El concepto, como lo escribió quien la registró («Plan Pro»).
+  label       String
+  /// MONTHLY | YEARLY | ONE_TIME. Una anual se reparte en doce meses.
+  cadence     String    @default("MONTHLY")
+  currency    String    @db.Char(3)
+  /// Mismas unidades que `Payment`: USD en centavos, COP en pesos enteros.
+  amountMinor Int       @map("amount_minor")
+  /// Desde cuándo cuenta. En un cobro suelto, la fecha del cobro.
+  startsOn    DateTime  @map("starts_on") @db.Date
+  /// Hasta cuándo (cancelada). Null = sigue vigente.
+  endsOn      DateTime? @map("ends_on") @db.Date
+  note        String?   @db.Text
+  createdById String?   @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@index([startsOn])
+  @@map("platform_costs")
+}
+
 model MemberAccount {
   id              String    @id @default(cuid())
   contactId       String    @unique @map("contact_id")
