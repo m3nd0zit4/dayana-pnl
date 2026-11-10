@@ -21,7 +21,8 @@
  * Salida: el resultado va a stdout como JSON; los errores a stderr como
  * `{"error": "...", ...}`. Códigos: 0 bien, 1 la herramienta falló, 2 uso
  * incorrecto o herramienta inexistente/sin permiso, 3 conexión o
- * autenticación. Ver docs/mcp.md.
+ * autenticación, 4 resultado desconocido (una llamada que se cortó o dio 5xx:
+ * pudo haberse hecho; no la repitas sin comprobarlo). Ver docs/mcp.md.
  */
 import { TOOL_CATALOG } from "@/lib/crm-tools/catalog";
 
@@ -100,6 +101,18 @@ const token = (): string => {
   return value;
 };
 
+/**
+ * Una llamada a herramienta sin respuesta (timeout, conexión cortada, 5xx como
+ * el 504 de Vercel a los 60 s): pudo haberse ejecutado. Código 4, para que una
+ * IA no la repita a ciegas y mande dos veces el mismo WhatsApp o correo.
+ */
+const unknownOutcome = (url: URL, reason: string) =>
+  new CliError(
+    `No se sabe si la herramienta se ejecutó (${reason}). No la repitas sin comprobar antes en el CRM (por ejemplo con una herramienta de lectura o query_audit_log).`,
+    4,
+    { outcome: "unknown", endpoint: `${url.origin}${url.pathname}` }
+  );
+
 let nextId = 0;
 let sessionId: string | null = null;
 
@@ -147,6 +160,12 @@ const post = async (method: string, params: Record<string, unknown>) => {
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
+    // Una llamada a una herramienta que se cortó pudo haber llegado y hecho su
+    // trabajo (un envío masivo): no es «sin conexión, reintenta».
+    // Si ni siquiera conectó (rechazada, DNS, TLS), no llegó: eso sí es «sin conexión».
+    const code = String((error as { code?: unknown })?.code ?? (error as { cause?: { code?: unknown } })?.cause?.code ?? "");
+    const neverSent = /ConnectionRefused|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|CERT|TLS|FailedToOpenSocket/i.test(code);
+    if (method === "tools/call" && !neverSent) throw unknownOutcome(url, reason);
     throw new CliError(`No se pudo conectar con ${url.origin}: ${reason}`, 3);
   }
 
@@ -177,6 +196,7 @@ const post = async (method: string, params: Record<string, unknown>) => {
   }
 
   const body = parseBody(text, res.headers.get("content-type") ?? "", id);
+  if (method === "tools/call" && res.status >= 500 && !body) throw unknownOutcome(url, `HTTP ${res.status}`);
   if (!res.ok && !body) {
     throw new CliError(`HTTP ${res.status} de ${url.origin}${url.pathname}`, 3, {
       status: res.status,

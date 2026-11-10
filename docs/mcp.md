@@ -146,7 +146,10 @@ bun run --silent crm info                  # servidor, versión e instrucciones
   cumple el esquema, herramienta inexistente (con `didYouMean`) o sin permiso
   (con `needs`: el scope que falta) · `3` conexión, `401` (token inventado,
   revocado, caducado o de otra base), `429` (120 peticiones por minuto y
-  token) o una redirección (el ápice sin `www`).
+  token) o una redirección (el ápice sin `www`) · `4` resultado desconocido:
+  una llamada a herramienta que se cortó o recibió un 5xx (p. ej. el 504 de
+  Vercel a los 60 s) pudo haberse ejecutado — un envío masivo pudo salir —, así
+  que no se repite sin comprobar antes en el CRM.
 - **PowerShell 5.1** quita las comillas de dentro de un argumento: ahí pasa el
   JSON por stdin (`'{"area":"ventas"}' | bun scripts/crm-cli.ts call crm_stats -`)
   o con `@archivo.json`. El BOM que PowerShell antepone se ignora.
