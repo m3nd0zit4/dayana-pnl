@@ -33,6 +33,8 @@ import { spendLimits } from "./spend";
 import {
   askedPackage,
   asksForBankDetails,
+  asksForPayLink,
+  paysByTransfer,
   CHAT_LINK_REPLY,
   isPaymentData,
   dayanaPaymentDataBodies,
@@ -932,6 +934,10 @@ export const approvedSlotsFor = async (conversationId: string | null): Promise<s
   return out;
 };
 
+/** Paga por transferencia y pidió cómo pagar: los datos van debajo. */
+const TRANSFER_DATA_REPLY =
+  "Claro, te comparto los datos para el pago. Cuando hagas la transferencia, me mandas el comprobante por aquí para que Dayana lo revise";
+
 export const think = async (input: BrainInput): Promise<BrainResult> => {
   const now = input.now ?? new Date();
   const { config, timezone } = input;
@@ -1044,6 +1050,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const workshopAskNow = Boolean(workshop) && workshopLead && isWorkshopAsk(lastInbound.join("\n"), workshop!);
   // El enlace de pago del taller (dueña, 25-oct: «que pregunte si para separar su cupo o agendar»).
   const workshopPay = workshop?.payUrl ?? null;
+  // Paga por transferencia (Adrienne, 8-nov: «No pude conseguir tarjeta… pásame los datos de
+  // Western Union», y le llegó tres veces el enlace): ni el enlace de su proceso ni el del taller,
+  // los datos de Ajustes. Lo dijo ahora o antes, o Dayana ya le habló de Western Union o la
+  // cuenta; si ahora pide el enlace, el enlace.
+  const byTransfer = (paysByTransfer(input.transcript, now) || asksForBankDetails(lastInbound)) && !asksForPayLink(lastInbound);
   // Su llamada ya agendada (también sin agenda automática), para decirle que ahí la inscribe Dayana.
   const workshopCall =
     upcomingCall ??
@@ -1126,7 +1137,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               if (!m) return log("send_payment_info", { method }, { ok: false, reason: "No existe esa forma de pago." });
               // Con un enlace de Dayana (en el chat o creado en el CRM), las cuentas solo si las pide.
               // Un comprobante (a otra cuenta, rechazado…) sí puede necesitar los datos correctos.
-              if (config.payments.sendLinks && !state.receipt && !lastInboundMedia && !asksForBankDetails(lastInbound)) {
+              if (config.payments.sendLinks && !state.receipt && !lastInboundMedia && !byTransfer) {
                 const link = chatLink?.url ?? (await activePaymentLinkFor(input.contactId).catch(() => null))?.url ?? null;
                 if (!link && chatPayInfo) {
                   return log("send_payment_info", { method }, {
@@ -1161,6 +1172,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                 .describe("Si Dayana le mandó varios enlaces: cuál («paquete de 3 sesiones»), según las notas de Dayana o el chat."),
             }),
             execute: async ({ cual }) => {
+              if (byTransfer) {
+                return log("send_payment_link", { cual }, {
+                  ok: false,
+                  reason:
+                    "No paga con tarjeta: dijo que no puede o pidió Western Union / la cuenta / transferir. No le mandes enlaces: usa send_payment_info con la forma de pago que le corresponde (fuera de Colombia, Western Union) y dile que cuando haga la transferencia te mande el comprobante por aquí.",
+                });
+              }
               const link = await activePaymentLinkFor(input.contactId).catch(() => null);
               // Sin `cual`, el que nombran las notas de Dayana (Joselyn: primero el de 3).
               const fromChat = pickPaymentLink(chatLinks, cual ?? input.memory);
@@ -1290,6 +1308,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             inputSchema: z.object({}),
             execute: async () => {
               if (!workshopPay) return log("send_workshop_link", {}, { ok: false, reason: "Ya pagó este taller: no le mandes el enlace." });
+              if (byTransfer) {
+                return log("send_workshop_link", {}, {
+                  ok: false,
+                  reason:
+                    "No paga con tarjeta (pidió Western Union / la cuenta / transferir): no le mandes el enlace. Usa send_payment_info y dile que cuando haga la transferencia te mande el comprobante; el valor exacto en pesos colombianos se lo confirma Dayana.",
+                });
+              }
               // Solo a quien habla del taller (no es el enlace de pago de su proceso), o a quien
               // no le alcanza: el taller es lo más económico que hay (28-oct).
               if (!workshopLead && !workshopSpot && !cheaperWorkshop) {
@@ -1972,7 +1997,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall, guest: Boolean(guestEvent) })}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
-      chatLink
+      byTransfer
+        ? "PAGA POR TRANSFERENCIA: dijo que no puede pagar con tarjeta o pidió Western Union / la cuenta / transferir (o Dayana ya le habló de eso). No le mandes ningún enlace de pago (ni el de su proceso ni el del taller): comparte los datos con send_payment_info (desde fuera de Colombia, Western Union; en Colombia, Bancolombia) y dile que cuando haga la transferencia te mande el comprobante por aquí para que Dayana lo verifique. Si quiere pagar varias cosas (su paquete y el taller), son los mismos datos. Si pregunta el valor, dile que Dayana le confirma el valor exacto en pesos colombianos por aquí; tú no digas precios. Si pregunta por el taller, en una sola frase: que está abierto y cuándo es; no le ofrezcas la llamada ni le preguntes si quiere el enlace. Mensaje corto."
+        : chatLink
         ? `ENLACE DE PAGO QUE DAYANA YA LE MANDÓ${chatLink.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatLink.sentAt)})` : ""}. Dayana ya le dijo cómo pagar: si te confirma que habló con Dayana (un «sí» a «¿pudiste hablar con Dayana?» no confirma ninguna cita), quiere pagar o empezar, o pregunta cómo pagar, tu respuesta es que puede hacer el pago por el enlace que le envió Dayana (usa send_payment_link: lo vuelve a poner debajo) y que te mande el comprobante por aquí cuando lo haga. No le mandes las cuentas salvo que las pida.${chatLinks.length > 1 ? ` Le mandó varios: ${chatLinks.map((l) => `«${l.label}»`).join(", ")}. Si las notas de Dayana o el chat dicen cuál le corresponde, pásalo en send_payment_link (cual); si no, el último.` : ""}`
         : chatPayInfo
           ? `DAYANA YA LE MANDÓ CÓMO PAGAR${chatPayInfo.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatPayInfo.sentAt)})` : ""}: ya hablaron de la sesión y los valores. Si quiere pagar o empezar, dile que puede hacer el pago con los datos que le envió Dayana y que te mande el comprobante por aquí para que Dayana lo verifique; pregúntale si tiene alguna dificultad para pagar. No le mandes otras cuentas salvo que las pida.`
@@ -2167,7 +2194,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !communityOnly &&
     modelOutcome.kind === "escalate" &&
     state.paymentDetails.length > 0 &&
-    asksForBankDetails(lastInbound) &&
+    byTransfer &&
     ["payment", "other", "unknown"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent";
   // Después de la cotización pide cómo pagar («me envías la forma de pago»,
@@ -2198,7 +2225,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         const asked = askedPackage(lastInbound.join(" "));
         const byPack = asked ? (chatLinks.find((l) => new RegExp(`/therapy-${asked}\\b`, "i").test(l.url)) ?? null) : quoteLink;
         if (asked && !byPack) return null;
-        const wantsBank = asksForBankDetails(lastInbound);
+        const wantsBank = byTransfer;
         // Datos de verdad (no solo un enlace) que Dayana le mandó ella misma.
         const withoutLinks = (b: string) => b.replace(/https?:\/\/\S+\/pagar\/\S+/gi, "");
         const dayanaData = dayanaPaymentDataBodies(input.transcript, now).filter((b) => isPaymentData(withoutLinks(b)));
@@ -2243,6 +2270,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // lo escaló, también como pago: el enlace del taller.
   const workshopGuard =
     Boolean(workshop) &&
+    // Paga por transferencia: los datos que pegó el modelo no son «la respuesta equivocada» del taller.
+    !byTransfer &&
     !input.clientMode &&
     !state.receipt &&
     !saysSelfHarm([...lastInbound, modelOutcome.kind === "escalate" ? modelOutcome.reason : null]) &&
@@ -2432,7 +2461,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             canOfferFreeCall: salesOn && !upcomingCall,
             upcomingLabel: upcomingCall ? dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone) : null,
           });
-          if (reply.attachLink && link) {
+          if (reply.attachLink && link && !byTransfer) {
             state.paymentLink = link.url;
             log("send_payment_link", { auto: true, cual: link.label }, { ok: true, note: "Lo pegó el código: ya tuvo su llamada; lo siguiente con Dayana es después del pago." });
           }
@@ -2557,6 +2586,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       workshop &&
       workshopPay &&
       mayLink &&
+      !byTransfer &&
       !state.links.includes(workshopPay) &&
       (!state.slotOffer || spotOverSlots) &&
       !state.booking &&
@@ -2692,14 +2722,42 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       methods.length > 0 &&
       state.paymentDetails.length === 0 &&
       !state.paymentLink &&
-      !chatLink &&
-      !chatPayInfo &&
-      /\b(te comparto|aqui (tienes|van|te dejo)|te paso|te envio) (los |las )?(datos|cuenta|cuentas)\b/.test(foldForSearch(text))
+      (byTransfer || (!chatLink && !chatPayInfo)) &&
+      /\b(te comparto|aqui (tienes|van|te dejo)|te paso|te envio)( de nuevo| nuevamente| otra vez)? (los |las )?(datos|cuenta|cuentas)\b/.test(foldForSearch(text))
     ) {
-      const named = methods.find((m) => foldForSearch(text).includes(foldForSearch(m.label))) ?? (methods.length === 1 ? methods[0] : null);
+      // La que nombra, o (pagando por transferencia) la de los últimos datos que le mandaron.
+      const lastData = byTransfer
+        ? ([...input.transcript].reverse().find((l) => l.direction === "OUTBOUND" && l.body && isPaymentData(l.body.replace(/https?:\/\/\S+\/pagar\/\S+/gi, "")))?.body ?? null)
+        : null;
+      const named =
+        methods.find((m) => foldForSearch(text).includes(foldForSearch(m.label))) ??
+        (lastData ? (methods.find((m) => sharesAccount(m.details, lastData)) ?? null) : null) ??
+        (methods.length === 1 ? methods[0] : null);
       if (named) {
         state.paymentDetails.push(named.details);
         log("send_payment_info", { method: named.key, auto: true }, { ok: true, label: named.label, note: "Lo pegó el código: la respuesta prometía los datos sin la herramienta." });
+      }
+    }
+    // Paga por transferencia y pide cómo pagar, y el modelo no le puso nada (ENNY, eval 8-nov:
+    // «me avisas y te compartimos los datos»): los datos que ya le mandaron (o la única forma
+    // de pago) y la respuesta corta de los datos.
+    if (
+      byTransfer &&
+      methods.length > 0 &&
+      state.paymentDetails.length === 0 &&
+      !state.paymentLink &&
+      state.links.length === 0 &&
+      !state.receipt &&
+      !lastInboundMedia &&
+      asksHowToPay(lastInbound)
+    ) {
+      const lastData =
+        [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND" && l.body && isPaymentData(l.body.replace(/https?:\/\/\S+\/pagar\/\S+/gi, "")))?.body ?? null;
+      const method = (lastData ? (methods.find((m) => sharesAccount(m.details, lastData)) ?? null) : null) ?? (methods.length === 1 ? methods[0] : null);
+      if (method) {
+        state.paymentDetails.push(method.details);
+        log("send_payment_info", { method: method.key, auto: true }, { ok: true, label: method.label, note: "Lo pegó el código: paga por transferencia y pidió cómo pagar." });
+        if (!/\b(datos|cuenta|cuentas)\b/.test(foldForSearch(text))) text = TRANSFER_DATA_REPLY;
       }
     }
     // El enlace de Dayana copiado a mano: lo pega el código debajo, como send_payment_link.
@@ -2714,6 +2772,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     const talksOfDayanaLink =
       !state.receipt &&
       !lastInboundMedia &&
+      !byTransfer &&
       /\bpag/.test(folded) &&
       (/\b(enlace|link)\b/.test(folded) || (Boolean(quoteSit) && (/\bque te (envio|mando|compartio|paso)\b/.test(folded) || askedPackage(text) !== null)));
     // Hablando del taller, «el enlace de pago» es el del taller (eval 25-oct: a la pregunta
@@ -2794,6 +2853,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const withWorkshop = (text: string) =>
     workshop &&
     workshopAskNow &&
+    !byTransfer &&
     outcome === modelOutcome &&
     !state.bookingNotice &&
     (!workshopPay || (!state.slotOffer && !state.booking && !state.pendingBooking))

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { askedPackage, asksForBankDetails, dayanaPaymentDataBodies, dayanaPaymentInfo, dayanaPaymentLink, dayanaPaymentLinks, isPaymentData, isPaymentInfo, paymentInfoKind, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
+import { askedPackage, asksForBankDetails, asksForPayLink, paysByTransfer, dayanaPaymentDataBodies, dayanaPaymentInfo, dayanaPaymentLink, dayanaPaymentLinks, isPaymentData, isPaymentInfo, paymentInfoKind, pickPaymentLink, withoutPayUrls } from "./chat-payment-link";
 
 const now = new Date("2026-10-21T15:20:00Z");
 const at = (iso: string) => new Date(iso);
@@ -285,5 +285,65 @@ describe("el enlace de un taller no es cómo pagar su proceso (25-oct)", () => {
     expect(dayanaPaymentLink(lines, now)?.url).toBe("https://www.dayanabeltran.com/pagar/p/therapy-3");
     expect(dayanaPaymentLinks(lines, now).map((l) => l.url)).toEqual(["https://www.dayanabeltran.com/pagar/p/therapy-3"]);
     expect(dayanaPaymentLink([dayana(taller)], now)).toBe(null);
+  });
+});
+
+describe("paysByTransfer / asksForPayLink (Adrienne, 8-nov)", () => {
+  const n = new Date("2026-11-09T06:00:00Z");
+  const adrienne = [
+    dayana("Te envío el link del paquete te 3 sesiones", at("2026-10-30T08:50:00Z")),
+    dayana("https://www.dayanabeltran.com/pagar/p/therapy-3", at("2026-10-30T08:51:00Z")),
+    inb(
+      "Dayana Querida. No pude conseguir tarjeta de crèdito. Tendrè que viajar a capital para hallar un centro de wester-union y consultar monto que me cobran para transferir el valor. Mientras pàsame por favor datos tuyo que debería dar en wester uniin para hacerlo.",
+      at("2026-11-08T11:08:00Z")
+    ),
+    ai("Sí, el taller está abierto… ¿Quieres separar tu cupo ya con el enlace de pago o agendar primero una llamada con Dayana?", at("2026-11-08T11:08:30Z")),
+  ];
+
+  test("sin tarjeta y pidiendo Western Union, después del enlace de Dayana: transferencia", () => {
+    expect(paysByTransfer(adrienne, n)).toBe(true);
+  });
+
+  test("«Ambos, por favor» a la oferta de Dayana de los datos de Western Union (audio transcrito «Western Junior»)", () => {
+    const lines = [
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-3", at("2026-10-30T08:51:00Z")),
+      dayana("🎤 Hola mi hermosa, te envío entonces la información del Western Junior para tus paquete de tres sesiones o para el taller", at("2026-11-08T11:13:00Z")),
+      inb("Ambos", at("2026-11-08T11:28:00Z")),
+      inb("Por favor.", at("2026-11-08T11:28:10Z")),
+    ];
+    expect(paysByTransfer(lines, n)).toBe(true);
+    expect(asksForBankDetails(["Ambos", "Por favor."])).toBe(false);
+  });
+
+  test("un enlace que Dayana mandó DESPUÉS de hablar de transferir vuelve a mandar", () => {
+    const lines = [
+      inb("no tengo tarjeta, ¿te puedo transferir?", at("2026-11-01T10:00:00Z")),
+      dayana("Te envío el enlace, ahí puedes pagar con PSE https://www.dayanabeltran.com/pagar/p/therapy-3", at("2026-11-01T11:00:00Z")),
+      inb("Gracias", at("2026-11-01T11:05:00Z")),
+    ];
+    expect(paysByTransfer(lines, n)).toBe(false);
+  });
+
+  test("nada de transferir, o hace más de 21 días: no", () => {
+    expect(paysByTransfer([dayana("https://www.dayanabeltran.com/pagar/p/therapy-3", at("2026-11-05T10:00:00Z")), inb("Gracias")], n)).toBe(false);
+    expect(paysByTransfer([inb("no tengo tarjeta", at("2026-10-01T10:00:00Z"))], n)).toBe(false);
+    // «ten en cuenta» y el enlace del taller no son transferir.
+    expect(paysByTransfer([dayana("Ten en cuenta que es de 10:00 a 10:15", at("2026-11-08T10:00:00Z"))], n)).toBe(false);
+  });
+
+  test("lo que escribe la IA no cuenta, solo ella o Dayana", () => {
+    expect(paysByTransfer([ai("Te comparto los datos de la cuenta de Bancolombia", at("2026-11-08T10:00:00Z"))], n)).toBe(false);
+  });
+
+  test("las formas de decirlo", () => {
+    for (const t of ["No pude conseguir tarjeta de crédito", "no tengo tarjeta", "pásame los datos de wester union", "por moneygram", "¿te puedo consignar?"]) {
+      expect(asksForBankDetails([t])).toBe(true);
+    }
+  });
+
+  test("pide el enlace ahora: el enlace", () => {
+    expect(asksForPayLink(["Ok. Enlace de pago. Gracias."])).toBe(true);
+    expect(asksForPayLink(["el link no me deja pagar"])).toBe(false);
+    expect(asksForPayLink(["Ambos", "Por favor."])).toBe(false);
   });
 });

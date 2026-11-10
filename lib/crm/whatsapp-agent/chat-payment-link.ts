@@ -269,13 +269,16 @@ const BANK = [
   /\bbanc\w*/,
   /\bnequi\b/,
   /\bdaviplata\b/,
-  /\bwestern\b/,
+  // «wester-union», «wester uniin» (Adrienne, 8-nov), «Western Junior» (audio transcrito).
+  /\bwester(n)?\b/,
+  /\bmoneygram\b/,
   /\bglobal ?66\b/,
   /\bremitly\b/,
   /\bpaypal\b/,
   /\bzelle\b/,
   /\befectivo\b/,
   /\b(sin|no tengo|no uso) tarjeta\b/,
+  /\bno (pude|puedo|he podido|logre|alcance a) (conseguir|sacar|usar|tener)( una| la)? tarjeta\b/,
   /\b(otra forma|otro medio|otra manera|otro metodo) de pago\b/,
   /\b(link|enlace|pagina)\b.*\bno (me )?(deja|abre|funciona|sirve|carga|sale)\b/,
   /\bno (me )?(deja|abre|funciona|sirve|carga|sale)\b.*\b(link|enlace|pagina|pagar|pago)\b/,
@@ -286,4 +289,64 @@ const BANK = [
 export const asksForBankDetails = (texts: string[]): boolean => {
   const t = foldForSearch(texts.join("\n"));
   return BANK.some((re) => re.test(t));
+};
+
+/**
+ * Paga por transferencia, no con tarjeta: lo dijo ella («no pude conseguir
+ * tarjeta», «pásame los datos de Western Union», «el link no me deja») o
+ * Dayana ya le habló de Western Union, de la cuenta o de transferir. Más
+ * estricto que `BANK`: «datos» o «PayPal» sueltos no lo dicen.
+ */
+const TRANSFER = [
+  /(?<!\b(?:di|doy|da|das|dio|dar|dando|dimos|dieron|darme|darte|en)\s)\bcuentas?\b/,
+  /\btransfer\w*/,
+  /\bconsign\w*/,
+  /\bnequi\b/,
+  /\bdaviplata\b/,
+  /\bwester(n)?\b/,
+  /\bmoneygram\b/,
+  /\bremitly\b/,
+  /\bglobal ?66\b/,
+  /\b(sin|no tengo|no uso) tarjeta\b/,
+  /\bno (pude|puedo|he podido|logre|alcance a) (conseguir|sacar|usar|tener)( una| la)? tarjeta\b/,
+  /\b(otra forma|otro medio|otra manera|otro metodo) de pago\b/,
+  /\b(link|enlace|pagina)\b.*\bno (me )?(deja|abre|funciona|sirve|carga|sale)\b/,
+];
+
+/** Cuánto atrás cuenta lo que se dijo de pagar por transferencia. */
+const TRANSFER_MAX_AGE_DAYS = 21;
+
+/**
+ * ¿Esta persona paga por transferencia (Western Union, la cuenta, Nequi) y no
+ * por el enlace? Adrienne (8-nov) escribió «No pude conseguir tarjeta de
+ * crédito… pásame los datos que debería dar en Western Union»; Dayana le
+ * ofreció los datos de Western Union en un audio y ella contestó «Ambos, por
+ * favor». La asistente le mandó tres veces el enlace de pago: la regla «con
+ * un enlace de Dayana, las cuentas solo si las pide» miraba solo el último
+ * mensaje («Ambos»), no lo que ya había dicho.
+ *
+ * Cuenta lo último que se habló de pagar: si después de eso Dayana le mandó
+ * un enlace de pago (ella misma, sin tarjeta de por medio), vuelve el enlace.
+ */
+export const paysByTransfer = (lines: Line[], now: Date = new Date()): boolean => {
+  const oldest = now.getTime() - TRANSFER_MAX_AGE_DAYS * 24 * 3600_000;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i];
+    if (!l.body) continue;
+    if (l.sentAt && l.sentAt.getTime() < oldest) break;
+    const fromPerson = l.direction === "INBOUND";
+    if (!fromPerson && !byDayana(l)) continue;
+    const t = foldForSearch(withoutWorkshopLinks(l.body));
+    const transfer = TRANSFER.some((re) => re.test(t));
+    if (transfer) return true;
+    // Un enlace de pago que Dayana mandó después de lo último que se dijo de transferir.
+    if (!fromPerson && (l.body.match(PAY_URL) ?? []).some((u) => !isWorkshopLink(u))) return false;
+  }
+  return false;
+};
+
+/** Pide el enlace ahora («mándame el link»), no los datos: el enlace vuelve aunque antes hablara de transferir. */
+export const asksForPayLink = (texts: string[]): boolean => {
+  const t = foldForSearch(texts.join("\n"));
+  return /\b(link|enlace)\b/.test(t) && !BANK.some((re) => re.test(t));
 };

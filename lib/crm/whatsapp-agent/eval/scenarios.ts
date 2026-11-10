@@ -1313,6 +1313,51 @@ export const SCENARIOS: Scenario[] = [
   // El cupo o la llamada (dueña, 25-oct: «que el modelo envíe el enlace de pago pero que pregunte si para
   // separar su cupo o agendar, ya que algunos pueden querer separar su cupo ya»).
   {
+    id: "adrienne-sin-tarjeta-western-union",
+    origin:
+      "Adrienne (+54), 8-nov: ya tuvo la llamada, Dayana le mandó el enlace del paquete de 3 el 30-oct; escribió que no pudo conseguir tarjeta y pidió los datos de Western Union y el precio del taller. La IA contestó con la información del taller y «¿enlace de pago o llamada?», y después le mandó el enlace",
+    name: "Adrienne",
+    gender: "f",
+    personTimezone: "America/Argentina/Buenos_Aires",
+    stage: "tuvo_llamada",
+    transcript: [
+      dayana("Te envío el link del paquete te 3 sesiones"),
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"),
+      dayana("Tan pronto me envíes el comprobante de pago agendamos día y hora q me digas"),
+      person(
+        "Dayana Querida. No pude conseguir tarjeta de crèdito.\n\nTendrè que viajar a capital para hallar un centro de wester-union\n\ny consultar monto que me cobran para transferir el valor.\n\nMientras pàsame por favor datos tuyo que debería dar en wester uniin para hacerlo.\n\nPàsame tambien por favor precio del curso que ofreciste recien para domingo 15 de noviembre.\n\nGracias infinitas."
+      ),
+    ],
+    expect: {
+      outcome: "reply",
+      anyTool: ["send_payment_info"],
+      noTool: ["send_payment_link", "send_workshop_link"],
+      mustNotMatch: [/\/pagar\//i, /enlace de pago/i, /\$\s?\d|\b\d{2,3}\.\d{3}\b|\busd\b/i],
+    },
+    goal: "No tiene tarjeta y pide los datos de Western Union: le comparte los datos (van debajo) y le dice que cuando haga la transferencia mande el comprobante. Sobre el valor del taller (y del paquete), le dice que Dayana le confirma el valor exacto en pesos colombianos. Ningún enlace de pago ni la pregunta de «enlace o llamada».",
+  },
+  {
+    id: "adrienne-ambos-tras-el-audio-de-dayana",
+    origin: "Adrienne, 8-nov: Dayana le ofreció en un audio los datos de Western Union para el paquete o el taller; ella contestó «Ambos / Por favor» y la IA le mandó dos enlaces de pago",
+    name: "Adrienne",
+    gender: "f",
+    personTimezone: "America/Argentina/Buenos_Aires",
+    stage: "tuvo_llamada",
+    transcript: [
+      dayana("https://www.dayanabeltran.com/pagar/p/therapy-3"),
+      person("Dayana Querida. No pude conseguir tarjeta de crèdito. Mientras pàsame por favor datos tuyo que debería dar en wester uniin para hacerlo."),
+      dayana("🎤 Hola mi hermosa, ¿cómo estás? Te envío entonces la información del Western Junior para tus paquete de tres sesiones o para el taller domingo 15 de noviembre. ¿Cuál te deseas hermosa?"),
+      person("Ambos"),
+      person("Por favor."),
+    ],
+    expect: {
+      outcome: "reply",
+      noTool: ["send_payment_link", "send_workshop_link"],
+      mustNotMatch: [/\/pagar\//i, /enlace/i],
+    },
+    goal: "Le contesta a lo que Dayana le ofreció: los datos de Western Union (o, si Dayana se los está mandando, nada). Nunca un enlace de pago: no tiene tarjeta.",
+  },
+  {
     id: "taller-elige-separar-cupo",
     origin: "25-oct: tras la información del taller y la pregunta del cupo o la llamada, elige separar su cupo",
     name: "Fely",
