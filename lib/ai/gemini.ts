@@ -1,5 +1,7 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
+import { observeAiUsage, recordAiUsage, type AiUsage } from "./usage";
+
 /**
  * Las claves de Gemini, con respaldo: si una se queda sin créditos o sin cuota
  * (o Google la bloquea), la misma llamada se repite con la siguiente.
@@ -60,7 +62,16 @@ const switchable = async (res: Response): Promise<boolean> => {
   return /API_KEY_INVALID|API key not valid|API key expired/i.test(text);
 };
 
-type GeminiFetchOptions = { keys?: () => string[]; baseFetch?: GeminiFetch; now?: () => number };
+type GeminiFetchOptions = {
+  keys?: () => string[];
+  baseFetch?: GeminiFetch;
+  now?: () => number;
+  /**
+   * Recibe los tokens de cada respuesta que llega a quien llamó (ver
+   * `./usage.ts`). Sin él no se anota nada: las pruebas no lo pasan.
+   */
+  onUsage?: (usage: AiUsage) => void;
+};
 
 /**
  * `fetch` para el proveedor de Google: prueba las claves en orden (primero las
@@ -135,12 +146,20 @@ const fullModelUrl = (url: string): string | null => {
  */
 export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch => {
   const keyed = createKeyedFetch(opts);
+  // Se anota lo que de verdad se devuelve, con la dirección que lo contestó:
+  // si el «-lite» salió bloqueado y respondió el modelo completo, los tokens
+  // son del completo. Los intentos descartados por el camino y la respuesta
+  // vacía de «todo bloqueado» no se anotan: no llegó texto a nadie.
+  const answered = (answeredUrl: string, res: Response): Response => {
+    if (opts.onUsage) observeAiUsage(answeredUrl, res, opts.onUsage);
+    return res;
+  };
   return async (input, init) => {
     const { res, key } = await keyed(input, init);
     const url = input instanceof Request ? input.url : String(input);
-    if (!url.includes(":generateContent")) return res;
+    if (!url.includes(":generateContent")) return answered(url, res);
     const blocked = await blockedPrompt(res);
-    if (!blocked) return res;
+    if (!blocked) return answered(url, res);
     void discard(res);
     console.warn(`[gemini] Google bloqueó el pedido (${blocked.reason}): ${JSON.stringify(blocked.body).slice(0, 800)}`);
 
@@ -152,12 +171,12 @@ export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch =>
     const keys = (opts.keys ?? geminiKeys)();
     const send = (u: string, k: string | null) => baseFetch(u, k ? { ...init, headers: withKey(init?.headers, k) } : init);
     const other = fullModelUrl(url);
-    const retries: { label: string; run: () => Promise<Response> }[] = retryable
+    const retries: { label: string; url: string; run: () => Promise<Response> }[] = retryable
       ? [
-          ...(other ? [{ label: "el modelo completo", run: () => send(other, key) }] : []),
+          ...(other ? [{ label: "el modelo completo", url: other, run: () => send(other, key) }] : []),
           ...keys
             .filter((k) => k !== key && (benchedUntil.get(k) ?? 0) <= now)
-            .map((k) => ({ label: `la clave ${keys.indexOf(k) + 1}`, run: () => send(url, k) })),
+            .map((k) => ({ label: `la clave ${keys.indexOf(k) + 1}`, url, run: () => send(url, k) })),
         ]
       : [];
     // Un error pasajero (cuota, caída) llega tal cual si nada contestó: el SDK reintenta.
@@ -167,7 +186,7 @@ export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch =>
       if (r.ok && !(await blockedPrompt(r))) {
         console.warn(`[gemini] contestó con ${retry.label}`);
         if (transient) void discard(transient);
-        return r;
+        return answered(retry.url, r);
       }
       console.warn(`[gemini] tampoco con ${retry.label} (${r.status})`);
       if ((r.status === 429 || r.status >= 500) && !transient) transient = r;
@@ -182,7 +201,7 @@ export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch =>
   };
 };
 
-const geminiFetch = createGeminiFetch();
+const geminiFetch = createGeminiFetch({ onUsage: recordAiUsage });
 
 /**
  * El proveedor de Google con todas las claves. Úsalo en lugar de

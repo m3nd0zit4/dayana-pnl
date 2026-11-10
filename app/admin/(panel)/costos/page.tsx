@@ -8,6 +8,9 @@ import { previewCostsMonth } from "@/lib/crm/costs/preview";
 import { getCostsMonth } from "@/lib/crm/costs/store";
 
 export const dynamic = "force-dynamic";
+// La carga puede esperar a los proveedores (Vercel, Neon, Mux): cada uno tiene
+// su tope de 15 s y van en paralelo, así que un minuto sobra.
+export const maxDuration = 60;
 
 type Props = { searchParams: Promise<{ mes?: string | string[] }> };
 

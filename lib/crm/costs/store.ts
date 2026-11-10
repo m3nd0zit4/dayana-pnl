@@ -4,43 +4,44 @@
 import { prisma } from "@/lib/db";
 import { getDateKeyInTz, getStartOfDayInTz } from "@/lib/datetime/zoned-time";
 import { OPERATIONAL_TZ, getOperationalTimezone } from "@/lib/crm/operational-timezone";
-import { resolveUsdToCopRate } from "@/lib/crm/site-settings";
-import { mercadoPagoFee, paypalFee } from "@/lib/pricing/fees";
-import { estimateUsd } from "@/lib/crm/whatsapp-agent/spend";
+import { getSiteSetting, resolveUsdToCopRate, setSiteSetting } from "@/lib/crm/site-settings";
 
-import { buildCostsMonth, type CostBill, type CostsMonth, type MonthFacts } from "./build";
+import { aiCostUsd, hasAiPrice } from "./ai-prices";
+import { collectAuto, type AutoCollection, type AutoStore } from "./auto";
+import { buildCostsMonth, type CostBill, type CostsMonth, type MonthFacts, type ServiceStatus } from "./build";
+import { COST_SERVICES, type CostServiceId } from "./catalog";
+import { fixedPlanBills, pendingFixedPlans } from "./fixed-plans";
 import {
   COST_CADENCES,
   COST_CURRENCIES,
   addMonths,
-  estimateFeeMinor,
   monthsEndingAt,
   resolveMonth,
-  toUsdCents,
   type BillInput,
   type CostCadence,
   type CostCurrency,
 } from "./rules";
 
 /**
- * Los costos de la plataforma con la base de datos.
+ * Los costos de la plataforma con la base de datos. Todo sale solo:
  *
- * Dos fuentes:
+ *  - **Proveedores** (`auto/`): Vercel, el dominio, Neon y Mux, preguntados
+ *    por su API y guardados seis horas en `site_settings`.
+ *  - **Uso propio**: la IA, de `ai_usage_daily` (cada respuesta de Gemini deja
+ *    sus tokens, `lib/ai/usage.ts`) al precio de lista. Antes del primer día
+ *    con registro solo existen los tokens de las respuestas de WhatsApp
+ *    (`whatsapp_ai_runs`): esos días se cuentan con ellas, que es menos de lo
+ *    real.
+ *  - **Planes fijos** (`fixed-plans.ts`): lo que no informa ninguna API.
  *
- *  - **Facturas** (`platform_costs`): lo que alguien registró a mano.
- *  - **Medido**: lo que ya está en otras tablas. Las comisiones salen de
- *    `payments.fee_minor` cuando el pago la trae (exacto). Hoy ninguna vía de
- *    cobro la guarda —`recordPayment` la acepta, pero nadie se la pasa—, así
- *    que para esos pagos se calcula con la tarifa configurada
- *    (`paypalFee` / `mercadoPagoFee`: porcentaje de lo cobrado más el fijo) y
- *    se marca como aproximada. La IA sale de `whatsapp_ai_runs` con el precio de lista
- *    (`estimateUsd`): es una aproximación y solo cubre las respuestas de
- *    WhatsApp — las fichas, las notas de voz, la clasificación de chats y el
- *    asistente del panel no dejan registro de lo que gastan.
+ * Y lo que alguien apunte a mano en `platform_costs`, para lo que nada de lo
+ * anterior ve. Los correos, SMS y plantillas masivas salen como actividad, no
+ * como dinero.
  *
- * Todo se agrupa por mes en la zona de Dayana. Las columnas son TIMESTAMP sin
- * zona guardadas en UTC: se marcan como UTC y luego se llevan a la zona (ver
- * `lib/crm/dashboard-stats.ts`).
+ * Los meses son los de la zona de Dayana. Las columnas TIMESTAMP están sin
+ * zona y en UTC: se marcan como UTC y luego se llevan a la zona (ver
+ * `lib/crm/dashboard-stats.ts`). Los proveedores facturan por mes UTC: unas
+ * horas de diferencia en el borde del mes, que no cambian la cifra.
  */
 
 /** Meses que enseña la tendencia, contando el mostrado. */
@@ -55,17 +56,10 @@ const monthStart = (monthKey: string, timeZone: string): Date => {
   return getStartOfDayInTz(new Date(Date.UTC(y, m - 1, 1, 12)), timeZone);
 };
 
-/** «5,4 % + 0,30 USD» / «4,75 %»: la tarifa con la que se calculó. */
-const feeLabel = (id: "paypal" | "mercadopago"): string => {
-  const fee = id === "paypal" ? paypalFee() : mercadoPagoFee();
-  const percent = `${(fee.percent * 100).toLocaleString("es-CO", { maximumFractionDigits: 2 })} %`;
-  if (fee.fixed <= 0) return percent;
-  const fixed = fee.fixed.toLocaleString("es-CO", { minimumFractionDigits: id === "paypal" ? 2 : 0 });
-  return `${percent} + ${fixed} ${id === "paypal" ? "USD" : "COP"}`;
-};
-
 const plural = (n: number, one: string, many: string): string =>
   `${n.toLocaleString("es-CO")} ${n === 1 ? one : many}`;
+
+// ── Lo apuntado a mano ──────────────────────────────────────────────────────
 
 type BillRecord = {
   id: string;
@@ -112,7 +106,7 @@ const billData = (input: BillInput) => ({
 export const createBill = async (input: BillInput, staffUserId: string): Promise<CostBill> =>
   toBill(await prisma.platformCost.create({ data: { ...billData(input), createdById: staffUserId } }));
 
-/** `null` si la factura ya no existe. */
+/** `null` si ya no existe. */
 export const updateBill = async (id: string, input: BillInput): Promise<CostBill | null> => {
   const { count } = await prisma.platformCost.updateMany({ where: { id }, data: billData(input) });
   if (count === 0) return null;
@@ -120,51 +114,47 @@ export const updateBill = async (id: string, input: BillInput): Promise<CostBill
   return row ? toBill(row) : null;
 };
 
-/** `false` si la factura ya no existía. */
+/** `false` si ya no existía. */
 export const deleteBill = async (id: string): Promise<boolean> => {
   const { count } = await prisma.platformCost.deleteMany({ where: { id } });
   return count > 0;
 };
 
-// ── Lo medido ───────────────────────────────────────────────────────────────
+// ── Uso propio: la IA y la actividad ────────────────────────────────────────
 
-type FeeRow = {
-  month: string;
-  provider: string;
-  currency: string;
-  fee: bigint;
-  payments: bigint;
-  with_fee: bigint;
-  /** Lo cobrado en los pagos que no traen comisión. */
-  amount_without_fee: bigint;
-};
-type AiRow = { month: string; model: string | null; input: bigint; output: bigint; cached: bigint; runs: bigint };
+type AiLogRow = { month: string; model: string; input: bigint; cached: bigint; audio: bigint; output: bigint; calls: bigint };
+type AiRunRow = { month: string; model: string | null; input: bigint; output: bigint; cached: bigint; runs: bigint };
 type DeliveryRow = { month: string; channel: string; n: bigint };
 type TemplateRow = { month: string; n: bigint };
 
-const measuredFacts = async (
-  from: Date,
-  to: Date,
-  timeZone: string,
-  usdToCop: number,
-): Promise<Record<string, MonthFacts>> => {
-  const [fees, ai, deliveries, templates] = await Promise.all([
-    prisma.$queryRaw<FeeRow[]>`
+const usageFacts = async (months: string[], timeZone: string): Promise<Record<string, MonthFacts>> => {
+  const from = monthStart(months[0], timeZone);
+  const to = monthStart(addMonths(months[months.length - 1], 1), timeZone);
+  const fromDay = `${months[0]}-01`;
+  const toDay = `${addMonths(months[months.length - 1], 1)}-01`;
+
+  const [firstLog] = await prisma.$queryRaw<{ day: Date | null }[]>`SELECT MIN("day") AS day FROM "ai_usage_daily"`;
+  // Los días con registro completo no se vuelven a contar con las respuestas
+  // de WhatsApp: ya están dentro.
+  const runsUntil = firstLog?.day
+    ? new Date(Math.min(to.getTime(), getStartOfDayInTz(new Date(`${dateKey(firstLog.day)}T12:00:00.000Z`), timeZone).getTime()))
+    : to;
+
+  const [aiLog, aiRuns, deliveries, templates] = await Promise.all([
+    prisma.$queryRaw<AiLogRow[]>`
       SELECT
-        to_char((("paid_at" AT TIME ZONE 'UTC') AT TIME ZONE ${timeZone}), 'YYYY-MM') AS month,
-        "provider"::text AS provider,
-        "currency"::text AS currency,
-        COALESCE(SUM("fee_minor"), 0)::bigint AS fee,
-        COUNT(*)::bigint AS payments,
-        COUNT("fee_minor")::bigint AS with_fee,
-        COALESCE(SUM("amount_minor") FILTER (WHERE "fee_minor" IS NULL), 0)::bigint AS amount_without_fee
-      FROM "payments"
-      WHERE "status" = 'APPROVED'
-        AND "provider" IN ('PAYPAL', 'MERCADO_PAGO')
-        AND "paid_at" >= ${from} AND "paid_at" < ${to}
-      GROUP BY 1, 2, 3
+        to_char("day", 'YYYY-MM') AS month,
+        "model" AS model,
+        SUM("input_tokens")::bigint AS input,
+        SUM("cached_tokens")::bigint AS cached,
+        SUM("audio_tokens")::bigint AS audio,
+        SUM("output_tokens")::bigint AS output,
+        SUM("calls")::bigint AS calls
+      FROM "ai_usage_daily"
+      WHERE "day" >= ${fromDay}::date AND "day" < ${toDay}::date
+      GROUP BY 1, 2
     `,
-    prisma.$queryRaw<AiRow[]>`
+    prisma.$queryRaw<AiRunRow[]>`
       SELECT
         to_char((("queued_at" AT TIME ZONE 'UTC') AT TIME ZONE ${timeZone}), 'YYYY-MM') AS month,
         "model" AS model,
@@ -174,7 +164,7 @@ const measuredFacts = async (
         COUNT(*)::bigint AS runs
       FROM "whatsapp_ai_runs"
       WHERE "model" IS NOT NULL
-        AND "queued_at" >= ${from} AND "queued_at" < ${to}
+        AND "queued_at" >= ${from} AND "queued_at" < ${runsUntil}
       GROUP BY 1, 2
     `,
     prisma.$queryRaw<DeliveryRow[]>`
@@ -203,53 +193,50 @@ const measuredFacts = async (
   const byMonth: Record<string, MonthFacts> = {};
   const factsOf = (month: string): MonthFacts => (byMonth[month] ??= { measured: {}, activity: {} });
 
-  // Comisiones. Una pasarela puede traer más de una moneda en el mismo mes
-  // (no debería): se suman en dólares y los pesos se guardan aparte.
-  const feeTotals = new Map<string, { usdCents: number; copMinor: number; payments: number; withFee: number }>();
-  for (const row of fees) {
-    const id = row.provider === "PAYPAL" ? "paypal" : "mercadopago";
-    const key = `${row.month}|${id}`;
-    const total = feeTotals.get(key) ?? { usdCents: 0, copMinor: 0, payments: 0, withFee: 0 };
-    const currency: CostCurrency = row.currency.trim() === "COP" ? "COP" : "USD";
-    const missing = Number(row.payments) - Number(row.with_fee);
-    const fee =
-      Number(row.fee) +
-      estimateFeeMinor(Number(row.amount_without_fee), missing, id === "paypal" ? paypalFee() : mercadoPagoFee(), currency);
-    total.usdCents += toUsdCents(fee, currency, usdToCop);
-    if (currency === "COP") total.copMinor += fee;
-    total.payments += Number(row.payments);
-    total.withFee += Number(row.with_fee);
-    feeTotals.set(key, total);
-  }
-  for (const [key, total] of feeTotals) {
-    const [month, id] = key.split("|") as [string, "paypal" | "mercadopago"];
-    const facts = factsOf(month);
-    facts.measured[id] = {
-      usdCents: total.usdCents,
-      // Exacta solo si todos los pagos del mes traen su comisión.
-      kind: total.withFee === total.payments ? "exact" : "estimate",
-      ...(total.copMinor > 0 ? { copMinor: Math.round(total.copMinor) } : {}),
-    };
-    facts.activity[id] =
-      plural(total.payments, "pago", "pagos") +
-      (total.withFee < total.payments ? ` · comisión según la tarifa (${feeLabel(id)})` : "");
-  }
-
   // IA: tokens por modelo, al precio de lista.
-  const aiTotals = new Map<string, { usd: number; runs: number }>();
-  for (const row of ai) {
-    const total = aiTotals.get(row.month) ?? { usd: 0, runs: 0 };
-    total.usd += estimateUsd(
-      { inputTokens: Number(row.input), cachedTokens: Number(row.cached), outputTokens: Number(row.output) },
+  const ai = new Map<string, { usd: number; calls: number; replies: number; unpriced: Set<string> }>();
+  const aiOf = (month: string) => {
+    let total = ai.get(month);
+    if (!total) ai.set(month, (total = { usd: 0, calls: 0, replies: 0, unpriced: new Set() }));
+    return total;
+  };
+  for (const row of aiLog) {
+    const total = aiOf(row.month);
+    total.usd += aiCostUsd(
+      {
+        inputTokens: Number(row.input),
+        cachedTokens: Number(row.cached),
+        audioTokens: Number(row.audio),
+        outputTokens: Number(row.output),
+      },
       row.model,
     );
-    total.runs += Number(row.runs);
-    aiTotals.set(row.month, total);
+    total.calls += Number(row.calls);
+    if (!hasAiPrice(row.model)) total.unpriced.add(row.model);
   }
-  for (const [month, total] of aiTotals) {
+  for (const row of aiRuns) {
+    const model = row.model ?? "";
+    const total = aiOf(row.month);
+    total.usd += aiCostUsd(
+      { inputTokens: Number(row.input), cachedTokens: Number(row.cached), audioTokens: 0, outputTokens: Number(row.output) },
+      model,
+    );
+    total.replies += Number(row.runs);
+    if (!hasAiPrice(model)) total.unpriced.add(model);
+  }
+  for (const [month, total] of ai) {
     const facts = factsOf(month);
     facts.measured.gemini = { usdCents: total.usd * 100, kind: "estimate" };
-    facts.activity.gemini = plural(total.runs, "respuesta de WhatsApp", "respuestas de WhatsApp");
+    facts.activity.gemini = [
+      total.calls > 0 ? plural(total.calls, "llamada a la IA", "llamadas a la IA") : null,
+      // Días anteriores al registro completo: solo se conocen las respuestas de WhatsApp.
+      total.replies > 0 ? `${plural(total.replies, "respuesta de WhatsApp", "respuestas de WhatsApp")} de antes del registro completo` : null,
+      total.unpriced.size > 0
+        ? `${[...total.unpriced].sort().join(", ")} sin tarifa publicada: contado al precio de flash-lite`
+        : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
   }
 
   for (const row of deliveries) {
@@ -268,24 +255,83 @@ const measuredFacts = async (
   return byMonth;
 };
 
+// ── Todo junto ──────────────────────────────────────────────────────────────
+
+const siteSettingStore: AutoStore = { get: getSiteSetting, set: setSiteSetting };
+
+/** Lo de los proveedores, dentro de los datos de cada mes y con su estado. Puro. */
+export const mergeAuto = (
+  factsByMonth: Record<string, MonthFacts>,
+  auto: AutoCollection,
+): { factsByMonth: Record<string, MonthFacts>; status: Partial<Record<CostServiceId, ServiceStatus>> } => {
+  const merged: Record<string, MonthFacts> = {};
+  const months = new Set([...Object.keys(factsByMonth), ...Object.keys(auto.months)]);
+  for (const month of months) {
+    const facts = factsByMonth[month];
+    const next: MonthFacts = { measured: { ...facts?.measured }, activity: { ...facts?.activity } };
+    for (const [id, value] of Object.entries(auto.months[month] ?? {}) as [CostServiceId, { usdCents: number; kind: "exact" | "estimate"; detail?: string }][]) {
+      next.measured[id] = { usdCents: value.usdCents, kind: value.kind };
+      if (value.detail) next.activity[id] = value.detail;
+    }
+    merged[month] = next;
+  }
+
+  const status: Partial<Record<CostServiceId, ServiceStatus>> = {};
+  for (const [id, s] of Object.entries(auto.status) as [CostServiceId, AutoCollection["status"][CostServiceId]][]) {
+    if (!s || s.state === "ok") continue;
+    status[id] = {
+      state: s.state,
+      message:
+        s.state === "stale"
+          ? `${s.message ?? "No se pudo actualizar."} Se muestra lo último que dijo ${COST_SERVICES[id].name}.`
+          : (s.message ?? "No se pudo consultar."),
+    };
+  }
+  return { factsByMonth: merged, status };
+};
+
 /** El mes actual en la zona de Dayana, `YYYY-MM`. */
 export const currentCostsMonth = async (now: Date = new Date()): Promise<string> => {
   const timeZone = await getOperationalTimezone().catch(() => OPERATIONAL_TZ);
   return getDateKeyInTz(now, timeZone).slice(0, 7);
 };
 
-/** Todo lo que pinta la pantalla para un mes (`requested`: lo que venga en la URL). */
-export const getCostsMonth = async (requested: unknown, now: Date = new Date()): Promise<CostsMonth> => {
+/**
+ * Todo lo que pinta la pantalla para un mes (`requested`: lo que venga en la
+ * URL). `auto`: para las pruebas, en vez de preguntar a los proveedores.
+ */
+export const getCostsMonth = async (
+  requested: unknown,
+  now: Date = new Date(),
+  opts: { auto?: (months: string[]) => Promise<AutoCollection> } = {},
+): Promise<CostsMonth> => {
   const timeZone = await getOperationalTimezone().catch(() => OPERATIONAL_TZ);
   const currentMonth = getDateKeyInTz(now, timeZone).slice(0, 7);
   const month = resolveMonth(requested, currentMonth);
   const months = monthsEndingAt(month, TREND_MONTHS);
-  const usdToCop = await resolveUsdToCopRate();
 
-  const [bills, factsByMonth] = await Promise.all([
+  const [usdToCop, manual, usage, auto] = await Promise.all([
+    resolveUsdToCopRate(),
     listBills(),
-    measuredFacts(monthStart(months[0], timeZone), monthStart(addMonths(month, 1), timeZone), timeZone, usdToCop),
+    usageFacts(months, timeZone),
+    opts.auto ? opts.auto(months) : collectAuto(months, { store: siteSettingStore, now }),
   ]);
 
-  return buildCostsMonth({ month, currentMonth, months, usdToCop, bills, factsByMonth });
+  const { factsByMonth, status } = mergeAuto(usage, auto);
+  for (const id of pendingFixedPlans()) {
+    status[id] ??= {
+      state: "missing_price",
+      message: "Falta el precio del plan. Se escribe una vez en la configuración y cuenta solo cada mes.",
+    };
+  }
+
+  return buildCostsMonth({
+    month,
+    currentMonth,
+    months,
+    usdToCop,
+    bills: [...fixedPlanBills(), ...manual],
+    factsByMonth,
+    status,
+  });
 };

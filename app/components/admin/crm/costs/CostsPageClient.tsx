@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, ExternalLink, Receipt } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, PenLine, Receipt } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
@@ -31,7 +31,6 @@ import { withDelta } from "@/lib/crm/stats/kpi";
 import { cn } from "@/lib/utils";
 
 import CrmModal from "../CrmModal";
-import CrmNewButton from "../CrmNewButton";
 import CrmPageHeader from "../CrmPageHeader";
 import CrmPageShell from "../CrmPageShell";
 import { useCrm } from "../CrmProvider";
@@ -76,8 +75,8 @@ const ERRORS: Record<string, string> = {
   invalid_end: "La fecha de fin no puede ser anterior a la de inicio.",
   label_too_long: "El concepto es demasiado largo (máximo 80 letras).",
   note_too_long: "La nota es demasiado larga (máximo 300 letras).",
-  not_found: "Esa factura ya no existe. Recarga la página.",
-  forbidden: "Solo la dueña puede registrar facturas.",
+  not_found: "Ese gasto ya no existe. Recarga la página.",
+  forbidden: "Solo la dueña puede apuntar gastos.",
 };
 
 const DAY_FMT = new Intl.DateTimeFormat("es-CO", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
@@ -96,24 +95,36 @@ const todayKey = (): string => {
 
 const COP_FMT = new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 });
 
+/** De dónde sale la cifra, en una palabra. */
 const sourceBadge = (row: CostServiceRow) => {
-  if (row.source === "bill") return <Badge variant="secondary">Factura</Badge>;
-  if (row.source === "both") return <Badge variant="secondary">Factura y medido</Badge>;
   if (row.source === "measured") {
-    return <Badge variant="outline">{row.measured?.kind === "estimate" ? "Aproximado" : "Medido"}</Badge>;
+    return row.measured?.kind === "exact" ? (
+      <Badge variant="secondary">Facturado</Badge>
+    ) : (
+      <Badge variant="outline">Calculado</Badge>
+    );
   }
+  if (row.source === "bill") {
+    return row.fixedOnly ? <Badge variant="secondary">Plan fijo</Badge> : <Badge variant="outline">Apuntado</Badge>;
+  }
+  if (row.source === "both") return <Badge variant="outline">Apuntado y calculado</Badge>;
   return null;
 };
 
-/** La línea pequeña bajo el servicio: cuánto se usó y, si la factura manda, lo medido como referencia. */
+/** La línea pequeña bajo el servicio: cuánto se usó y, si lo apuntado manda, lo calculado como referencia. */
 const serviceDetail = (row: CostServiceRow): string | null => {
   const parts: string[] = [];
   if (row.activity) parts.push(row.activity);
-  if (row.measured?.copMinor) parts.push(`$${COP_FMT.format(row.measured.copMinor)} COP`);
-  if (row.source === "bill" && row.measured) {
-    parts.push(`medido: ${formatUsdCents(row.measured.usdCents)}${row.measured.kind === "estimate" ? " aprox." : ""}`);
-  }
+  if (row.source === "bill" && row.measured) parts.push(`calculado: ${formatUsdCents(row.measured.usdCents)}`);
   return parts.length > 0 ? parts.join(" · ") : null;
+};
+
+/** Lo que va en la columna del importe cuando no hay cifra. */
+const missingLabel = (row: CostServiceRow): string => {
+  if (row.status?.state === "missing_key") return "Falta la clave";
+  if (row.status?.state === "missing_price") return "Falta el precio";
+  if (row.status?.state === "error") return "No respondió";
+  return "Sin dato";
 };
 
 const billWhen = (bill: CostBillRow): string => {
@@ -124,9 +135,10 @@ const billWhen = (bill: CostBillRow): string => {
 };
 
 /**
- * Costos de la plataforma: el total del mes, de dónde sale cada cifra y las
- * facturas registradas. Los datos llegan ya calculados del servidor
- * (`getCostsMonth`); tras guardar o borrar se vuelve a pedir la página.
+ * Costos de la plataforma: el total del mes y de dónde sale cada cifra. Casi
+ * todo llega calculado del servidor (`getCostsMonth`: proveedores, uso de la
+ * IA, planes fijos); aquí solo se puede apuntar a mano lo que nada de eso ve.
+ * Tras guardar o borrar se vuelve a pedir la página.
  */
 const CostsPageClient = ({ costs, error }: Props) => {
   const router = useRouter();
@@ -146,12 +158,12 @@ const CostsPageClient = ({ costs, error }: Props) => {
     setFormError(null);
     setForm({
       id: null,
-      serviceId: "vercel",
+      serviceId: "otro",
       label: "",
       amount: "",
       currency: "USD",
-      cadence: "MONTHLY",
-      // En un mes pasado lo normal es registrar algo de ese mes.
+      cadence: "ONE_TIME",
+      // En un mes pasado lo normal es apuntar algo de ese mes.
       startsOn: isCurrentMonth ? todayKey() : `${month}-01`,
       endsOn: "",
       note: "",
@@ -211,18 +223,18 @@ const CostsPageClient = ({ costs, error }: Props) => {
 
       setForm(null);
       // Si lo guardado no cuenta en el mes que se está mirando, se lleva a quien
-      // lo registró al mes donde sí: si no, parecería que no se guardó.
+      // lo apuntó al mes donde sí: si no, parecería que no se guardó.
       const startMonth = monthOf(payload.startsOn);
       if (billAppliesTo(payload, month)) {
-        toast(form.id ? "Factura actualizada" : "Factura registrada", "success");
+        toast(form.id ? "Gasto actualizado" : "Gasto apuntado", "success");
         startNavigation(() => router.refresh());
       } else if (startMonth > currentMonth) {
-        // Las que aún no empiezan se listan en el mes actual.
-        toast(`Guardada. Empieza a contar en ${monthLabel(startMonth)}.`, "success");
+        // Los que aún no empiezan se listan en el mes actual.
+        toast(`Guardado. Empieza a contar en ${monthLabel(startMonth)}.`, "success");
         if (isCurrentMonth) startNavigation(() => router.refresh());
         else goToMonth(currentMonth);
       } else {
-        toast(`Guardada en ${monthLabel(startMonth)}.`, "success");
+        toast(`Guardado en ${monthLabel(startMonth)}.`, "success");
         goToMonth(startMonth);
       }
     } catch {
@@ -234,8 +246,8 @@ const CostsPageClient = ({ costs, error }: Props) => {
 
   const remove = (bill: CostBillRow) =>
     confirm({
-      title: "Eliminar factura",
-      message: `«${bill.label}» dejará de contar en todos los meses. Si solo la cancelaste, edítala y ponle fecha de fin.`,
+      title: "Eliminar gasto",
+      message: `«${bill.label}» dejará de contar en todos los meses. Si solo dejó de pagarse, edítalo y ponle fecha de fin.`,
       confirmLabel: "Eliminar",
       destructive: true,
       onConfirm: async () => {
@@ -244,7 +256,7 @@ const CostsPageClient = ({ costs, error }: Props) => {
           toast("No se pudo eliminar", "error");
           return;
         }
-        toast("Factura eliminada", "success");
+        toast("Gasto eliminado", "success");
         startNavigation(() => router.refresh());
       },
     });
@@ -280,8 +292,17 @@ const CostsPageClient = ({ costs, error }: Props) => {
   const header = (
     <CrmPageHeader
       title="Costos"
-      description="Lo que cuesta tener la plataforma funcionando cada mes: las facturas que registras y lo que se mide solo."
-      action={canManageTeam && !error ? <CrmNewButton label="Registrar factura" onClick={openNew} /> : undefined}
+      description="Lo que cuesta tener la plataforma funcionando cada mes. Se calcula solo: lo que informan los proveedores, lo que usa la IA y los planes de precio fijo."
+      // No es la acción principal de la pantalla —aquí casi nada se escribe a
+      // mano—, así que va como acción de apoyo.
+      secondaryActions={
+        canManageTeam && !error ? (
+          <Button variant="outline" size="sm" onClick={openNew}>
+            <PenLine aria-hidden />
+            Apuntar un gasto
+          </Button>
+        ) : undefined
+      }
       trailing={error ? undefined : monthNav}
     />
   );
@@ -296,7 +317,6 @@ const CostsPageClient = ({ costs, error }: Props) => {
   }
 
   const selected = form ? COST_SERVICES[form.serviceId] : null;
-  const countedBills = costs.bills.filter((bill) => !bill.upcoming).length;
 
   return (
     <CrmPageShell>
@@ -313,16 +333,24 @@ const CostsPageClient = ({ costs, error }: Props) => {
             caption="vs mes anterior"
           />
           <KpiCard
-            label="Facturas y suscripciones"
-            value={formatUsdCents(costs.billsUsdCents)}
+            label="Calculado solo"
+            value={formatUsdCents(costs.autoUsdCents)}
             note={
-              countedBills === 1 ? "1 registrada que cuenta este mes" : `${countedBills} registradas que cuentan este mes`
+              costs.manualUsdCents > 0
+                ? `Más ${formatUsdCents(costs.manualUsdCents)} apuntado a mano`
+                : "Proveedores, uso de la IA y planes fijos"
             }
           />
           <KpiCard
-            label="Medido por la plataforma"
-            value={formatUsdCents(costs.measuredUsdCents)}
-            note="Comisiones de pago y uso de la IA en WhatsApp"
+            label="Por completar"
+            value={costs.pending === 0 ? "Nada" : costs.pending}
+            note={
+              costs.pending === 0
+                ? "Todos los servicios tienen su cifra"
+                : costs.pending === 1
+                  ? "servicio espera una clave o un precio: el total está incompleto"
+                  : "servicios esperan una clave o un precio: el total está incompleto"
+            }
           />
         </div>
 
@@ -351,6 +379,20 @@ const CostsPageClient = ({ costs, error }: Props) => {
                     </p>
                     <p className="text-sm text-muted-foreground">{row.what}</p>
                     {detail ? <p className="text-xs text-muted-foreground">{detail}</p> : null}
+                    {row.status ? (
+                      <p
+                        className={cn(
+                          "text-xs",
+                          row.status.state === "error"
+                            ? "text-destructive"
+                            : row.status.state === "stale"
+                              ? "text-muted-foreground"
+                              : "text-warning",
+                        )}
+                      >
+                        {row.status.message}
+                      </p>
+                    ) : null}
                   </div>
                   <p
                     className={cn(
@@ -358,7 +400,7 @@ const CostsPageClient = ({ costs, error }: Props) => {
                       row.source === "none" ? "text-muted-foreground" : "font-medium",
                     )}
                   >
-                    {row.source === "none" ? "Sin registrar" : formatUsdCents(row.usdCents)}
+                    {row.source === "none" ? missingLabel(row) : formatUsdCents(row.usdCents)}
                   </p>
                 </CrmDataListRow>
               );
@@ -366,27 +408,23 @@ const CostsPageClient = ({ costs, error }: Props) => {
           </CrmDataList>
         </section>
 
-        <section className="space-y-3" aria-labelledby="costos-facturas">
-          <h2 id="costos-facturas" className="text-sm font-semibold tracking-tight">
-            Facturas y suscripciones
+        <section className="space-y-3" aria-labelledby="costos-fijos">
+          <h2 id="costos-fijos" className="text-sm font-semibold tracking-tight">
+            Planes fijos y gastos apuntados
           </h2>
           <CrmDataList>
             {costs.bills.length === 0 ? (
               <CrmEmptyState
                 icon={Receipt}
-                title={costs.hasBills ? "Ninguna factura cuenta en este mes" : "Aún no hay facturas registradas"}
-                description={
-                  costs.hasBills
-                    ? "Las que registraste empiezan después o ya terminaron. Cambia de mes para verlas."
-                    : "Registra lo que pagas por cada servicio —el plan de Vercel, la licencia de WhatsApp, el dominio— y se suma solo cada mes."
-                }
+                title="Nada fijo ni apuntado en este mes"
+                description="Aquí salen los planes de precio fijo y lo que se apunte a mano. Lo demás se calcula solo y está arriba, por servicio."
               />
             ) : (
               costs.bills.map((bill) => (
                 <CrmDataListRow
                   key={bill.id}
                   actions={
-                    canManageTeam ? (
+                    canManageTeam && !bill.fixed ? (
                       <CrmRowActions>
                         <CrmRowEdit onClick={() => openEdit(bill)} />
                         <CrmRowDelete onClick={() => remove(bill)} />
@@ -402,13 +440,16 @@ const CostsPageClient = ({ costs, error }: Props) => {
                           <span className="font-normal text-muted-foreground"> · {bill.serviceName}</span>
                         ) : null}
                       </span>
+                      {bill.fixed ? <Badge variant="secondary">Plan fijo</Badge> : null}
                       {bill.upcoming ? <Badge variant="outline">Aún no empieza</Badge> : null}
                     </p>
                     <p className="text-xs text-muted-foreground">{billWhen(bill)}</p>
                     {bill.note ? <p className="text-xs text-muted-foreground">{bill.note}</p> : null}
                   </div>
                   <div className="sm:w-40 sm:text-right">
-                    <p className="text-sm font-medium tabular-nums">{formatBillAmount(bill.amountMinor, bill.currency)}</p>
+                    <p className="text-sm font-medium tabular-nums">
+                      {bill.fixed && bill.amountMinor === 0 ? "Gratis" : formatBillAmount(bill.amountMinor, bill.currency)}
+                    </p>
                     {!bill.upcoming && (bill.cadence === "YEARLY" || bill.currency !== "USD") ? (
                       <p className="text-xs text-muted-foreground tabular-nums">
                         {formatUsdCents(bill.monthUsdCents)} este mes
@@ -423,13 +464,13 @@ const CostsPageClient = ({ costs, error }: Props) => {
 
         <p className="text-xs text-muted-foreground">
           Los totales están en dólares; los pesos se convierten a {COP_FMT.format(costs.usdToCop)} COP por dólar (la tasa
-          de Ajustes). Una factura anual se reparte en doce meses. Lo marcado «Aproximado» es un cálculo: las comisiones,
-          con la tarifa configurada de PayPal y Mercado Pago sobre lo cobrado; la IA, con el precio de lista y solo las
-          respuestas de WhatsApp (si registras la factura de Google, esa es la que vale).
+          de Ajustes). «Facturado» es lo que el proveedor dice que cobró. «Calculado» es el uso por la tarifa publicada
+          (base de datos, videos, dominio, IA): puede diferir un poco de la factura. Las comisiones de PayPal y Mercado
+          Pago no cuentan aquí: van sumadas al precio que paga la clienta.
         </p>
       </div>
 
-      <CrmModal title={form?.id ? "Editar factura" : "Registrar factura"} open={form !== null} onClose={() => setForm(null)}>
+      <CrmModal title={form?.id ? "Editar gasto" : "Apuntar un gasto"} open={form !== null} onClose={() => setForm(null)}>
         {form && selected ? (
           <form
             className="space-y-4"
@@ -458,7 +499,9 @@ const CostsPageClient = ({ costs, error }: Props) => {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {selected.billing}
+                {selected.source === "manual"
+                  ? selected.billing
+                  : "Este servicio ya se calcula solo: lo que apuntes aquí lo reemplaza en los meses en que cuente."}
                 {selected.billingUrl ? (
                   <>
                     {" "}
@@ -480,7 +523,7 @@ const CostsPageClient = ({ costs, error }: Props) => {
               <Input
                 value={form.label}
                 maxLength={80}
-                placeholder="Plan Pro"
+                placeholder="Micrófono para las clases"
                 onChange={(e) => setForm((f) => (f ? { ...f, label: e.target.value } : f))}
               />
             </CrmField>

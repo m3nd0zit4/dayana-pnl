@@ -1,26 +1,33 @@
 /**
  * Costos de la plataforma, de punta a punta, contra la base de DESARROLLO.
+ * Los proveedores (Vercel, Neon, Mux) se simulan: nada sale a internet.
  *
  * Comprueba que:
  *
- * - una factura mensual, una anual y un cobro suelto cuentan en los meses que
- *   les tocan (y la anual, repartida en doce);
- * - los pesos se convierten con la tasa del CRM;
- * - las comisiones medidas son la suma de `payments.fee_minor` del mes más,
- *   para los pagos que no la traen, la tarifa configurada sobre lo cobrado; y
- *   se SUMAN a una factura del mismo servicio;
- * - una factura que aún no empieza se ve en el mes actual sin sumar;
- * - una factura de la IA manda sobre lo medido;
- * - editar y borrar funcionan, y borrar dos veces no rompe.
+ * - lo que dicen los proveedores entra en el mes que toca, con su detalle, y
+ *   una clave que falta se dice y deja el total marcado como incompleto;
+ * - lo guardado de un proveedor en `site_settings` se reutiliza sin volver a
+ *   preguntar, y un fallo posterior enseña lo último guardado;
+ * - cada respuesta de la IA suma sus tokens a `ai_usage_daily` (una fila por
+ *   día y modelo) y eso es lo que cuesta la IA ese mes;
+ * - desde el primer día con registro, las respuestas de WhatsApp ya no se
+ *   cuentan aparte (estarían dos veces);
+ * - algo apuntado a mano cuenta en su mes, los pesos se convierten con la tasa
+ *   del CRM, lo apuntado manda sobre lo calculado, y editar y borrar funcionan;
+ * - algo apuntado que aún no empieza se ve en el mes actual sin sumar.
  *
  * Crea sus propias filas y las borra al terminar:
  *
  *   bun --env-file=../dayana-pnl/.env scripts/costs-e2e.ts
  */
 import { prisma } from "@/lib/db";
+import { recordAiUsageNow } from "@/lib/ai/usage";
+import { aiCostUsd } from "@/lib/crm/costs/ai-prices";
+import { autoSettingKey, collectAuto, type AutoCollection } from "@/lib/crm/costs/auto";
+import type { AutoCollector } from "@/lib/crm/costs/auto/types";
 import { parseBillInput, toUsdCents, type BillInput } from "@/lib/crm/costs/rules";
 import { createBill, deleteBill, getCostsMonth, updateBill } from "@/lib/crm/costs/store";
-import { paypalFee } from "@/lib/pricing/fees";
+import { deleteSiteSetting, getSiteSetting, setSiteSetting } from "@/lib/crm/site-settings";
 
 if (!process.env.DATABASE_URL?.includes("neondb_dev")) throw new Error("Solo contra neondb_dev.");
 
@@ -32,9 +39,10 @@ const check = (name: string, ok: boolean, detail?: unknown) => {
 const near = (a: number, b: number) => Math.abs(a - b) < 0.01;
 
 const TAG = `e2e-costos-${Date.now()}`;
+const MODEL = `e2e-model-${Date.now()}`;
 const input = (over: Record<string, unknown>): BillInput => {
   const parsed = parseBillInput({
-    serviceId: "vercel",
+    serviceId: "otro",
     label: TAG,
     cadence: "MONTHLY",
     currency: "USD",
@@ -52,93 +60,145 @@ const input = (over: Record<string, unknown>): BillInput => {
 const NOW = new Date("2026-11-20T15:00:00.000Z");
 const created: string[] = [];
 
+/** Proveedores de mentira: Vercel facturó, Neon se calculó, a Mux le falta la clave. */
+const AUTO: AutoCollection = {
+  months: {
+    "2026-10": {
+      vercel: { usdCents: 2000, kind: "exact" },
+      neon: { usdCents: 1343, kind: "estimate", detail: "55,8 horas de cómputo · 0,1 GB guardados" },
+    },
+    "2026-11": { vercel: { usdCents: 2000, kind: "exact" } },
+  },
+  status: {
+    vercel: { state: "ok" },
+    neon: { state: "ok" },
+    mux: { state: "missing_key", message: "Falta pegar MUX_TOKEN_ID y MUX_TOKEN_SECRET en las variables de entorno de Vercel." },
+  },
+};
+const costs = (month: unknown) => getCostsMonth(month, NOW, { auto: async () => AUTO });
+type Costs = Awaited<ReturnType<typeof costs>>;
+const row = (data: Costs, id: string) => data.services.find((s) => s.id === id);
+
+const CACHE_KEY = autoSettingKey("twilio");
+
 try {
   const owner = await prisma.staffUser.findFirst({ where: { role: "OWNER" }, select: { id: true } });
   if (!owner) throw new Error("No hay OWNER en la base de desarrollo.");
 
-  const before = await getCostsMonth("2026-10", NOW);
-  const row = (data: typeof before, id: string) => data.services.find((s) => s.id === id);
-  // Facturas de PayPal que ya hubiera en desarrollo antes de la prueba.
-  const priorPaypal = row(before, "paypal");
-  const priorPaypalBills = (priorPaypal?.usdCents ?? 0) - (priorPaypal?.source === "bill" ? 0 : (priorPaypal?.measured?.usdCents ?? 0));
-
-  const monthly = await createBill(input({}), owner.id);
-  const cop = await createBill(input({ serviceId: "resend", currency: "COP", amountMinor: 80_000 }), owner.id);
-  const yearly = await createBill(
-    input({ serviceId: "dominio", cadence: "YEARLY", amountMinor: 2400, startsOn: "2026-03-01" }),
-    owner.id,
-  );
-  const once = await createBill(
-    input({ serviceId: "otro", cadence: "ONE_TIME", amountMinor: 5000, startsOn: "2026-10-05" }),
-    owner.id,
-  );
-  const fee = await createBill(input({ serviceId: "paypal", amountMinor: 100, startsOn: "2026-10-01" }), owner.id);
-  const ai = await createBill(input({ serviceId: "gemini", amountMinor: 123_400, startsOn: "2026-10-01" }), owner.id);
-  created.push(monthly.id, cop.id, yearly.id, once.id, fee.id, ai.id);
-
-  const oct = await getCostsMonth("2026-10", NOW);
-  const copUsd = toUsdCents(80_000, "COP", oct.usdToCop);
-  check("las seis facturas cuentan en octubre", oct.bills.filter((b) => b.note === TAG).length === 6, oct.bills.length);
+  // ── Proveedores ───────────────────────────────────────────────────────────
+  const before = await costs("2026-10");
+  check("Vercel: lo facturado entra tal cual", row(before, "vercel")?.usdCents === 2000 && row(before, "vercel")?.measured?.kind === "exact", row(before, "vercel"));
   check(
-    "Vercel sube 20 USD",
-    near((row(oct, "vercel")?.usdCents ?? 0) - (row(before, "vercel")?.usdCents ?? 0), 2000),
-    row(oct, "vercel"),
+    "Neon: lo calculado entra con su detalle",
+    row(before, "neon")?.usdCents === 1343 && row(before, "neon")?.activity === "55,8 horas de cómputo · 0,1 GB guardados",
+    row(before, "neon"),
   );
+  check("Mux sin clave: se dice, sin cifra", row(before, "mux")?.status?.state === "missing_key" && row(before, "mux")?.source === "none", row(before, "mux"));
+  check("lo que falta deja el total marcado como incompleto", before.pending >= 1, before.pending);
+  check("PayPal y Mercado Pago no salen", !row(before, "paypal") && !row(before, "mercadopago"));
   check(
-    "los pesos se convierten con la tasa del CRM",
-    near((row(oct, "resend")?.usdCents ?? 0) - (row(before, "resend")?.usdCents ?? 0), copUsd),
-    { usdToCop: oct.usdToCop, copUsd },
+    "todo lo automático cuenta como «calculado solo»",
+    near(before.autoUsdCents + before.manualUsdCents, before.totalUsdCents),
+    { auto: before.autoUsdCents, manual: before.manualUsdCents, total: before.totalUsdCents },
   );
-  check(
-    "la anual pesa una doceava parte",
-    near((row(oct, "dominio")?.usdCents ?? 0) - (row(before, "dominio")?.usdCents ?? 0), 200),
-    row(oct, "dominio"),
-  );
-  check("el cobro suelto cuenta en su mes", (row(oct, "otro")?.usdCents ?? 0) >= 5000, row(oct, "otro"));
 
-  // Comisiones: exactamente lo que dicen los pagos de cada mes (zona de Bogotá,
-  // UTC−5), y una factura del mismo servicio se suma encima.
-  for (const [month, from, to] of [
-    ["2026-10", "2026-10-01T05:00:00.000Z", "2026-11-01T05:00:00.000Z"],
-    ["2026-11", "2026-11-01T05:00:00.000Z", "2026-12-01T05:00:00.000Z"],
-  ] as const) {
-    const [fees] = await prisma.$queryRaw<{ fee: bigint | null; n: bigint; no_fee: bigint; no_fee_amount: bigint | null }[]>`
-      SELECT SUM("fee_minor")::bigint AS fee, COUNT(*)::bigint AS n,
-             COUNT(*) FILTER (WHERE "fee_minor" IS NULL)::bigint AS no_fee,
-             SUM("amount_minor") FILTER (WHERE "fee_minor" IS NULL)::bigint AS no_fee_amount
-      FROM "payments"
-      WHERE "status" = 'APPROVED' AND "provider" = 'PAYPAL' AND "currency" = 'USD'
-        AND "paid_at" >= ${new Date(from)} AND "paid_at" < ${new Date(to)}
-    `;
-    const tariff = paypalFee();
-    const expectedFee =
-      Number(fees?.fee ?? 0) +
-      Number(fees?.no_fee_amount ?? 0) * tariff.percent +
-      Number(fees?.no_fee ?? 0) * tariff.fixed * 100;
-    const paypal = row(await getCostsMonth(month, NOW), "paypal");
+  // Lo guardado de un proveedor, con la tabla de verdad.
+  let asked = 0;
+  const collector = (fail: boolean): AutoCollector => ({
+    id: "twilio",
+    collect: async () => {
+      asked++;
+      return fail
+        ? { state: "error", message: "No respondió." }
+        : { state: "ok", months: { "2026-11": { usdCents: 777, kind: "exact" } } };
+    },
+  });
+  const store = { get: getSiteSetting, set: setSiteSetting };
+  const run = (fail: boolean, now: Date) =>
+    collectAuto(["2026-10", "2026-11"], { store, now, env: {}, collectors: [collector(fail)] });
+  await deleteSiteSetting(CACHE_KEY);
+  await run(false, NOW);
+  const cached = await run(false, new Date(NOW.getTime() + 60_000));
+  check("al proveedor se le pregunta una vez; después vale lo guardado", asked === 1 && cached.months["2026-11"]?.twilio?.usdCents === 777, { asked });
+  const stale = await run(true, new Date(NOW.getTime() + 7 * 3_600_000));
+  check(
+    "si luego falla, se enseña lo último guardado y se dice",
+    asked === 2 && stale.months["2026-11"]?.twilio?.usdCents === 777 && stale.status.twilio?.state === "stale",
+    stale.status,
+  );
+
+  // ── La IA ─────────────────────────────────────────────────────────────────
+  const [firstLog] = await prisma.$queryRaw<{ day: Date | null }[]>`SELECT MIN("day") AS day FROM "ai_usage_daily"`;
+  const novBefore = await costs("2026-11");
+  const usage = { model: MODEL, inputTokens: 1_000_000, cachedTokens: 400_000, audioTokens: 0, outputTokens: 100_000 };
+  const day = new Date("2026-11-12T17:00:00.000Z");
+  await recordAiUsageNow(usage, day);
+  await recordAiUsageNow(usage, day);
+  await recordAiUsageNow({ ...usage, inputTokens: 10, cachedTokens: 0, outputTokens: 5 }, new Date("2026-11-13T02:00:00.000Z"));
+
+  const logged = await prisma.$queryRaw<{ day: Date; calls: number; input: bigint; output: bigint }[]>`
+    SELECT "day", "calls", "input_tokens" AS input, "output_tokens" AS output
+    FROM "ai_usage_daily" WHERE "model" = ${MODEL} ORDER BY "day"
+  `;
+  check(
+    "tres respuestas el mismo día de Bogotá: una fila, sumada",
+    logged.length === 1 && logged[0].calls === 3 && Number(logged[0].input) === 2_000_010 && Number(logged[0].output) === 200_005,
+    logged.map((r) => ({ ...r, input: Number(r.input), output: Number(r.output) })),
+  );
+  check("la fila es del día en la zona de Dayana (21:00 del 12, no el 13 UTC)", logged[0]?.day.toISOString().slice(0, 10) === "2026-11-12", logged[0]?.day);
+
+  const novAfter = await costs("2026-11");
+  const expectedUsd = aiCostUsd({ inputTokens: 2_000_010, cachedTokens: 800_000, audioTokens: 0, outputTokens: 200_005 }, MODEL);
+  // Si este es el primer registro que hay, los días posteriores dejan de
+  // contarse con las respuestas de WhatsApp; en desarrollo todas son de octubre.
+  check(
+    "lo que cuesta la IA sube exactamente lo anotado",
+    near((row(novAfter, "gemini")?.usdCents ?? 0) - (row(novBefore, "gemini")?.usdCents ?? 0), expectedUsd * 100),
+    { before: row(novBefore, "gemini")?.usdCents, after: row(novAfter, "gemini")?.usdCents, expectedUsd },
+  );
+  check(
+    "y dice que ese modelo no tiene tarifa publicada",
+    (row(novAfter, "gemini")?.activity ?? "").includes(`${MODEL} sin tarifa publicada`),
+    row(novAfter, "gemini")?.activity,
+  );
+  if (!firstLog?.day) {
+    const octRuns = await prisma.whatsAppAiRun.count({
+      where: { model: { not: null }, queuedAt: { gte: new Date("2026-10-01T05:00:00.000Z"), lt: new Date("2026-11-01T05:00:00.000Z") } },
+    });
     check(
-      `${month}: la comisión medida de PayPal sale de sus ${Number(fees?.n ?? 0)} pagos (${Number(fees?.no_fee ?? 0)} con tarifa)`,
-      near(paypal?.measured?.usdCents ?? 0, expectedFee),
-      { measured: paypal?.measured, expectedFee },
-    );
-    if (Number(fees?.n ?? 0) > 0) {
-      check(
-        `${month}: es exacta solo si todos los pagos traen su comisión`,
-        paypal?.measured?.kind === (Number(fees?.no_fee ?? 0) === 0 ? "exact" : "estimate"),
-        paypal?.measured,
-      );
-    }
-    check(
-      `${month}: la factura de PayPal se suma a la comisión`,
-      near(paypal?.usdCents ?? 0, expectedFee + 100 + priorPaypalBills),
-      paypal,
+      "antes del primer día con registro siguen contando las respuestas de WhatsApp",
+      octRuns === 0 || (row(await costs("2026-10"), "gemini")?.activity ?? "").includes("de antes del registro completo"),
+      { octRuns },
     );
   }
 
-  const gemini = row(oct, "gemini");
-  check("la factura de la IA manda sobre lo medido", gemini?.source === "bill" && (gemini?.usdCents ?? 0) >= 123_400, gemini);
+  // ── Lo apuntado a mano ────────────────────────────────────────────────────
+  const monthly = await createBill(input({}), owner.id);
+  const cop = await createBill(input({ currency: "COP", amountMinor: 80_000 }), owner.id);
+  const once = await createBill(input({ cadence: "ONE_TIME", amountMinor: 5000, startsOn: "2026-10-05" }), owner.id);
+  const neonBill = await createBill(input({ serviceId: "neon", amountMinor: 9900, startsOn: "2026-10-01" }), owner.id);
+  created.push(monthly.id, cop.id, once.id, neonBill.id);
 
-  const nov = await getCostsMonth(undefined, NOW);
+  const oct = await costs("2026-10");
+  const copUsd = toUsdCents(80_000, "COP", oct.usdToCop);
+  check("lo apuntado cuenta en su mes", oct.bills.filter((b) => b.note === TAG && !b.fixed).length === 4, oct.bills.length);
+  check(
+    "«Otro» suma todo lo apuntado, con los pesos convertidos a la tasa del CRM",
+    near((row(oct, "otro")?.usdCents ?? 0) - (row(before, "otro")?.usdCents ?? 0), 2000 + copUsd + 5000),
+    { otro: row(oct, "otro"), usdToCop: oct.usdToCop },
+  );
+  check(
+    "lo apuntado manda sobre lo calculado (Neon), que queda de referencia",
+    row(oct, "neon")?.source === "bill" && row(oct, "neon")?.usdCents === 9900 && row(oct, "neon")?.measured?.usdCents === 1343,
+    row(oct, "neon"),
+  );
+  check(
+    "lo apuntado cuenta aparte de lo calculado solo",
+    near(oct.manualUsdCents - before.manualUsdCents, 2000 + copUsd + 5000 + 9900) && near(oct.autoUsdCents, before.autoUsdCents - 1343),
+    { manual: oct.manualUsdCents, auto: oct.autoUsdCents },
+  );
+
+  const nov = await costs(undefined);
   check("sin mes pedido, enseña el actual", nov.month === "2026-11" && nov.currentMonth === "2026-11", nov.month);
   check("el cobro suelto de octubre no cuenta en noviembre", !nov.bills.some((b) => b.id === once.id));
   check("el mes anterior de noviembre es el total de octubre", near(nov.previousUsdCents, oct.totalUsdCents), {
@@ -146,32 +206,26 @@ try {
     oct: oct.totalUsdCents,
   });
   check("la tendencia trae seis meses y termina en el mostrado", nov.trend.length === 6 && nov.trend[5].month === "2026-11");
-  check("un mes futuro cae en el actual", (await getCostsMonth("2027-03", NOW)).month === "2026-11");
+  check("un mes futuro cae en el actual", (await costs("2027-03")).month === "2026-11");
 
-  // Una factura con la fecha en el futuro: visible en el mes actual, sin sumar.
-  const future = await createBill(input({ serviceId: "mux", startsOn: "2027-11-09" }), owner.id);
+  const future = await createBill(input({ startsOn: "2027-11-09" }), owner.id);
   created.push(future.id);
-  const withFuture = await getCostsMonth(undefined, NOW);
+  const withFuture = await costs(undefined);
   const futureRow = withFuture.bills.find((b) => b.id === future.id);
-  check("la que aún no empieza se ve en el mes actual", futureRow?.upcoming === true, futureRow);
-  check("y no suma", near(withFuture.totalUsdCents, nov.totalUsdCents), {
-    con: withFuture.totalUsdCents,
-    sin: nov.totalUsdCents,
-  });
-  check("en un mes pasado no aparece", !(await getCostsMonth("2026-10", NOW)).bills.some((b) => b.id === future.id));
+  check("lo que aún no empieza se ve en el mes actual", futureRow?.upcoming === true, futureRow);
+  check("y no suma", near(withFuture.totalUsdCents, nov.totalUsdCents), { con: withFuture.totalUsdCents, sin: nov.totalUsdCents });
 
-  // Cancelar: con fecha de fin deja de contar al mes siguiente.
   const ended = await updateBill(monthly.id, input({ endsOn: "2026-10-31" }));
-  check("editar devuelve la factura con su fecha de fin", ended?.endsOn === "2026-10-31", ended);
-  const novAfter = await getCostsMonth("2026-11", NOW);
-  check("la cancelada ya no cuenta en noviembre", !novAfter.bills.some((b) => b.id === monthly.id));
-  check("editar una que no existe devuelve null", (await updateBill("no-existe", input({}))) === null);
-
+  check("editar devuelve el gasto con su fecha de fin", ended?.endsOn === "2026-10-31", ended);
+  check("lo cancelado ya no cuenta en noviembre", !(await costs("2026-11")).bills.some((b) => b.id === monthly.id));
+  check("editar uno que no existe devuelve null", (await updateBill("no-existe", input({}))) === null);
   check("borrar funciona", (await deleteBill(once.id)) === true);
   check("borrar dos veces no rompe", (await deleteBill(once.id)) === false);
 } finally {
   const { count } = await prisma.platformCost.deleteMany({ where: { OR: [{ id: { in: created } }, { note: TAG }] } });
-  console.log(`limpieza: ${count} filas borradas`);
+  const usageRows = await prisma.$executeRaw`DELETE FROM "ai_usage_daily" WHERE "model" = ${MODEL}`;
+  await deleteSiteSetting(CACHE_KEY);
+  console.log(`limpieza: ${count} gastos, ${usageRows} filas de uso de la IA`);
   await prisma.$disconnect();
 }
 

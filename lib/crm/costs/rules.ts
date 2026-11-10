@@ -121,19 +121,6 @@ export const billAmountForMonth = (bill: BillLike, monthKey: string): number => 
   return bill.cadence === "YEARLY" ? bill.amountMinor / 12 : bill.amountMinor;
 };
 
-/**
- * La comisión de unos pagos que no la traen guardada, con la tarifa
- * configurada (`lib/pricing/fees.ts`): porcentaje sobre lo cobrado más un
- * fijo por pago. Devuelve unidades menores de esa moneda. `fixed` viene en
- * unidades mayores (0.30 = 30 centavos de dólar; en pesos no hay diferencia).
- */
-export const estimateFeeMinor = (
-  amountMinor: number,
-  payments: number,
-  fee: { percent: number; fixed: number },
-  currency: CostCurrency,
-): number => amountMinor * fee.percent + payments * fee.fixed * (currency === "USD" ? 100 : 1);
-
 /** A centavos de dólar. COP son pesos enteros: se dividen por la tasa. */
 export const toUsdCents = (amountMinor: number, currency: CostCurrency, usdToCop: number): number =>
   currency === "USD" ? amountMinor : usdToCop > 0 ? (amountMinor / usdToCop) * 100 : 0;

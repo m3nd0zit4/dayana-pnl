@@ -1788,6 +1788,26 @@ model PlatformCost {
   @@map("platform_costs")
 }
 
+/// Lo que gasta la IA, sumado por día (en la zona de Dayana) y modelo. Lo
+/// escribe `lib/ai/usage.ts` con cada respuesta de Gemini, sea de quien sea
+/// (WhatsApp, asistente del panel, fichas, notas de voz…), y lo lee la
+/// pantalla de Costos. Tokens, no dólares: el precio se aplica al leer.
+model AiUsageDaily {
+  day          DateTime @db.Date
+  model        String
+  calls        Int      @default(0)
+  /// Entrada total, incluidos los tokens en caché y los de audio.
+  inputTokens  BigInt   @default(0) @map("input_tokens")
+  cachedTokens BigInt   @default(0) @map("cached_tokens")
+  audioTokens  BigInt   @default(0) @map("audio_tokens")
+  /// Salida, incluido lo que el modelo «pensó».
+  outputTokens BigInt   @default(0) @map("output_tokens")
+  updatedAt    DateTime @default(now()) @map("updated_at")
+
+  @@id([day, model])
+  @@map("ai_usage_daily")
+}
+
 model MemberAccount {
   id              String    @id @default(cuid())
   contactId       String    @unique @map("contact_id")

@@ -7,7 +7,6 @@ import {
   billAmountForMonth,
   billAppliesTo,
   combineCost,
-  estimateFeeMinor,
   formatBillAmount,
   formatUsdCents,
   isDateKey,
@@ -38,10 +37,15 @@ describe("catálogo de servicios", () => {
     }
   });
 
-  test("las comisiones de pago se suman a una factura; la IA no", () => {
-    expect(COST_SERVICES.paypal.combine).toBe("sum");
-    expect(COST_SERVICES.mercadopago.combine).toBe("sum");
-    expect(COST_SERVICES.gemini.combine).toBe("bill-wins");
+  test("PayPal y Mercado Pago no son un costo de la plataforma: la comisión la paga la clienta", () => {
+    expect(COST_SERVICE_IDS as readonly string[]).not.toContain("paypal");
+    expect(COST_SERVICE_IDS as readonly string[]).not.toContain("mercadopago");
+  });
+
+  test("solo «Otro» suma lo apuntado a lo calculado; en el resto lo apuntado manda", () => {
+    for (const id of COST_SERVICE_IDS) {
+      expect(COST_SERVICES[id].combine).toBe(id === "otro" ? "sum" : "bill-wins");
+    }
   });
 });
 
@@ -141,15 +145,7 @@ describe("dinero", () => {
     expect(toUsdCents(80_000, "COP", 0)).toBe(0);
   });
 
-  test("comisión con la tarifa: porcentaje de lo cobrado más el fijo por pago", () => {
-    // 3 pagos por 300 USD al 5,4 % + 0,30 USD.
-    expect(estimateFeeMinor(30_000, 3, { percent: 0.054, fixed: 0.3 }, "USD")).toBeCloseTo(1620 + 90, 6);
-    // 2 pagos por 400.000 COP al 4,75 %, sin fijo.
-    expect(estimateFeeMinor(400_000, 2, { percent: 0.0475, fixed: 0 }, "COP")).toBeCloseTo(19_000, 6);
-    expect(estimateFeeMinor(0, 0, { percent: 0.054, fixed: 0.3 }, "USD")).toBe(0);
-  });
-
-  test("la factura manda sobre lo medido, salvo en las comisiones", () => {
+  test("lo apuntado manda sobre lo calculado, salvo donde se suman", () => {
     expect(combineCost("bill-wins", null, null)).toEqual({ usdCents: 0, source: "none" });
     expect(combineCost("bill-wins", null, 150)).toEqual({ usdCents: 150, source: "measured" });
     expect(combineCost("bill-wins", 900, 150)).toEqual({ usdCents: 900, source: "bill" });

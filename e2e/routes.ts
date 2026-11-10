@@ -157,9 +157,9 @@ export const CRM_ROUTES: CrmRoute[] = [
     hasPrimaryAction: true,
   },
   { path: "/admin/audit", name: "Auditoría", tier: "preview" },
-  // «Registrar factura» es la primaria. Como en Pagos, en preview no se pinta
-  // (sin rol de escritura), pero se comprueba que no haya otra fuera de la cabecera.
-  { path: "/admin/costos", name: "Costos", tier: "preview", hasPrimaryAction: true },
+  // Sin acción primaria: la pantalla se calcula sola. «Apuntar un gasto» es una
+  // acción de apoyo de la cabecera.
+  { path: "/admin/costos", name: "Costos", tier: "preview" },
 
   // ---------------------------------------------------------------- Tier B
   // `contacts/[id]` redirige a la lista en preview; el resto llama a la DB o a

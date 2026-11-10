@@ -12,26 +12,28 @@ import {
 } from "./rules";
 
 /**
- * Arma lo que pinta `/admin/costos` a partir de las facturas y de lo medido.
- * Puro: `store.ts` trae los datos, `preview.ts` trae datos de mentira, y los
- * dos pasan por aquí — así la vista previa y la pantalla real no pueden
- * divergir en cómo se suman las cosas.
+ * Arma lo que pinta `/admin/costos` a partir de lo automático (proveedores,
+ * uso propio), los planes fijos y lo apuntado a mano. Puro: `store.ts` trae
+ * los datos, `preview.ts` trae datos de mentira, y los dos pasan por aquí —
+ * así la vista previa y la pantalla real no pueden divergir en cómo se suman
+ * las cosas.
  */
 
-/** Una factura guardada, ya con fechas como texto. */
+/** Una factura: apuntada a mano (`platform_costs`) o un plan fijo (`fixed`). */
 export type CostBill = BillLike & {
   id: string;
   serviceId: string;
   label: string;
   note: string | null;
+  /** Viene de `fixed-plans.ts`: no se edita desde la pantalla. */
+  fixed?: boolean;
 };
 
-/** Lo que la plataforma calculó sola para un servicio en un mes. */
+/** Lo que salió solo para un servicio en un mes. */
 export type MeasuredCost = {
   usdCents: number;
+  /** `exact`: lo que el proveedor facturó. `estimate`: uso × tarifa publicada. */
   kind: "exact" | "estimate";
-  /** Si la cifra original estaba en pesos (comisiones de Mercado Pago). */
-  copMinor?: number;
 };
 
 export type MonthFacts = {
@@ -40,17 +42,25 @@ export type MonthFacts = {
   activity: Partial<Record<CostServiceId, string>>;
 };
 
+/** Por qué un servicio no tiene (o puede no tener al día) su cifra automática. */
+export type ServiceStatus = {
+  state: "missing_key" | "missing_price" | "error" | "stale";
+  message: string;
+};
+
 export type CostServiceRow = {
   id: CostServiceId;
   name: string;
   what: string;
-  billing: string;
   /** Lo que cuenta este mes, en centavos de dólar. */
   usdCents: number;
   source: CombinedCost["source"];
-  /** Lo medido, aunque la factura mande: se enseña como referencia. */
+  /** Lo automático, aunque lo apuntado mande: se enseña como referencia. */
   measured: MeasuredCost | null;
+  /** La parte de facturas es toda de planes fijos (ninguna apuntada a mano). */
+  fixedOnly: boolean;
   activity: string | null;
+  status: ServiceStatus | null;
 };
 
 export type CostBillRow = {
@@ -68,6 +78,8 @@ export type CostBillRow = {
   monthUsdCents: number;
   /** Todavía no empieza: no suma en ningún mes que se pueda mirar. */
   upcoming: boolean;
+  /** Plan fijo de `fixed-plans.ts`: se ve, no se edita. */
+  fixed: boolean;
 };
 
 export type CostsMonth = {
@@ -75,23 +87,24 @@ export type CostsMonth = {
   currentMonth: string;
   usdToCop: number;
   totalUsdCents: number;
-  /** La parte del total que viene de facturas registradas. */
-  billsUsdCents: number;
-  /** La parte del total que la plataforma midió sola. */
-  measuredUsdCents: number;
+  /** La parte del total que salió sola: proveedores, uso propio y planes fijos. */
+  autoUsdCents: number;
+  /** La parte del total apuntada a mano. */
+  manualUsdCents: number;
   /** El total del mes anterior, para la variación. */
   previousUsdCents: number;
   /** Los últimos meses, del más viejo al mostrado. */
   trend: { month: string; usdCents: number }[];
   services: CostServiceRow[];
   /**
-   * Facturas que cuentan en el mes mostrado. En el mes actual se añaden las
-   * que empiezan más adelante (`upcoming`): no se puede navegar al futuro, y
-   * sin esto una factura con la fecha mal puesta no se podría ver ni corregir.
+   * Planes fijos y cosas apuntadas a mano que cuentan en el mes mostrado. En
+   * el mes actual se añaden las apuntadas que empiezan más adelante
+   * (`upcoming`): no se puede navegar al futuro, y sin esto una con la fecha
+   * mal puesta no se podría ver ni corregir.
    */
   bills: CostBillRow[];
-  /** Si hay alguna factura registrada, en cualquier mes. */
-  hasBills: boolean;
+  /** Cuántos servicios esperan una clave o un precio: el total está incompleto. */
+  pending: number;
 };
 
 const serviceOf = (bill: Pick<CostBill, "serviceId">): CostServiceId =>
@@ -99,35 +112,51 @@ const serviceOf = (bill: Pick<CostBill, "serviceId">): CostServiceId =>
 
 const EMPTY: MonthFacts = { measured: {}, activity: {} };
 
+type ServiceSum = CombinedCost & {
+  fromFixed: number;
+  fromManual: number;
+  fromMeasured: number;
+  /** Hay un plan fijo que cuenta este mes y nada apuntado a mano (un plan gratuito pesa 0 y también cuenta). */
+  fixedOnly: boolean;
+};
+
 type MonthSums = {
   total: number;
-  fromBills: number;
-  fromMeasured: number;
-  byService: Record<CostServiceId, CombinedCost>;
+  auto: number;
+  manual: number;
+  byService: Record<CostServiceId, ServiceSum>;
 };
 
 const sumMonth = (month: string, bills: CostBill[], facts: MonthFacts, usdToCop: number): MonthSums => {
-  const billed = new Map<CostServiceId, number>();
+  const fixed = new Map<CostServiceId, number>();
+  const manual = new Map<CostServiceId, number>();
   for (const bill of bills) {
     if (!billAppliesTo(bill, month)) continue;
     const id = serviceOf(bill);
-    billed.set(id, (billed.get(id) ?? 0) + toUsdCents(billAmountForMonth(bill, month), bill.currency, usdToCop));
+    const into = bill.fixed ? fixed : manual;
+    into.set(id, (into.get(id) ?? 0) + toUsdCents(billAmountForMonth(bill, month), bill.currency, usdToCop));
   }
 
-  const sums: MonthSums = {
-    total: 0,
-    fromBills: 0,
-    fromMeasured: 0,
-    byService: {} as Record<CostServiceId, CombinedCost>,
-  };
+  const sums: MonthSums = { total: 0, auto: 0, manual: 0, byService: {} as Record<CostServiceId, ServiceSum> };
   for (const id of COST_SERVICE_IDS) {
-    const bill = billed.get(id) ?? null;
+    const fromFixed = fixed.get(id) ?? null;
+    const fromManual = manual.get(id) ?? null;
+    const billed = fromFixed == null && fromManual == null ? null : (fromFixed ?? 0) + (fromManual ?? 0);
     const measured = facts.measured[id]?.usdCents ?? null;
-    const combined = combineCost(COST_SERVICES[id].combine, bill, measured);
-    sums.byService[id] = combined;
+    const combined = combineCost(COST_SERVICES[id].combine, billed, measured);
+    const countsBills = combined.source === "bill" || combined.source === "both";
+    const countsMeasured = combined.source === "measured" || combined.source === "both";
+    const row: ServiceSum = {
+      ...combined,
+      fromFixed: countsBills ? (fromFixed ?? 0) : 0,
+      fromManual: countsBills ? (fromManual ?? 0) : 0,
+      fromMeasured: countsMeasured ? (measured ?? 0) : 0,
+      fixedOnly: countsBills && fromFixed != null && fromManual == null,
+    };
+    sums.byService[id] = row;
     sums.total += combined.usdCents;
-    if (combined.source === "bill" || combined.source === "both") sums.fromBills += bill ?? 0;
-    if (combined.source === "measured" || combined.source === "both") sums.fromMeasured += measured ?? 0;
+    sums.auto += row.fromFixed + row.fromMeasured;
+    sums.manual += row.fromManual;
   }
   return sums;
 };
@@ -138,10 +167,14 @@ export const buildCostsMonth = (input: {
   /** Los meses de la tendencia, del más viejo al mostrado (el último es `month`). */
   months: string[];
   usdToCop: number;
+  /** Planes fijos (con `fixed: true`) y lo apuntado a mano, juntos. */
   bills: CostBill[];
   factsByMonth: Record<string, MonthFacts>;
+  /** Servicios cuya cifra automática falta o no se pudo actualizar. */
+  status?: Partial<Record<CostServiceId, ServiceStatus>>;
 }): CostsMonth => {
   const { month, bills, usdToCop } = input;
+  const status = input.status ?? {};
   const factsOf = (m: string) => input.factsByMonth[m] ?? EMPTY;
 
   const trend = input.months.map((m) => ({
@@ -156,14 +189,16 @@ export const buildCostsMonth = (input: {
     id,
     name: COST_SERVICES[id].name,
     what: COST_SERVICES[id].what,
-    billing: COST_SERVICES[id].billing,
     usdCents: sums.byService[id].usdCents,
     source: sums.byService[id].source,
     measured: facts.measured[id] ?? null,
+    fixedOnly: sums.byService[id].fixedOnly,
     activity: facts.activity[id] ?? null,
+    status: status[id] ?? null,
   }))
-    // «Otro» sin nada registrado no es un servicio: es un hueco del formulario.
-    .filter((row) => row.id !== "otro" || row.source !== "none")
+    // Un servicio sin cifra, sin uso y sin nada pendiente no dice nada: fuera
+    // (Twilio sin conectar, «Otro» sin nada apuntado).
+    .filter((row) => row.source !== "none" || row.status != null || row.activity != null)
     // Lo que más cuesta, arriba; lo que no tiene cifra, al final. `sort` es
     // estable, así que los empates conservan el orden del catálogo.
     .sort((a, b) => {
@@ -171,7 +206,8 @@ export const buildCostsMonth = (input: {
       return known !== 0 ? known : b.usdCents - a.usdCents;
     });
 
-  const isUpcoming = (bill: CostBill) => month === input.currentMonth && monthOf(bill.startsOn) > month;
+  const isUpcoming = (bill: CostBill) =>
+    !bill.fixed && month === input.currentMonth && monthOf(bill.startsOn) > month;
 
   const billRows: CostBillRow[] = bills
     .filter((bill) => billAppliesTo(bill, month) || isUpcoming(bill))
@@ -190,6 +226,7 @@ export const buildCostsMonth = (input: {
         note: bill.note,
         monthUsdCents: toUsdCents(billAmountForMonth(bill, month), bill.currency, usdToCop),
         upcoming: isUpcoming(bill),
+        fixed: bill.fixed === true,
       };
     })
     // Las que cuentan, de mayor a menor; las que aún no empiezan, al final.
@@ -200,12 +237,12 @@ export const buildCostsMonth = (input: {
     currentMonth: input.currentMonth,
     usdToCop,
     totalUsdCents: sums.total,
-    billsUsdCents: sums.fromBills,
-    measuredUsdCents: sums.fromMeasured,
+    autoUsdCents: sums.auto,
+    manualUsdCents: sums.manual,
     previousUsdCents: trend.length >= 2 ? trend[trend.length - 2].usdCents : 0,
     trend,
     services,
     bills: billRows,
-    hasBills: bills.length > 0,
+    pending: services.filter((row) => row.status?.state === "missing_key" || row.status?.state === "missing_price").length,
   };
 };

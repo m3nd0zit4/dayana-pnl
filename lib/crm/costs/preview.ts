@@ -3,28 +3,30 @@ import { monthsEndingAt, resolveMonth } from "./rules";
 
 /**
  * Datos de mentira para la vista previa del CRM (`CRM_UI_PREVIEW`, sin base de
- * datos). Pasan por el mismo `buildCostsMonth` que los reales.
+ * datos). Pasan por el mismo `buildCostsMonth` que los reales, y enseñan cada
+ * caso que la pantalla sabe pintar: facturado, calculado, plan fijo, algo
+ * apuntado a mano, una clave que falta y un precio que falta.
  */
 
 const PREVIEW_CURRENT_MONTH = "2026-11";
 
 const BILLS: CostBill[] = [
-  { id: "prev-vercel", serviceId: "vercel", label: "Plan Pro", cadence: "MONTHLY", currency: "USD", amountMinor: 2000, startsOn: "2026-06-01", endsOn: null, note: null },
-  { id: "prev-neon", serviceId: "neon", label: "Plan Launch", cadence: "MONTHLY", currency: "USD", amountMinor: 1900, startsOn: "2026-06-03", endsOn: null, note: null },
-  { id: "prev-whatsapp", serviceId: "whatsapp", label: "Licencia 360dialog", cadence: "MONTHLY", currency: "USD", amountMinor: 5300, startsOn: "2026-09-01", endsOn: null, note: null },
-  { id: "prev-dominio", serviceId: "dominio", label: "dayanabeltran.com", cadence: "YEARLY", currency: "USD", amountMinor: 1800, startsOn: "2026-03-10", endsOn: null, note: null },
+  { id: "fixed:whatsapp:0", serviceId: "whatsapp", label: "Licencia de 360dialog", cadence: "MONTHLY", currency: "USD", amountMinor: 5300, startsOn: "2026-09-01", endsOn: null, note: null, fixed: true },
+  { id: "fixed:upstash:0", serviceId: "upstash", label: "Plan de Upstash", cadence: "MONTHLY", currency: "USD", amountMinor: 0, startsOn: "2026-06-01", endsOn: null, note: null, fixed: true },
+  { id: "prev-otro", serviceId: "otro", label: "Micrófono para las clases", cadence: "ONE_TIME", currency: "COP", amountMinor: 180_000, startsOn: "2026-11-04", endsOn: null, note: null },
 ];
 
 const facts = (scale: number): MonthFacts => ({
   measured: {
-    gemini: { usdCents: 940 * scale, kind: "estimate" },
-    paypal: { usdCents: 3120 * scale, kind: "estimate" },
-    mercadopago: { usdCents: 1850 * scale, kind: "exact", copMinor: Math.round(74_000 * scale) },
+    vercel: { usdCents: 2000, kind: "exact" },
+    dominio: { usdCents: 150, kind: "estimate" },
+    neon: { usdCents: 1240 * scale, kind: "estimate" },
+    gemini: { usdCents: 1860 * scale, kind: "estimate" },
   },
   activity: {
-    gemini: "1.240 respuestas de WhatsApp",
-    paypal: "14 pagos · comisión según la tarifa (5,4 % + 0,30 USD)",
-    mercadopago: "9 pagos",
+    dominio: "dayanabeltran.com · vence el 28 abr 2027 · renovación automática apagada",
+    neon: "98,4 horas de cómputo · 1,3 GB guardados",
+    gemini: "4.210 llamadas a la IA · gemini-3.5-flash sin tarifa publicada: contado al precio de flash-lite",
     resend: "761 correos enviados",
     whatsapp: "71 plantillas en envíos masivos",
   },
@@ -41,5 +43,9 @@ export const previewCostsMonth = (requested: unknown): CostsMonth => {
     bills: BILLS,
     // Cada mes un poco más que el anterior, para que la tendencia no sea una raya.
     factsByMonth: Object.fromEntries(months.map((m, i) => [m, facts(0.5 + i * 0.1)])),
+    status: {
+      mux: { state: "missing_key", message: "Falta pegar MUX_TOKEN_ID y MUX_TOKEN_SECRET en las variables de entorno de Vercel." },
+      resend: { state: "missing_price", message: "Falta el precio del plan. Se escribe una vez en la configuración y cuenta solo cada mes." },
+    },
   });
 };
