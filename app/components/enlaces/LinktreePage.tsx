@@ -3,6 +3,7 @@ import {
   CalendarHeart,
   Compass,
   GraduationCap,
+  Phone,
   Star,
   Users,
   ArrowUpRight,
@@ -215,7 +216,13 @@ const Row = ({ row, delay }: { row: LinkRow; delay: number }) => {
   );
 };
 
-type CtaVariant = "diagnostico" | "whatsapp" | "community" | "webinar" | "workshop";
+type CtaVariant =
+  | "llamada"
+  | "diagnostico"
+  | "whatsapp"
+  | "community"
+  | "webinar"
+  | "workshop";
 
 const Cta = ({
   href,
@@ -239,8 +246,14 @@ const Cta = ({
   delay: number;
   internal?: boolean;
 }) => {
+  // El botón de la llamada es el único claro sobre el fondo oscuro de la
+  // página: lino con tinta, sin degradado. Es lo que lo hace el principal sin
+  // tener que apagar los demás. Su texto va en tinta, no en blanco.
+  const light = variant === "llamada";
   const variantClass =
-    variant === "diagnostico"
+    light
+      ? "border border-white/40 bg-linen shadow-[0_14px_36px_-14px_rgba(0,0,0,0.6)] hover:bg-paper"
+      : variant === "diagnostico"
       ? "border border-white/25 bg-gradient-to-br from-terracotta/95 to-[#a8543c] shadow-[0_12px_32px_-12px_rgba(192,101,74,0.65),inset_0_1px_0_rgba(255,255,255,0.32)] hover:shadow-[0_16px_40px_-10px_rgba(192,101,74,0.8)]"
       : variant === "whatsapp"
       ? "border border-[#3fdc7a]/35 bg-gradient-to-br from-[#2fdb70]/95 to-[#0f9d58] shadow-[0_12px_32px_-12px_rgba(37,211,102,0.65),inset_0_1px_0_rgba(255,255,255,0.35)] hover:shadow-[0_16px_40px_-10px_rgba(37,211,102,0.75)]"
@@ -262,7 +275,9 @@ const Cta = ({
       />
       <span
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white transition-transform duration-300 group-hover:scale-105 ${
-          variant === "community"
+          light
+            ? "bg-terracotta"
+            : variant === "community"
             ? "bg-[#25D366]/25 ring-1 ring-[#3fdc7a]/40"
             : variant === "workshop"
               ? "bg-blush/30 ring-1 ring-blush/50"
@@ -273,7 +288,11 @@ const Cta = ({
       </span>
       <span className="min-w-0 flex-1 text-left">
         <span className="flex flex-wrap items-center gap-2">
-          <span className="font-[font2] text-sm uppercase tracking-wide text-white">
+          <span
+            className={`font-[font2] text-sm uppercase tracking-wide ${
+              light ? "text-ink" : "text-white"
+            }`}
+          >
             {title}
           </span>
           {badge && (
@@ -292,12 +311,22 @@ const Cta = ({
             </span>
           </>
         ) : (
-          <span className="mt-0.5 block truncate font-[font1] text-xs text-white/75">
+          // En el de la llamada el subtítulo no se corta: «sin costo» es la
+          // mitad del mensaje y a 375 px no cabe en una línea.
+          <span
+            className={`mt-0.5 block font-[font1] text-xs ${
+              light ? "leading-snug text-ink/75" : "truncate text-white/75"
+            }`}
+          >
             {subtitle}
           </span>
         )}
       </span>
-      <ArrowUpRight className="h-4 w-4 shrink-0 text-white/70 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      <ArrowUpRight
+        className={`h-4 w-4 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 ${
+          light ? "text-ink/60" : "text-white/70"
+        }`}
+      />
     </>
   );
 
@@ -408,13 +437,31 @@ const LinktreePage = ({
         {/* El orden es la decisión de producto de esta página: en un enlace de
             biografía el primer botón se lleva la mayoría de los clics.
 
-            Primero WhatsApp —el chat y la comunidad—, por decisión de Dayana:
-            quien llega desde su perfil ya la conoce y lo que quiere es
-            escribirle. Justo después va el diagnóstico, que sigue siendo la
-            entrada gratuita para quien prefiere empezar solo. «Terapias 1:1»
-            ya no está: llevaba al mismo cuestionario, sin `ref`, y esas
-            personas se contaban como tráfico frío. */}
+            Primero, la llamada gratis (`/llamada`): es la acción principal de
+            todo el sitio y aquí aterriza casi todo el tráfico de TikTok e
+            Instagram. Quien quería escribirle acababa en un ida y vuelta por
+            WhatsApp para cuadrar una hora; ahora la elige y Dayana la llama.
+            Es el único botón claro de la página, para que se lea como el
+            principal sin apagar los demás. La duración no se escribe: viene
+            de la API y la dice `/llamada`.
+
+            Debajo, todo sigue como estaba y en su orden. WhatsApp —el chat y
+            la comunidad—, por decisión de Dayana: quien llega desde su perfil
+            ya la conoce y puede querer escribirle. Después va el diagnóstico,
+            que sigue siendo la entrada gratuita para quien prefiere empezar
+            por su cuenta. «Terapias 1:1» ya no está: llevaba al mismo
+            cuestionario, sin `ref`, y esas personas se contaban como tráfico
+            frío. */}
         <div className="mt-7 flex w-full flex-col gap-3">
+          <Cta
+            href="/llamada?ref=enlaces"
+            icon={<Phone className="h-5 w-5" />}
+            title="Agenda tu llamada gratis"
+            subtitle="Dayana te llama por WhatsApp · sin costo"
+            variant="llamada"
+            delay={100}
+            internal
+          />
           <Cta
             href={whatsappHref}
             icon={<WhatsAppIcon />}

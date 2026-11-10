@@ -2,9 +2,11 @@
 
 import { Suspense, useEffect } from "react";
 import Script from "next/script";
+import { usePathname } from "next/navigation";
 import { useCookieConsent } from "../../context/CookieConsentContext";
 import GtmRouteTracking from "./GtmRouteTracking";
 import { pushDataLayerEvent } from "../../../lib/analytics/dataLayer";
+import { isPrivatePath } from "../../../lib/analytics/private-path";
 
 /**
  * Contenedor de GTM.
@@ -21,6 +23,7 @@ import { pushDataLayerEvent } from "../../../lib/analytics/dataLayer";
 const ConsentBasedGtm = () => {
   const { status, consent, analyticsAllowed } = useCookieConsent();
   const containerId = process.env.NEXT_PUBLIC_GTM_CONTAINER_ID;
+  const pathname = usePathname();
 
   // Cada cambio de preferencias se propaga a las etiquetas ya cargadas.
   useEffect(() => {
@@ -38,7 +41,9 @@ const ConsentBasedGtm = () => {
     });
   }, [status, consent]);
 
-  if (!analyticsAllowed || !containerId) return null;
+  // En una página personal (`/llamada/<token>`) el contenedor no se carga: sus
+  // etiquetas mandarían la dirección, que es el secreto de la persona.
+  if (!analyticsAllowed || !containerId || isPrivatePath(pathname)) return null;
 
   return (
     <>

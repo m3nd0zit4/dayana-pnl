@@ -3,6 +3,7 @@
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { useCookieConsent } from "../../context/CookieConsentContext";
+import { redactPrivateUrl } from "../../../lib/analytics/private-path";
 
 /**
  * Monta Vercel Analytics y Speed Insights solo si el usuario aceptó cookies de analítica
@@ -15,8 +16,9 @@ const ConsentBasedVercelInsights = () => {
 
   return (
     <>
-      <Analytics />
-      <SpeedInsights />
+      {/* La dirección de una página personal (`/llamada/<token>`) viaja sin el secreto. */}
+      <Analytics beforeSend={(event) => ({ ...event, url: redactPrivateUrl(event.url) })} />
+      <SpeedInsights beforeSend={(data) => ({ ...data, url: redactPrivateUrl(data.url) })} />
     </>
   );
 };

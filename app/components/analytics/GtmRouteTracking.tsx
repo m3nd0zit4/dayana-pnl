@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { pushDataLayerEvent } from "../../../lib/analytics/dataLayer";
+import { isPrivatePath } from "../../../lib/analytics/private-path";
 
 /**
  * Next.js App Router client-side navigations don't reload the page, so GTM's
@@ -20,6 +21,8 @@ const GtmRouteTracking = () => {
       isFirstRender.current = false;
       return;
     }
+    // La dirección de una página personal es un secreto: no va a la analítica.
+    if (isPrivatePath(pathname)) return;
     const query = searchParams.toString();
     const path = query ? `${pathname}?${query}` : pathname;
     pushDataLayerEvent("virtual_pageview", {

@@ -22,7 +22,7 @@ type MenuItem =
     };
 
 /**
- * Cinco entradas, y ninguna es un catálogo.
+ * Pocas entradas, y ninguna es un catálogo.
  *
  * Llegó a tener ocho —Inicio, Diagnóstico, Terapias, Cursos, Historias,
  * Dayana, Taller, Contacto, Redes— y un menú de ese tamaño deja de orientar:
@@ -36,8 +36,22 @@ type MenuItem =
  *
  * «Terapias» apunta al **cuestionario**, no a una lista de precios: los
  * paquetes ya no se navegan, se recomienda uno.
+ *
+ * Ahora son seis, y la sexta va la primera: «Llamada gratis» (`/llamada`) es
+ * la acción principal de todo el sitio, y en móvil este menú es su única
+ * puerta fija — en la barra de arriba no cabe un botón más a 375 px (ver
+ * `Navbar`). No es una entrada de catálogo: es el paso que se le pide a quien
+ * abre el menú sin saber a dónde ir. Se distingue con la pastilla que ya
+ * existía (`announcement`), no con un estilo nuevo. `ref=menu` le dice al CRM
+ * que entró por aquí.
  */
 const menuItemsBase: MenuItem[] = [
+  {
+    label: "Llamada gratis",
+    path: "/llamada?ref=menu",
+    marquee: "Agenda tu llamada gratis",
+    announcement: "Dayana te llama por WhatsApp",
+  },
   { label: "Inicio", hash: "#hero", marquee: "Cambia tu realidad" },
   {
     label: "Terapias",

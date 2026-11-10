@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Hero from "./components/home/Hero";
+import CallSteps from "./components/home/CallSteps";
 import ServicesTeaser from "./components/home/ServicesTeaser";
 import TestimonialsSection from "./components/home/TestimonialsSection";
 import ContactSection from "./components/home/ContactSection";
@@ -31,6 +32,13 @@ const Home = async () => {
   return (
     <>
       <main>
+        {/* La portada es un camino a UNA acción: «Agenda tu llamada gratis»
+            (`/llamada`). El orden lo cuenta: el botón en la portada → qué va a
+            pasar, en tres pasos → quienes ya lo vivieron → qué se trabaja →
+            y, para quien prefiere no agendar, el formulario de siempre.
+            Cada enlace a `/llamada` lleva su `?ref=` para que el CRM sepa qué
+            puerta funcionó (inicio, inicio-pasos, inicio-servicios,
+            inicio-contacto, contacto). */}
         <Hero />
         {/* Aquí vivía «Al punto donde se instaló», el bloque del método.
             Se retiró de la portada por decisión de producto: el mismo
@@ -41,8 +49,13 @@ const Home = async () => {
 
             Aquí llegó a haber también una invitación al cuestionario, y se
             quitó antes: pedirle a alguien que se autodiagnostique antes de
-            saber quién eres es cobrar la entrada antes de enseñar la casa. */}
-        <ContactSection userCountry={userCountry} />
+            saber quién eres es cobrar la entrada antes de enseñar la casa.
+
+            «Cómo funciona» no es ninguna de las dos cosas: no explica el
+            método ni pide nada; dice qué pasa al tocar el botón. Ocupa el
+            sitio (y la carcasa redondeada) que tenía el formulario, que es lo
+            que recibe a la escena fijada del hero cuando termina. */}
+        <CallSteps />
         <TestimonialsSection />
         <ServicesTeaser
           fromUsd={fromUsd}
@@ -51,6 +64,11 @@ const Home = async () => {
           courseUsd={coursePlan?.amountUsd ?? null}
           courseCop={coursePlan?.amountCop ?? null}
         />
+        {/* El formulario pasa al final, como camino secundario («¿Prefieres
+            que te escribamos nosotros?»). Va DESPUÉS de ServicesTeaser, que
+            sigue siendo la última sección apilada (`isLast`): el pin de
+            TestimonialsSection depende de ese contrato y no se toca. */}
+        <ContactSection userCountry={userCountry} />
       </main>
       <Footer />
       <FloatingWhatsApp />

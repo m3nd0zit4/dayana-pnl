@@ -130,6 +130,41 @@ const ResultadoPage = async ({
     } Me gustaría hablar contigo para empezar.`,
   );
 
+  // El primer sitio de acción del resultado: la llamada gratis delante y
+  // WhatsApp detrás.
+  //
+  // Antes el resultado terminaba solo en WhatsApp, y de ahí salía un ida y
+  // vuelta para cuadrar una hora. Ahora la persona la elige en `/llamada` y
+  // Dayana la llama; `ref=resultado` le dice al CRM que vino de aquí. Nada de
+  // lo de arriba cambia: el precio sigue hablándose en la conversación.
+  //
+  // El botón de WhatsApp es el mismo componente, con su mismo texto (el CRM lo
+  // llama «Pulsó Hablar con Dayana»): sigue sellando el embudo y abriendo el
+  // chat con el resultado escrito; solo pasa a contorno. Sus
+  // colores de relleno viven dentro de `DiagnosticContactCta`, por eso aquí se
+  // pisan con `!`.
+  const firstActions = (
+    <>
+      <Link
+        href="/llamada?ref=resultado"
+        className="flex w-full items-center justify-center rounded-full bg-terracotta px-6 py-4 text-center font-[font2] text-[11px] uppercase tracking-[0.12em] text-paper transition-colors duration-200 hover:bg-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 sm:text-xs sm:tracking-[0.18em]"
+      >
+        Agendar mi llamada gratis
+      </Link>
+      <p className="mt-3 text-center font-[font1] text-sm leading-snug text-black/60">
+        Eliges la hora y Dayana te llama por WhatsApp.
+      </p>
+      <DiagnosticContactCta
+        track={!staffViewer}
+        href={whatsappUrl}
+        token={token}
+        profile={profile}
+        label={copy.ctaLabel}
+        className="mt-5 border border-ink bg-transparent! text-ink! shadow-none! hover:bg-ink! hover:text-paper!"
+      />
+    </>
+  );
+
   return (
     <>
       {staffViewer ? null : <DiagnosticResultTracking profile={profile} />}
@@ -198,16 +233,7 @@ const ResultadoPage = async ({
                   plan={recommendation.plan}
                   isColombia={isColombia}
                   hidePrice
-                  action={
-                    <DiagnosticContactCta
-                      track={!staffViewer}
-                      href={whatsappUrl}
-                      token={token}
-                      profile={profile}
-                      label={copy.ctaLabel}
-                      className="mt-8"
-                    />
-                  }
+                  action={<div className="mt-8">{firstActions}</div>}
                   footnote={copy.riskReversal}
                 />
               </div>
@@ -219,14 +245,7 @@ const ResultadoPage = async ({
                 <p className="font-[font1] text-lg leading-relaxed text-black/75">
                   Tu proceso ya está definido. Escríbeme y lo empezamos.
                 </p>
-                <DiagnosticContactCta
-                  track={!staffViewer}
-                  href={whatsappUrl}
-                  token={token}
-                  profile={profile}
-                  label={copy.ctaLabel}
-                  className="mt-6"
-                />
+                <div className="mt-6">{firstActions}</div>
               </div>
             )}
 

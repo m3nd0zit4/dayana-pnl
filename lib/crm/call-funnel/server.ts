@@ -536,7 +536,7 @@ export const getFunnelPage = async (token: string, deps: { now?: Date } = {}): P
     personTz: lead.timezone,
     dayanaTz,
     confirmUrl: upcoming && startIso ? buildWhatsAppUrl(confirmMessage(lead.firstName, startIso, lead.timezone ?? dayanaTz)) : null,
-    helpUrl: buildWhatsAppUrl(helpMessage(lead.firstName)),
+    helpUrl: buildWhatsAppUrl(helpMessage(lead.firstName, Boolean(live))),
     googleCalendarUrl: upcoming && startIso && endIso ? googleCalendarUrl({ startIso, endIso, url }) : null,
     icsPath: upcoming ? `/api/llamada/${lead.token}/calendario` : null,
   };

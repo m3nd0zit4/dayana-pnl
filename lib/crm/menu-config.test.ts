@@ -53,7 +53,7 @@ describe("menú del CRM", () => {
   });
 
   test("lo de cada día queda a la vista", () => {
-    const daily = ["contacts", "memberships", "diagnostics", "payments", "payment-links", "products"];
+    const daily = ["contacts", "call-funnel", "memberships", "diagnostics", "payments", "payment-links", "products"];
     for (const id of daily) {
       const section = crmMenuSections.find((s) => s.items.some((i) => i.id === id));
       expect(section).toBeDefined();
@@ -68,6 +68,7 @@ describe("menú del CRM", () => {
       "home",
       "whatsapp",
       "contacts",
+      "call-funnel",
       "memberships",
       "diagnostics",
       "payments",

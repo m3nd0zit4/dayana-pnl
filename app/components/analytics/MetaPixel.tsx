@@ -4,6 +4,7 @@ import { Suspense, useEffect, useRef } from "react";
 import Script from "next/script";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCookieConsent } from "../../context/CookieConsentContext";
+import { isPrivatePath } from "../../../lib/analytics/private-path";
 
 /**
  * Meta Pixel.
@@ -38,6 +39,8 @@ const MetaPixelRouteTracking = () => {
       isFirstRender.current = false;
       return;
     }
+    // La dirección de una página personal es un secreto: no se le manda a Meta.
+    if (isPrivatePath(pathname)) return;
     window.fbq?.("track", "PageView");
   }, [pathname, searchParams]);
 
@@ -47,8 +50,11 @@ const MetaPixelRouteTracking = () => {
 const MetaPixel = () => {
   const { marketingEnabled } = useCookieConsent();
   const pixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+  const pathname = usePathname();
 
-  if (!marketingEnabled || !pixelId) return null;
+  // En una página personal (`/llamada/<token>`) el Pixel ni se carga: su primer
+  // PageView llevaría la dirección, que es el secreto de la persona.
+  if (!marketingEnabled || !pixelId || isPrivatePath(pathname)) return null;
 
   return (
     <>
@@ -73,5 +79,7 @@ export const trackMetaEvent = (
   eventId?: string
 ): void => {
   if (typeof window === "undefined" || !window.fbq) return;
+  // Todo evento lleva la dirección de la página: desde una personal no sale ninguno.
+  if (isPrivatePath(window.location.pathname)) return;
   window.fbq("track", eventName, params ?? {}, eventId ? { eventID: eventId } : undefined);
 };

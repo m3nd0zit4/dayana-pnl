@@ -3,6 +3,7 @@
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { type CountryCode } from "libphonenumber-js";
 import SplitReveal from "../ui/SplitReveal";
@@ -12,6 +13,7 @@ import {
   getLocalPhonePlaceholder,
   sanitizeLocalPhoneInput,
 } from "../../../lib/phone";
+import { pushDataLayerEvent } from "../../../lib/analytics/dataLayer";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -160,6 +162,15 @@ const ContactSection = ({ userCountry }: Props) => {
         setStatus("idle");
         return;
       }
+      // Faltaba: el formulario guardaba el contacto y no dejaba rastro en la
+      // analítica. Solo el dataLayer, sin datos personales. NO se manda un
+      // evento del Pixel ni `consentAdTracking` a `/api/leads`: este
+      // formulario no tiene casilla de publicidad, y marcar ese permiso sin
+      // haberlo pedido es justo lo que señaló una revisión anterior.
+      pushDataLayerEvent("lead_form_submit", {
+        source: "web_lead_form",
+        interest,
+      });
       setStatus("sent");
     } catch {
       setServerError("Sin conexión. Revisa tu internet e inténtalo de nuevo.");
@@ -175,11 +186,18 @@ const ContactSection = ({ userCountry }: Props) => {
     err ? "border-[#b4543a]/80 focus:border-[#b4543a]" : "border-black/15 focus:border-terracotta";
 
   return (
+    // Camino secundario de la portada: lo principal es la llamada gratis
+    // (`/llamada`), y este formulario queda para quien prefiere que le
+    // escriban. Por eso va al final de la página, después de «Terapias &
+    // cursos», y ya no lleva la carcasa redondeada con sombra que tenía cuando
+    // seguía al hero: esa la heredó `CallSteps`. Entre dos secciones claras,
+    // las esquinas redondeadas dejarían ver el negro del `body` como dos
+    // muescas; aquí basta una línea.
     <section
       ref={rootRef}
       id="contacto"
       data-nav-color="black"
-      className="relative z-10 bg-[#f0ece4] text-black scroll-mt-20 rounded-t-[1.75rem] lg:rounded-t-[3.5rem] shadow-[0_-34px_80px_-24px_rgba(0,0,0,0.5)]"
+      className="relative z-10 bg-[#f0ece4] text-black scroll-mt-20 border-t border-black/10"
     >
       <div className="relative px-5 lg:px-12 xl:px-20 py-28 lg:py-36">
         <div className="mx-auto max-w-6xl">
@@ -188,9 +206,24 @@ const ContactSection = ({ userCountry }: Props) => {
             text={"Hablemos\nsin prisa."}
             className="ct-head mt-5 font-[font2] text-[15vw] sm:text-[12vw] lg:text-[8.6vw] uppercase leading-[0.9]"
           />
-          <p className="ct-reveal mt-7 max-w-md font-[font1] text-lg lg:text-xl leading-snug text-black/70">
-            Déjame tus datos y te escribo personalmente.
-          </p>
+          {/* La llamada primero: quien baja hasta aquí sin haber tocado el
+              botón la ve antes que el formulario. Sin `ct-reveal`, por lo
+              mismo que la descripción de abajo: esa clase deja el elemento en
+              opacidad 0 hasta que dispara su ScrollTrigger, y el botón
+              principal no puede depender de eso. */}
+          <div className="mt-7 max-w-md">
+            <p className="font-[font1] text-lg lg:text-xl leading-snug text-black/70">
+              Lo más directo es una llamada gratis: eliges la hora y Dayana te
+              llama por WhatsApp.
+            </p>
+            <Link
+              href="/llamada?ref=inicio-contacto"
+              className="mt-6 inline-flex max-w-full items-center justify-center gap-3 rounded-full bg-terracotta px-6 py-4 font-[font2] text-[11px] uppercase tracking-[0.16em] text-white transition-colors duration-300 hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-[#f0ece4] sm:px-8 sm:text-xs sm:tracking-[0.2em]"
+            >
+              Agenda tu llamada gratis
+              <span aria-hidden="true">→</span>
+            </Link>
+          </div>
           {/* Visible business description — Google's OAuth verification
               crawls page text, not the <meta> tag, so the same copy that
               already lives in metadata needs a real place on the page too.
@@ -199,7 +232,7 @@ const ContactSection = ({ userCountry }: Props) => {
               made this invisible to a renderer that doesn't scroll — exactly
               what tripped Google's "doesn't explain the app's purpose"
               check even though the text was already in the server HTML. */}
-          <p className="mt-3 max-w-md font-[font1] text-sm lg:text-base leading-snug text-black/50">
+          <p className="mt-8 max-w-md font-[font1] text-sm lg:text-base leading-snug text-black/50">
             Dayana Beltrán, coach en PNL especializada en Neurociencia y
             Neuroplasticidad. Sesiones privadas 1:1, cursos y talleres en
             vivo para reprogramar creencias limitantes, patrones y
@@ -207,19 +240,30 @@ const ContactSection = ({ userCountry }: Props) => {
           </p>
 
           <div className="mt-14 grid grid-cols-1 gap-12 lg:mt-20 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20 lg:items-start">
-            {/* What happens next — short, scannable */}
-            <ol className="ct-reveal flex flex-col gap-6 border-t border-black/10 pt-8 lg:border-0 lg:pt-2">
-              {STEPS.map((s) => (
-                <li key={s.n} className="flex items-baseline gap-5">
-                  <span className="font-[font2] text-sm tracking-[0.2em] text-terracotta">
-                    {s.n}
-                  </span>
-                  <span className="font-[font2] text-lg uppercase tracking-wide">
-                    {s.t}
-                  </span>
-                </li>
-              ))}
-            </ol>
+            {/* El camino secundario: el formulario, con su propio título en
+                voz baja (el grande de arriba es de la sección; el botón
+                grande, de la llamada). */}
+            <div className="border-t border-black/10 pt-8 lg:border-0 lg:pt-2">
+              <h3 className="font-[font2] text-xl uppercase leading-tight tracking-wide lg:text-2xl">
+                ¿Prefieres que te escribamos nosotros?
+              </h3>
+              <p className="ct-reveal mt-4 max-w-md font-[font1] text-lg leading-snug text-black/70">
+                Déjame tus datos y te escribo personalmente.
+              </p>
+              {/* What happens next — short, scannable */}
+              <ol className="ct-reveal mt-8 flex flex-col gap-6">
+                {STEPS.map((s) => (
+                  <li key={s.n} className="flex items-baseline gap-5">
+                    <span className="font-[font2] text-sm tracking-[0.2em] text-terracotta">
+                      {s.n}
+                    </span>
+                    <span className="font-[font2] text-lg uppercase tracking-wide">
+                      {s.t}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            </div>
 
             {/* Form / success */}
             <div className="lg:border-l lg:border-black/10 lg:pl-16">
@@ -237,6 +281,19 @@ const ContactSection = ({ userCountry }: Props) => {
                     Recibí tus datos. Te contacto muy pronto — y te enviamos
                     un correo para crear tu acceso a tu cuenta.
                   </p>
+                  {/* El «¡Gracias!» se quedaba sin siguiente paso. Quien acaba
+                      de dejar sus datos es quien más cerca está de agendar:
+                      la llamada es el paso que sí depende de esa persona. */}
+                  <p className="mt-6 max-w-md font-[font1] text-lg leading-snug text-black/70">
+                    Si no quieres esperar, agenda ya tu llamada gratis: eliges
+                    la hora y Dayana te llama por WhatsApp.
+                  </p>
+                  <Link
+                    href="/llamada?ref=contacto"
+                    className="mt-6 inline-flex max-w-full items-center justify-center rounded-full bg-terracotta px-5 py-4 text-center font-[font2] text-[11px] uppercase tracking-[0.12em] text-white transition-colors duration-300 hover:bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-[#f0ece4] sm:px-8 sm:text-xs sm:tracking-[0.2em]"
+                  >
+                    Agendar mi llamada gratis ahora
+                  </Link>
                 </div>
               ) : (
                 <form
@@ -339,10 +396,13 @@ const ContactSection = ({ userCountry }: Props) => {
                   {serverError && <p className="font-[font1] text-sm text-[#b4543a]">{serverError}</p>}
 
                   <div className="ct-field mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+                    {/* En contorno, no en terracota: el botón relleno de esta
+                        sección es el de la llamada. Este sigue siendo el envío
+                        del formulario, solo que en voz más baja. */}
                     <button
                       type="submit"
                       disabled={status === "sending"}
-                      className="group inline-flex items-center justify-center gap-3 rounded-full bg-terracotta px-9 py-4 font-[font2] text-xs uppercase tracking-[0.28em] text-white transition-[background-color,transform] duration-300 hover:bg-[#a8543c] hover:-translate-y-0.5 disabled:opacity-60"
+                      className="group inline-flex items-center justify-center gap-3 rounded-full border border-black px-9 py-4 font-[font2] text-xs uppercase tracking-[0.28em] text-black transition-[background-color,color,transform] duration-300 hover:bg-black hover:text-linen hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 focus-visible:ring-offset-[#f0ece4] disabled:opacity-60"
                     >
                       {status === "sending" ? "Enviando…" : "Quiero que me contacte"}
                       <svg viewBox="0 0 24 24" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

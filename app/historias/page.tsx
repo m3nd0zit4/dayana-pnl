@@ -112,16 +112,32 @@ Te lo cuentan ellas.`}
           <h2 className="font-[font2] text-2xl uppercase leading-[0.95] sm:text-3xl">
             ¿Y tú por qué llegarías?
           </h2>
+          {/* Dos salidas, y la primera es la del sitio entero: la llamada
+              gratis. El diagnóstico se queda —es la que enlazaba esta página
+              desde el principio—, pero en contorno: quien acaba de ver a
+              cuatro personas contarlo suele querer hablar, no un
+              cuestionario. */}
           <p className="mx-auto mt-5 max-w-lg font-[font1] text-lg leading-relaxed text-black/70">
-            Responde unas pocas preguntas y sabrás qué patrón te está frenando y qué
-            proceso necesitas para moverlo. Son dos minutos y no cuesta nada.
+            Cuéntaselo a Dayana en una llamada gratis: eliges la hora y te
+            llama por WhatsApp. Si prefieres empezar por tu cuenta, responde
+            unas pocas preguntas y sabrás qué patrón te está frenando y qué
+            proceso necesitas para moverlo: son dos minutos y tampoco cuesta
+            nada.
           </p>
-          <Link
-            href="/terapias/empezar?ref=historias"
-            className="mt-9 inline-block rounded-full bg-ink px-9 py-4 font-[font2] text-xs uppercase tracking-[0.18em] text-paper"
-          >
-            Hacer mi diagnóstico
-          </Link>
+          <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/llamada?ref=historias"
+              className="inline-block max-w-full rounded-full bg-terracotta px-6 py-4 font-[font2] text-[11px] uppercase tracking-[0.16em] text-paper transition-colors duration-300 hover:bg-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 sm:px-9 sm:text-xs sm:tracking-[0.18em]"
+            >
+              Agenda tu llamada gratis
+            </Link>
+            <Link
+              href="/terapias/empezar?ref=historias"
+              className="inline-block rounded-full border border-ink px-9 py-4 font-[font2] text-xs uppercase tracking-[0.18em] text-ink transition-colors duration-300 hover:bg-ink hover:text-paper"
+            >
+              Hacer mi diagnóstico
+            </Link>
+          </div>
         </div>
       </section>
       </main>

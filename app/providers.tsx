@@ -69,6 +69,13 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   // más rápida de perderla antes de que deje el correo.
   const isMaterial = pathname.startsWith("/material");
 
+  // El embudo de la llamada gratis (`/llamada` y la página de cada persona,
+  // `/llamada/<token>`): es el destino de los anuncios y tiene una sola acción.
+  // Sin menú, sin transición de entrada y sin Lenis, como `/enlaces`: cada
+  // enlace de la cabecera es una salida, y GSAP + Lenis son peso que quien
+  // llega desde un reel en el celular paga antes de ver el formulario.
+  const isLlamada = pathname === "/llamada" || pathname.startsWith("/llamada/");
+
   // Dark mode is scoped to the CRM + member portal. It used to be scoped by
   // mounting ThemeProvider only on those routes — but next-themes renders an
   // inline <script> to set the class before paint, and a client-side
@@ -107,7 +114,7 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
           */}
           <Toaster position="bottom-center" />
         </TooltipProvider>
-      ) : isEnlaces || isCuestionario ? (
+      ) : isEnlaces || isCuestionario || isLlamada ? (
         <>
           {children}
           <Toaster />

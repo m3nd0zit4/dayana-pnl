@@ -8,7 +8,7 @@ import { getServerUserCountry } from "@/lib/geo/user-country";
 
 const title = `Enlaces — ${BRAND.name}`;
 const description =
-  "Todos los enlaces de Dayana Beltrán: WhatsApp, eventos gratuitos, servicios, talleres, portal de miembros y redes sociales.";
+  "Todos los enlaces de Dayana Beltrán: llamada gratis, WhatsApp, eventos gratuitos, servicios, talleres, portal de miembros y redes sociales.";
 
 export const metadata: Metadata = {
   title,

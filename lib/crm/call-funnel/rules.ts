@@ -372,9 +372,15 @@ export const whenLabel = (iso: string, timeZone: string): string => `${dayLabel(
 export const confirmMessage = (firstName: string, startIso: string, personTz: string): string =>
   `Hola, soy ${firstName}. Agendé mi llamada gratis con Dayana para el ${whenLabel(startIso, personTz)}. Confirmo que ahí estaré.`;
 
-/** Para quien dejó sus datos y no ve horas (o el calendario no responde). */
-export const helpMessage = (firstName: string): string =>
-  `Hola, soy ${firstName}. Dejé mis datos en la página para agendar mi llamada gratis con Dayana y quiero elegir una hora.`;
+/**
+ * El mensaje de «¿Necesitas ayuda?». Sin llamada: dejó sus datos y no pudo
+ * elegir hora. Con llamada (la tiene o ya pasó): decir «quiero elegir una
+ * hora» sería falso.
+ */
+export const helpMessage = (firstName: string, hasCall = false): string =>
+  hasCall
+    ? `Hola, soy ${firstName}. Te escribo por mi llamada gratis con Dayana.`
+    : `Hola, soy ${firstName}. Dejé mis datos en la página para agendar mi llamada gratis con Dayana y quiero elegir una hora.`;
 
 const icsStamp = (d: Date): string => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
 

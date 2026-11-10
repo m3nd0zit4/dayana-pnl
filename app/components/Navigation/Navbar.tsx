@@ -60,6 +60,13 @@ const Navbar = () => {
           </a>
         </div>
       )}
+      {/* Aquí NO hay botón fijo de «Llamada gratis», y es a propósito. A
+          375 px este grupo (menú 80 px + «Ingresar» ~90 px, pegado al borde)
+          ya llega hasta el centro, donde vive la marca «DB.» acoplada de la
+          portada (en las demás páginas, el logo de la izquierda). Una
+          pastilla más (~150 px) se montaría encima de la marca. La llamada
+          es la primera entrada del menú a pantalla completa
+          (`FullScreenNav`, `ref=menu`) y el botón de la portada. */}
       {/* ml-auto: on the home page the logo slot above is absent, and
           justify-between with a single child would push this cluster to the
           LEFT edge — dragging the account menu (right-anchored, 210px wide)

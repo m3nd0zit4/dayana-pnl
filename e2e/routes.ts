@@ -43,6 +43,16 @@ export const CRM_ROUTES: CrmRoute[] = [
     hasPrimaryAction: true,
   },
   {
+    // El embudo de la llamada gratis (`/llamada`). No tiene «Nuevo»: las filas
+    // las crea la página pública. En preview no hay personas ⇒ un vacío, con el
+    // enlace a la página en la cabecera.
+    path: "/admin/embudo",
+    name: "Embudo",
+    tier: "preview",
+    hasPublicLink: true,
+    expectEmpty: true,
+  },
+  {
     // Sustituye a «Curso · Miembros» (`/admin/curso`) y a «Suscripciones»
     // (`/admin/suscripciones`), que ahora redirigen aquí.
     path: "/admin/membresias",

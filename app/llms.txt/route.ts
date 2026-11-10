@@ -31,6 +31,7 @@ export async function GET() {
     "",
     "## Por dónde empezar",
     "",
+    `- Llamada gratis con Dayana — se agenda en línea, en su calendario, y ella llama por WhatsApp a la hora elegida: ${siteUrl}/llamada`,
     `- Cuestionario gratuito (unas pocas preguntas, 3 minutos) — recomienda el proceso que corresponde y permite pagarlo: ${siteUrl}/terapias/empezar`,
     `- Historias reales en vídeo: ${siteUrl}/historias`,
     "",

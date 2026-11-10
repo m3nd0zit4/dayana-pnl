@@ -97,11 +97,23 @@ const ServicesTeaser = ({
             )}
             {/* Dos destinos, porque son dos productos: un paquete que se
                 paga una vez y una mensualidad que se renueva. Mandarlos a la
-                misma página es lo que hacía /servicios. */}
+                misma página es lo que hacía /servicios.
+
+                Delante de los dos va la llamada gratis, que es la acción
+                principal de toda la portada: es el único botón relleno de
+                esta banda. «Terapias 1:1» sigue llevando al cuestionario,
+                pero en contorno, igual que «Cursos», para no competir. */}
             <div className="mt-10 flex flex-wrap gap-3">
               <Link
+                href="/llamada?ref=inicio-servicios"
+                className="inline-flex max-w-full items-center justify-center gap-3 rounded-full bg-terracotta text-white font-[font2] uppercase text-[11px] tracking-[0.16em] px-6 py-4 transition-colors duration-300 hover:bg-black sm:text-sm sm:tracking-[0.15em] sm:px-8"
+              >
+                Agenda tu llamada gratis
+                <span aria-hidden>→</span>
+              </Link>
+              <Link
                 href="/terapias/empezar"
-                className="inline-flex items-center gap-3 rounded-full bg-black text-linen font-[font2] uppercase text-sm tracking-[0.15em] px-8 py-4 transition-transform duration-300 hover:-translate-y-0.5 hover:bg-terracotta hover:text-white"
+                className="inline-flex items-center gap-3 rounded-full border border-black font-[font2] uppercase text-sm tracking-[0.15em] px-8 py-4 transition-colors duration-300 hover:bg-black hover:text-linen"
               >
                 Terapias 1:1
                 <span aria-hidden>→</span>

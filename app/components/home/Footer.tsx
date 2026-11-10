@@ -126,7 +126,11 @@ const socials: SocialItem[] = [
   },
 ];
 
+// La llamada gratis va primera: es la acción principal del sitio y el pie sale
+// en casi todas las páginas públicas. `ref=footer` le dice al CRM que entró
+// por aquí.
 const quickLinks = [
+  { label: "Agenda tu llamada gratis", href: "/llamada?ref=footer" },
   { label: "Terapias", href: "/terapias/empezar" },
   { label: "Cursos", href: "/cursos" },
   { label: "Historias", href: "/historias" },

@@ -12,6 +12,10 @@ const STATIC_ROUTES: {
   priority: number;
 }[] = [
   { path: "", changeFrequency: "weekly", priority: 1 },
+  // La llamada gratis: la acción principal del sitio. Solo la página de
+  // entrada; `/llamada/<token>` es la página de cada persona (su cita, sus
+  // datos) y queda fuera, igual que el resultado del cuestionario.
+  { path: "/llamada", changeFrequency: "monthly", priority: 0.9 },
   { path: "/cursos", changeFrequency: "weekly", priority: 0.9 },
   // El cuestionario **es** la página de terapias: el catálogo de precios se
   // retiró. Su página de resultado (/terapias/resultado/<token>) queda fuera a

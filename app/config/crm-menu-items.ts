@@ -12,6 +12,7 @@ import {
   MessageCircle,
   MessageSquare,
   Package,
+  PhoneIncoming,
   Sparkles,
   Tag,
   Users,
@@ -34,6 +35,7 @@ export type CrmMenuItemId =
   | "products"
   | "promo-codes"
   | "contacts"
+  | "call-funnel"
   | "memberships"
   | "diagnostics"
   | "messages"
@@ -134,7 +136,8 @@ export const crmStatsItem: CrmMenuItem = {
 /**
  * El menú sigue lo que Dayana hace cada día, en ese orden.
  *
- * - **Personas** es quién es quién: contactos, membresías y diagnósticos.
+ * - **Personas** es quién es quién: contactos, el embudo de la llamada gratis,
+ *   membresías y diagnósticos.
  * - **Ventas** son los que se usan a diario: Pagos, Enlaces de pago y Paquetes
  *   (Dayana pidió dejar Paquetes aquí, debajo de Enlaces: es de los que más se
  *   usan).
@@ -161,6 +164,10 @@ export const crmMenuSections: CrmMenuSection[] = [
     title: "Personas",
     items: [
       { id: "contacts", icon: Users, label: "Contactos", href: "/admin/contacts" },
+      // Quién pidió su llamada gratis en la página (`/llamada`), de dónde llegó
+      // y a quién hay que escribirle. Va con las personas, junto a Contactos:
+      // se mira a diario mientras haya campañas en redes.
+      { id: "call-funnel", icon: PhoneIncoming, label: "Embudo", href: "/admin/embudo" },
       { id: "memberships", icon: UsersRound, label: "Membresías", href: "/admin/membresias" },
       // El diagnóstico se mira para saber QUIÉN es quien llega y qué necesita,
       // no para cobrarle. Por eso vive con las personas y no con el dinero.
