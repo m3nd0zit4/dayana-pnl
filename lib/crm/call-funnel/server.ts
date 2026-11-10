@@ -1,4 +1,5 @@
 import { createHmac, randomBytes } from "node:crypto";
+import { after } from "next/server";
 import type { CountryCode } from "libphonenumber-js";
 
 import { buildWhatsAppUrl } from "@/lib/contact";
@@ -116,8 +117,7 @@ export type StartResult =
   | { status: "blocked" };
 
 /** Lanza `INVALID_PHONE` si el número no sirve. */
-export const startLead = async (input: StartInput, deps: { now?: Date } = {}): Promise<StartResult> => {
-  const now = deps.now ?? new Date();
+export const startLead = async (input: StartInput): Promise<StartResult> => {
   const country = (input.phoneCountry ?? "CO") as CountryCode;
   const normalized = normalizePhoneWithCountry(input.phone, country) ?? normalizePhone(input.phone, country);
   if (!normalized) throw new Error("INVALID_PHONE");
@@ -148,13 +148,13 @@ export const startLead = async (input: StartInput, deps: { now?: Date } = {}): P
     contactId = contact.id;
   } else {
     // Ya existe: el formulario público no le cambia nada a nadie. Solo completa
-    // el nombre si no tenía y anota el permiso.
+    // el nombre si no tenía. Tampoco le anota permisos: nadie verifica que el
+    // número sea de quien lo escribe, y un permiso de marketing ajeno haría a
+    // ese contacto elegible para invitaciones (revisión 10-nov).
     const nameless = !personFirstName(owner.firstName) || owner.firstName === owner.phoneE164;
     await prisma.contact.update({
       where: { id: owner.id },
       data: {
-        consentDataAt: now,
-        ...(input.consentMarketing ? { consentMarketingAt: now } : {}),
         ...(nameless
           ? {
               firstName: input.firstName,
@@ -226,6 +226,7 @@ const LEAD = {
   bookedAt: true,
   cancelledAt: true,
   confirmClickAt: true,
+  createdAt: true,
 } as const;
 
 const loadLead = async (token: string) => (TOKEN.test(token) ? prisma.callFunnelLead.findUnique({ where: { token }, select: LEAD }) : null);
@@ -245,8 +246,12 @@ export const saveAnswers = async (token: string, input: AnswersInput, deps: { no
       console.warn("[llamada-web] no se pudo anotar en el contacto", e)
     );
   }
-  // El correo solo completa uno que falta, y solo si no es de otro contacto.
-  if (input.email) {
+  // El correo solo completa uno que falta, solo si no es de otro contacto y SOLO
+  // si este envío creó el contacto: nadie verifica el número, y el portal de
+  // miembros liga las cuentas por correo (revisión 10-nov: un correo ajeno
+  // puesto en el contacto de una clienta le daba acceso a su cuenta).
+  const createdByThisLead = Date.now() - lead.createdAt.getTime() < 3600_000 && (await prisma.callFunnelLead.count({ where: { contactId: lead.contactId, createdAt: { lt: lead.createdAt } } })) === 0;
+  if (input.email && createdByThisLead) {
     const [contact, taken] = await Promise.all([
       prisma.contact.findUnique({ where: { id: lead.contactId }, select: { email: true } }),
       prisma.contact.findUnique({ where: { email: input.email }, select: { id: true } }),
@@ -340,7 +345,13 @@ const freshSlots = async (): Promise<FunnelSlot[]> => {
 
 /** Recalcula el estado de la persona en el CRM (sin esperar ni fallar por eso). */
 const refreshStage = (conversationId: string) => {
-  void computeSegment(conversationId).catch((e: unknown) => console.warn("[llamada-web] no se pudo recalcular el estado", e));
+  const task = () => computeSegment(conversationId).then(() => undefined).catch((e: unknown) => console.warn("[llamada-web] no se pudo recalcular el estado", e));
+  // En Vercel la función se congela al responder: `after()` la deja terminar.
+  try {
+    after(task);
+  } catch {
+    void task();
+  }
 };
 
 /**
@@ -364,7 +375,7 @@ export const bookCall = async (token: string, startIso: string, opts: { ip?: str
   const personTz = lead.timezone ?? offered.dayanaTz;
   const current = await liveBooking(lead.bookingId);
   const calendar = funnelCalendar();
-  const moving = Boolean(current && current.endsAt.getTime() > Date.now());
+  const moving = Boolean(current && current.startsAt.getTime() > Date.now());
   // El tope por conexión: solo para una cita nueva (cambiar la propia no gasta).
   const ipKey = funnelIpKey(opts.ip);
   if (!moving && ipKey) {
@@ -380,6 +391,8 @@ export const bookCall = async (token: string, startIso: string, opts: { ip?: str
   try {
     if (current && moving) {
       const moved = await moveFreeCall({ config, dayanaTz: offered.dayanaTz, personTz, bookingId: current.id, start, calendar });
+      // La hora nueva no está confirmada (la confirmación era de la anterior).
+      await prisma.callFunnelLead.update({ where: { id: lead.id }, data: { confirmClickAt: null, bookedAt: new Date() } }).catch(() => undefined);
       afterFreeCallMoved({ conversationId: lead.conversationId, booking: moved, dayanaTz: offered.dayanaTz });
       refreshStage(lead.conversationId);
       return { status: "booked", startIso: moved.startsAt.toISOString(), endIso: moved.endsAt.toISOString(), moved: true };
@@ -396,10 +409,14 @@ export const bookCall = async (token: string, startIso: string, opts: { ip?: str
       calendar,
       origin: ORIGIN,
     });
-    await prisma.callFunnelLead.update({
-      where: { id: lead.id },
-      data: { bookingId: booking.bookingId, bookedAt: new Date(), cancelledAt: null, bookedIpHash: ipKey },
-    });
+    // La cita ya existe en el calendario: si esto falla, igual se responde
+    // «agendada» (y el aviso sale); la fila se reparará cuando vuelva a su página.
+    await prisma.callFunnelLead
+      .update({
+        where: { id: lead.id },
+        data: { bookingId: booking.bookingId, bookedAt: new Date(), cancelledAt: null, confirmClickAt: null, bookedIpHash: ipKey },
+      })
+      .catch((e: unknown) => console.error("[llamada-web] la cita quedó agendada pero no se ligó a su fila", e));
     fireNotification({
       eventType: "WHATSAPP_AI_BOOKED",
       title: `Llamada gratis agendada: ${booking.title}`,
@@ -535,7 +552,7 @@ export const getFunnelPage = async (token: string, deps: { now?: Date } = {}): P
     ),
     personTz: lead.timezone,
     dayanaTz,
-    confirmUrl: upcoming && startIso ? buildWhatsAppUrl(confirmMessage(lead.firstName, startIso, lead.timezone ?? dayanaTz)) : null,
+    confirmUrl: upcoming && startIso ? buildWhatsAppUrl(confirmMessage(lead.firstName, startIso, lead.timezone ?? dayanaTz, dayanaTz)) : null,
     helpUrl: buildWhatsAppUrl(helpMessage(lead.firstName, Boolean(live))),
     googleCalendarUrl: upcoming && startIso && endIso ? googleCalendarUrl({ startIso, endIso, url }) : null,
     icsPath: upcoming ? `/api/llamada/${lead.token}/calendario` : null,

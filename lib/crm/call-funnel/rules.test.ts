@@ -64,6 +64,13 @@ describe("paso 1: datos", () => {
     expect(parsed.ok && parsed.value.consentMarketing).toBe(true);
   });
 
+  test("un nombre con cifras o «+» no pasa (va al título del evento y de ahí se lee un teléfono)", () => {
+    expect(parseStartBody(start({ firstName: "Ana +573001112222" }))).toEqual({ ok: false, error: "name_required" });
+    expect(parseStartBody(start({ firstName: "Ana 2" }))).toEqual({ ok: false, error: "name_required" });
+    const parsed = parseStartBody(start({ lastName: "Pérez 300" }));
+    expect(parsed.ok && parsed.value.lastName).toBeNull();
+  });
+
   test("una zona horaria inventada no se guarda", () => {
     expect(cleanTimezone("America/Mexico_City")).toBe("America/Mexico_City");
     expect(cleanTimezone("Marte/Olympus")).toBeNull();
@@ -230,6 +237,12 @@ describe("su página", () => {
     expect(bogota).toContain("jueves");
     expect(bogota).toContain("4:15");
     expect(confirmMessage("Ana", startIso, "Europe/Madrid")).toContain("10:15");
+    // Si su zona no es la de Dayana, también la hora de Colombia (quien lee es Dayana).
+    const both = confirmMessage("Ana", startIso, "Europe/Madrid", "America/Bogota");
+    expect(both).toContain("10:15");
+    expect(both).toContain("4:15");
+    expect(both).toContain("hora de Colombia");
+    expect(confirmMessage("Ana", startIso, "America/Bogota", "America/Bogota")).not.toContain("hora de Colombia");
   });
 
   test("el .ics es válido y avisa antes", () => {

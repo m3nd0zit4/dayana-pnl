@@ -15,7 +15,7 @@ import { getLocalPhonePlaceholder, sanitizeLocalPhoneInput, validateLocalPhone }
 import { captureAttribution, storedAttribution } from "./attribution";
 import { SlotPicker, SlotPickerSeedProvider, SlotPickerSkeleton, type SlotPickerProps, type SlotPickerSeed } from "./SlotPicker";
 import { funnelCard, optionBox, primaryBtn, textLink } from "./styles";
-import { saveStoredToken } from "./token-store";
+import { readStoredToken, saveStoredToken } from "./token-store";
 
 /**
  * El formulario de la llamada gratis (`/llamada`), en tres pasos:
@@ -211,7 +211,10 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
         setSavedDetails(details);
         // Un enlace nuevo no tiene respuestas guardadas: el paso 2 las vuelve a mandar.
         setSavedAnswers(null);
-        saveStoredToken(data.token);
+        // El enlace guardado solo cambia cuando el nuevo ya tiene su llamada
+        // (más abajo, al agendar): quien vuelve a llenar el formulario con una
+        // llamada ya agendada no pierde el enlace para cambiarla o cancelarla.
+        if (!readStoredToken()) saveStoredToken(data.token);
         if (!fired.current.lead) {
           fired.current.lead = true;
           trackMetaEvent("Lead", { content_name: "llamada_gratis" });
@@ -321,6 +324,7 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
       // Carga completa y no navegación de cliente: en su página personal el
       // Pixel y GTM no se cargan (su dirección es un secreto), y con una
       // navegación de cliente los ya cargados aquí seguirían vivos allá.
+      if (token) saveStoredToken(token);
       if (token) window.location.assign(`/llamada/${encodeURIComponent(token)}`);
     },
     [token, measured]

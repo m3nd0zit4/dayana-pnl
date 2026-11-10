@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 
@@ -119,12 +118,13 @@ const MyCallPage = async ({ params }: PageProps) => {
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background font-[font1] text-foreground">
       <header className="mx-auto w-full max-w-xl px-5 pt-5 sm:px-6 sm:pt-8">
-        <Link
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- carga completa a propósito */}
+        <a
           href="/"
           className="inline-flex min-h-11 items-center rounded-sm font-[font2] text-xs uppercase tracking-[0.3em] text-foreground outline-none transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-primary/60"
         >
           {BRAND.name}
-        </Link>
+        </a>
       </header>
 
       <main className="mx-auto w-full max-w-xl flex-1 px-5 pb-14 pt-8 sm:px-6 sm:pt-12">
@@ -162,13 +162,13 @@ const MyCallPage = async ({ params }: PageProps) => {
               { href: "/terminos", label: "Términos" },
               { href: "/cookies", label: "Cookies" },
             ].map((item) => (
-              <Link
+              <a
                 key={item.href}
                 href={item.href}
                 className="inline-flex min-h-11 items-center rounded-sm underline decoration-foreground/20 underline-offset-4 outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60"
               >
                 {item.label}
-              </Link>
+              </a>
             ))}
           </nav>
         </div>

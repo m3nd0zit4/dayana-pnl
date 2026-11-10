@@ -187,7 +187,11 @@ export const parseStartBody = (raw: unknown): Parsed<StartInput> => {
   const r = raw as Record<string, unknown>;
   if (typeof r.hp === "string" && r.hp.trim()) return { ok: false, error: "honeypot" };
   const firstName = clip(r.firstName, 60);
-  if (!firstName || firstName.length < 2 || /https?:|www\.|[<>@]/i.test(firstName)) return { ok: false, error: "name_required" };
+  // Sin cifras ni «+»: el nombre va al título del evento del calendario, y de
+  // ahí el reloj saca el teléfono de la cita (un número ajeno ahí confundiría
+  // a quien lo tiene).
+  if (!firstName || firstName.length < 2 || /https?:|www\.|[<>@+\d]/i.test(firstName)) return { ok: false, error: "name_required" };
+  const lastNameRaw = clip(r.lastName, 60);
   const phone = clip(r.phone, 30);
   if (!phone || phone.replace(/\D/g, "").length < 7) return { ok: false, error: "phone_required" };
   if (r.consentData !== true) return { ok: false, error: "consent_required" };
@@ -196,7 +200,7 @@ export const parseStartBody = (raw: unknown): Parsed<StartInput> => {
     ok: true,
     value: {
       firstName,
-      lastName: clip(r.lastName, 60),
+      lastName: lastNameRaw && !/https?:|www\.|[<>@+\d]/i.test(lastNameRaw) ? lastNameRaw : null,
       phone,
       phoneCountry: country && /^[A-Z]{2}$/.test(country) ? country : null,
       consentMarketing: r.consentMarketing === true,
@@ -369,8 +373,12 @@ export const timeLabel = (iso: string, timeZone: string): string => fmt(iso, tim
 export const whenLabel = (iso: string, timeZone: string): string => `${dayLabel(iso, timeZone)}, ${timeLabel(iso, timeZone)}`;
 
 /** El mensaje que la persona le manda a Dayana para confirmar (abre la ventana de 24 h de WhatsApp). */
-export const confirmMessage = (firstName: string, startIso: string, personTz: string): string =>
-  `Hola, soy ${firstName}. Agendé mi llamada gratis con Dayana para el ${whenLabel(startIso, personTz)}. Confirmo que ahí estaré.`;
+export const confirmMessage = (firstName: string, startIso: string, personTz: string, dayanaTz?: string): string => {
+  // Si su zona no es la de Dayana, también la hora de Colombia: quien lee el mensaje es Dayana.
+  const theirs = whenLabel(startIso, personTz);
+  const hers = dayanaTz && dayanaTz !== personTz ? whenLabel(startIso, dayanaTz) : null;
+  return `Hola, soy ${firstName}. Agendé mi llamada gratis con Dayana para el ${theirs}${hers && hers !== theirs ? ` (${hers}, hora de Colombia)` : ""}. Confirmo que ahí estaré.`;
+};
 
 /**
  * El mensaje de «¿Necesitas ayuda?». Sin llamada: dejó sus datos y no pudo

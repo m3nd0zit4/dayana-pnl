@@ -29,6 +29,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid" }, { status: 400 });
   }
 
+  // Tope por día de personas NUEVAS desde una misma conexión: cada envío crea un
+  // contacto, un chat y un aviso al equipo, y el formulario es público.
+  const daily = await rateLimitDistributed(`llamada-datos-dia:${ip}`, 25, 24 * 60 * 60_000);
+  if (!daily.ok) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
   const parsed = parseStartBody(body);
   // Un enlace que no existe: los pasos siguientes le dirán «escríbenos por WhatsApp».
   const decoy = () => NextResponse.json({ ok: true, token: randomBytes(24).toString("base64url") });
