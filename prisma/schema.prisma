@@ -333,6 +333,8 @@ model Contact {
   touches                ContactTouch[]
   /// Comunidades y grupos de WhatsApp a los que se invitó o en los que está.
   whatsAppCommunities    WhatsAppCommunityMember[]
+  /// Cada vez que dejó sus datos en la página de la llamada gratis (`/llamada`).
+  callFunnelLeads        CallFunnelLead[]
 
   /// Columna de búsqueda plegada: nombre, apellido, display, email y teléfono
   /// (con y sin separadores) en minúsculas y sin tildes.
@@ -2602,6 +2604,64 @@ model WhatsAppBooking {
   @@index([startsAt])
   @@index([conversationId])
   @@map("whatsapp_bookings")
+}
+
+/// Una persona que entró al embudo de la llamada gratis en la web (`/llamada`):
+/// dejó su nombre y su WhatsApp (paso 1), respondió las preguntas (paso 2) y
+/// eligió una hora (paso 3). Una fila por envío del formulario, no por
+/// contacto: el `token` es el secreto de SU página (`/llamada/<token>`), y
+/// quien escriba el número de otra persona nunca recibe el enlace de ella.
+///
+/// La cita no vive aquí: es la misma `WhatsAppBooking` + `CalendarAppointment`
+/// que agenda la asistente de WhatsApp (`bookingId`), con su evento en el
+/// calendario de Dayana, sus recordatorios y su seguimiento.
+model CallFunnelLead {
+  id             String  @id @default(cuid())
+  /// Secreto del enlace de la persona. Nunca se muestra en el CRM.
+  token          String  @unique
+  contactId      String  @map("contact_id")
+  conversationId String? @map("conversation_id")
+  /// El nombre que escribió (para saludarla en su página; el contacto puede tener otro).
+  firstName      String  @map("first_name")
+  /// Zona horaria del navegador (IANA) y país del número.
+  timezone       String?
+  countryIso     String? @map("country_iso") @db.Char(2)
+  /// Paso 2: { topic, urgency, note }.
+  answers        Json?
+  answeredAt     DateTime? @map("answered_at")
+  /// Paso 3: la reserva (`whatsapp_bookings.id`). Sin relación: la reserva se
+  /// borra con el chat y esta fila tiene que quedar.
+  bookingId      String?   @map("booking_id")
+  bookedAt       DateTime? @map("booked_at")
+  cancelledAt    DateTime? @map("cancelled_at")
+  /// Tocó «Confirmar por WhatsApp» en su página.
+  confirmClickAt DateTime? @map("confirm_click_at")
+  /// Huella (HMAC) de la conexión que agendó: el tope de citas por conexión y día. Nunca la IP.
+  bookedIpHash   String?   @map("booked_ip_hash")
+  /// De dónde llegó (primer toque): utm_*, clics de anuncios, ?ref=, página y referente.
+  utmSource      String?   @map("utm_source")
+  utmMedium      String?   @map("utm_medium")
+  utmCampaign    String?   @map("utm_campaign")
+  utmContent     String?   @map("utm_content")
+  utmTerm        String?   @map("utm_term")
+  fbclid         String?
+  ttclid         String?
+  gclid          String?
+  ref            String?
+  referrer       String?
+  landingPath    String?   @map("landing_path")
+  /// El seguimiento de Dayana a quien no agendó: nuevo | contactada | descartada.
+  followUp       String    @default("nuevo") @map("follow_up")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  contact Contact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@index([bookingId])
+  @@index([bookedIpHash, bookedAt])
+  @@map("call_funnel_leads")
 }
 
 /// Un comprobante de pago que llegó por WhatsApp (pago por fuera de la web:

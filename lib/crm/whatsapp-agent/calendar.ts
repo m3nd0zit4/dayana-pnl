@@ -129,6 +129,8 @@ export const bookOnCalendar = async (input: {
   phone: string;
   conversationId: string;
   contactId?: string | null;
+  /** Quién la agendó (última línea de la descripción). */
+  origin?: string;
 }): Promise<{
   accountId: string;
   eventId: string;
@@ -193,7 +195,7 @@ export const bookOnCalendar = async (input: {
       input.service,
       `WhatsApp: https://wa.me/${digits}`,
       `Chat en el CRM: ${getSiteUrl()}/admin/whatsapp?conversation=${input.conversationId}`,
-      "Agendada por el asistente de WhatsApp.",
+      input.origin ?? "Agendada por el asistente de WhatsApp.",
     ].join("\n"),
     startIso: input.start.toISOString(),
     endIso: end.toISOString(),

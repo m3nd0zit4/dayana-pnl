@@ -42,7 +42,7 @@ export type FreeCallService = { name: string; minutes: number };
  * Para las pruebas: un calendario de mentira (las pruebas nunca deben crear
  * eventos en el calendario real de Dayana).
  */
-type CalendarDeps = { available?: typeof availableSlots; book?: typeof bookOnCalendar; move?: typeof moveOnCalendar };
+export type CalendarDeps = { available?: typeof availableSlots; book?: typeof bookOnCalendar; move?: typeof moveOnCalendar };
 let calendarDeps: CalendarDeps = {};
 export const setFreeCallCalendarForTests = (deps: CalendarDeps) => {
   calendarDeps = deps;
@@ -110,7 +110,7 @@ const freeCallsBetween = async (
 };
 
 /** Los días (zona de Dayana) que ya tienen el tope de llamadas gratis. */
-const fullFreeCallDays = async (config: WhatsAppAiConfig, dayanaTz: string, now: Date): Promise<Set<string>> => {
+export const fullFreeCallDays = async (config: WhatsAppAiConfig, dayanaTz: string, now: Date): Promise<Set<string>> => {
   // Desde la medianoche de hoy, como cuenta `bookFreeCall`: con «desde ahora»
   // las llamadas de esta mañana no contaban, se ofrecían horas de hoy y al
   // agendar salía «Ese día ya no hay cupos» (Natalia, Barbara, Alexandra, 21-oct).
@@ -292,6 +292,10 @@ export const bookFreeCall = async (input: {
   contactId: string | null;
   phone: string;
   name: string | null;
+  /** Otro calendario para esta llamada (la página web fuera de producción usa uno de mentira). */
+  calendar?: CalendarDeps;
+  /** Quién la agendó, para la descripción del evento (por defecto, la asistente de WhatsApp). */
+  origin?: string;
 }): Promise<FreeCallBooking> => {
   const service = freeCallService(input.config);
   const end = new Date(input.start.getTime() + service.minutes * 60_000);
@@ -353,7 +357,7 @@ export const bookFreeCall = async (input: {
   //    Por WhatsApp: sin enlace de Meet. Si falla, se suelta la reserva.
   let created: Awaited<ReturnType<typeof bookOnCalendar>>;
   try {
-    created = await (calendarDeps.book ?? bookOnCalendar)({
+    created = await (input.calendar?.book ?? calendarDeps.book ?? bookOnCalendar)({
       config: { ...input.config.booking, addMeet: false },
       timezone: input.dayanaTz,
       start: input.start,
@@ -363,6 +367,7 @@ export const bookFreeCall = async (input: {
       phone: input.phone,
       conversationId: input.conversationId,
       contactId: input.contactId,
+      origin: input.origin,
     });
   } catch (e) {
     await prisma.whatsAppBooking.delete({ where: { id: pending.id } }).catch(() => undefined);
@@ -440,6 +445,8 @@ export const moveFreeCall = async (input: {
   personTz: string;
   bookingId: string;
   start: Date;
+  /** Otro calendario para esta llamada (la página web fuera de producción usa uno de mentira). */
+  calendar?: CalendarDeps;
 }): Promise<FreeCallBooking & { from: Date }> => {
   const service = freeCallService(input.config);
   const end = new Date(input.start.getTime() + service.minutes * 60_000);
@@ -480,7 +487,7 @@ export const moveFreeCall = async (input: {
   );
   let moved: { end: Date };
   try {
-    moved = await (calendarDeps.move ?? moveOnCalendar)({
+    moved = await (input.calendar?.move ?? calendarDeps.move ?? moveOnCalendar)({
       config: { ...input.config.booking, addMeet: false },
       timezone: input.dayanaTz,
       eventId: current.calendarEventId,
