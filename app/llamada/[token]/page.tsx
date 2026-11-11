@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 
+import MediaSlot from "@/app/components/llamada/MediaSlot";
 import MyCall from "@/app/components/llamada/MyCall";
 import { MyCallPick } from "@/app/components/llamada/MyCallPick";
 import { body, eyebrow, h1, h2, lead, primaryBtn, tapLink } from "@/app/components/llamada/MyCallUi";
 import { MyCallWhen } from "@/app/components/llamada/MyCallWhen";
 import { BRAND, buildWhatsAppUrl } from "@/lib/contact";
+import { BOOKED_VIDEO } from "@/lib/content/llamada-landing";
 import { getFunnelPage, type FunnelPage } from "@/lib/crm/call-funnel/server";
 
 export const dynamic = "force-dynamic";
@@ -133,9 +135,15 @@ const MyCallPage = async ({ params }: PageProps) => {
 
       <main className="mx-auto w-full max-w-xl flex-1 px-5 pb-14 pt-8 sm:px-6 sm:pt-12">
         {page.stage === "agendada" && page.call ? (
-          <MyCall token={token} page={page} call={page.call}>
-            <WhatHappens />
-          </MyCall>
+          <>
+            {/* El video de Dayana apenas agenda (dueño, 11-nov). En producción, solo cuando exista el archivo. */}
+            {BOOKED_VIDEO.src || process.env.VERCEL_ENV !== "production" ? (
+              <MediaSlot slot={BOOKED_VIDEO} className="mb-8" sizes="(min-width: 640px) 576px, 100vw" />
+            ) : null}
+            <MyCall token={token} page={page} call={page.call}>
+              <WhatHappens />
+            </MyCall>
+          </>
         ) : past ? (
           <PastCall page={page} />
         ) : (

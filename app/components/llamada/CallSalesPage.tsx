@@ -12,6 +12,7 @@ import { BRAND, buildWhatsAppUrl } from "@/lib/contact";
 import {
   COMMUNITY_PHOTO,
   DAYANA_PHOTO,
+  FAQ_VIDEOS,
   FEATURED_STORY,
   MAIN_VIDEO,
   VIDEO_TESTIMONIALS,
@@ -370,36 +371,56 @@ const CallSalesPage = async ({ home = false }: Props) => {
         </h2>
         <div className="mt-4 divide-y divide-foreground/15 border-y border-foreground/15">
           {[
-            { q: "¿La llamada tiene costo?", a: "No. Es gratis y no te compromete a nada." },
+            { id: "costo", q: "¿La llamada tiene costo?", a: "No. Es gratis y no te compromete a nada." },
             {
+              id: "como",
               q: "¿Cómo es la llamada?",
               a: `Dayana te llama por WhatsApp a la hora ${open ? "que elijas" : "que acordemos"}. No hay enlace de videollamada: solo ten tu WhatsApp a mano y un lugar tranquilo.`,
             },
             {
+              id: "terapia-o-negocio",
+              q: "¿Esto es terapia o es para emprender?",
+              a: "Las dos cosas, en ese orden. Primero sanas lo que te frena (tus emociones, tus hábitos) y después creces: tu negocio, tu marca, tu contenido. En la llamada Dayana ve contigo por dónde empezar.",
+            },
+            {
+              id: "sin-negocio",
               q: "¿Necesito tener un negocio o saber de redes?",
               a: "No. Muchas personas llegan sin nada armado y solo con ganas de sentirse mejor. Dayana te acompaña desde donde estás.",
             },
             {
+              id: "otro-pais",
+              q: "¿Sirve si no vivo en Colombia?",
+              a: "Sí. La llamada es por WhatsApp y las horas se te muestran en tu zona horaria, estés donde estés.",
+            },
+            {
+              id: "talleres",
               q: "¿Y los talleres?",
               a: "Los talleres y los procesos 1 a 1 se ven en la llamada: Dayana te dice cuál te conviene según lo que necesitas.",
             },
             {
+              id: "cambiar-hora",
               q: "¿Y si no puedo a la hora que elegí?",
               a: open
                 ? "Al agendar te queda tu propia página. Desde ahí cambias la hora o cancelas antes de que empiece."
                 : "Escríbenos por WhatsApp y buscamos otra hora.",
             },
-          ].map((item) => (
-            <details key={item.q} className="group">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-sm py-3 font-[font2] text-base leading-snug text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/60 [&::-webkit-details-marker]:hidden">
-                {item.q}
-                <span aria-hidden="true" className="shrink-0 font-[font1] text-2xl leading-none text-terracotta transition-transform group-open:rotate-45">
-                  +
-                </span>
-              </summary>
-              <p className="max-w-2xl pb-5 pr-8 font-[font1] text-[0.95rem] leading-relaxed text-foreground/70">{item.a}</p>
-            </details>
-          ))}
+          ].map((item) => {
+            const video = FAQ_VIDEOS[item.id];
+            return (
+              <details key={item.id} className="group">
+                <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-sm py-3 font-[font2] text-base leading-snug text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary/60 [&::-webkit-details-marker]:hidden">
+                  {item.q}
+                  <span aria-hidden="true" className="shrink-0 font-[font1] text-2xl leading-none text-terracotta transition-transform group-open:rotate-45">
+                    +
+                  </span>
+                </summary>
+                <div className="pb-5 pr-8">
+                  {video && visible(video) ? <MediaSlot slot={video} className="mb-4" sizes="(min-width: 768px) 640px, 100vw" /> : null}
+                  <p className="max-w-2xl font-[font1] text-[0.95rem] leading-relaxed text-foreground/70">{item.a}</p>
+                </div>
+              </details>
+            );
+          })}
         </div>
         <div className="mt-10">
           <a

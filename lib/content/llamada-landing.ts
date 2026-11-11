@@ -99,3 +99,41 @@ export const DAYANA_PHOTO: MediaSlot = {
   src: "/dayana-photos/opt/IMG_4009-900.webp",
   alt: "Dayana Beltrán, Maestra en Programación Neurolingüística",
 };
+
+/** El video de la página personal, justo después de agendar («Tu llamada quedó agendada»). */
+export const BOOKED_VIDEO: MediaSlot = {
+  id: "video-agendada",
+  kind: "video",
+  ratio: "16/9",
+  label: "Tu llamada quedó agendada",
+  brief:
+    "Dayana, alegre, alrededor de 1 minuto: felicita a la persona, le pide confirmar por WhatsApp, añadir la cita al calendario y buscar un lugar tranquilo, y le dice que solo venga como está.",
+};
+
+/**
+ * Un video corto de Dayana respondiendo cada pregunta frecuente (dueño, 11-nov:
+ * «el texto y aparte un video de Dayana respondiéndolas»). Se ve al abrir la
+ * pregunta, encima del texto. La clave es el `id` de la pregunta en la página.
+ */
+export const FAQ_VIDEOS: Record<string, MediaSlot> = Object.fromEntries(
+  (
+    [
+      ["costo", "¿La llamada tiene costo?"],
+      ["como", "¿Cómo es la llamada?"],
+      ["terapia-o-negocio", "¿Esto es terapia o es para emprender?"],
+      ["sin-negocio", "¿Necesito tener un negocio o saber de redes?"],
+      ["otro-pais", "¿Sirve si no vivo en Colombia?"],
+      ["talleres", "¿Y los talleres?"],
+      ["cambiar-hora", "¿Y si no puedo a la hora que elegí?"],
+    ] as const
+  ).map(([id, q]) => [
+    id,
+    {
+      id: `faq-${id}`,
+      kind: "video",
+      ratio: "16/9",
+      label: `Pregunta: ${q}`,
+      brief: "Dayana responde esta pregunta a cámara, 20 a 40 segundos (el texto está en el PDF de guiones).",
+    } satisfies MediaSlot,
+  ])
+);
