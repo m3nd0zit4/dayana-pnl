@@ -102,7 +102,7 @@ const Page = async ({ searchParams }: PageProps) => {
         <div className="flex flex-col gap-3 sm:flex-row">
           {failure.retryable ? (
             <Link
-              href="/#servicios"
+              href="/pagar/terapias"
               className="font-[font2] w-full rounded-full bg-[#141118] py-3.5 text-center text-xs uppercase tracking-[0.25em] text-linen transition-colors hover:bg-black sm:flex-1"
             >
               Intentar de nuevo

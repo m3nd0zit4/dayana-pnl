@@ -1,6 +1,7 @@
 "use client";
 
 import { Laptop, Users, MessageCircle } from "lucide-react";
+import Link from "next/link";
 import { Suspense } from "react";
 import LocalScheduleChips from "@/app/components/datetime/LocalScheduleChips";
 import WorkshopSlotLocalTime from "@/app/components/datetime/WorkshopSlotLocalTime";
@@ -211,6 +212,22 @@ const WorkshopSalesPage = ({
                 ¿Ya lo compraste? Inicia sesión para verlo
               </a>
             </p>
+
+            {/* Salida secundaria: el taller se ofrece también en la llamada
+                gratis; quien duda si es para él o ella la agenda sin pagar
+                aquí. El checkout de arriba no cambia. */}
+            <div className="mt-5 border-t border-black/10 pt-5 text-center">
+              <p className="font-[font1] text-sm leading-snug text-black/70">
+                ¿Quieres saber si este taller es para ti? Agenda tu sesión 1 a 1
+                gratis con Dayana.
+              </p>
+              <Link
+                href="/llamada?ref=taller"
+                className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-full border border-ink px-6 py-2.5 font-[font2] text-[11px] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-ink hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+              >
+                Agenda tu sesión 1 a 1 gratis
+              </Link>
+            </div>
           </div>
         </div>
       </section>

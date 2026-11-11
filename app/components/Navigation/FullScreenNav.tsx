@@ -47,12 +47,12 @@ type MenuItem =
  */
 const menuItemsBase: MenuItem[] = [
   {
-    label: "Llamada gratis",
+    label: "Sesión 1 a 1 gratis",
     path: "/llamada?ref=menu",
     marquee: "Agenda tu llamada gratis",
     announcement: "Dayana te llama por WhatsApp",
   },
-  { label: "Inicio", hash: "#hero", marquee: "Cambia tu realidad" },
+  { label: "Inicio", path: "/", marquee: "Cambia tu realidad" },
   {
     label: "Terapias",
     path: "/terapias/empezar",
@@ -64,7 +64,7 @@ const menuItemsBase: MenuItem[] = [
     path: "/taller-virtual",
     marquee: "Un día entero, en vivo",
   },
-  { label: "Contacto", hash: "#contacto", marquee: "Hablemos por WhatsApp" },
+  { label: "Contacto", path: "/llamada?ref=menu-contacto#agenda", marquee: "Hablemos por WhatsApp" },
 ];
 
 const menuItems: MenuItem[] = menuItemsBase;
@@ -90,7 +90,7 @@ const FullScreenNav = () => {
         ? item.hash
         : `/${item.hash}`;
 
-  const homeHref = pathname === "/" ? "#hero" : "/#hero";
+  const homeHref = "/";
 
   const [navOpen, setNavOpen] = useContext(NavbarContext);
 

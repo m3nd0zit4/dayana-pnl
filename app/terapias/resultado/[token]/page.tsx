@@ -149,10 +149,11 @@ const ResultadoPage = async ({
         href="/llamada?ref=resultado"
         className="flex w-full items-center justify-center rounded-full bg-terracotta px-6 py-4 text-center font-[font2] text-[11px] uppercase tracking-[0.12em] text-paper transition-colors duration-200 hover:bg-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 sm:text-xs sm:tracking-[0.18em]"
       >
-        Agendar mi llamada gratis
+        Agenda tu sesión 1 a 1 gratis
       </Link>
       <p className="mt-3 text-center font-[font1] text-sm leading-snug text-black/60">
-        Eliges la hora y Dayana te llama por WhatsApp.
+        Eliges la hora y Dayana te llama por WhatsApp. Primero, soltar lo que hoy
+        te frena; después, crecer hacia lo que quieres construir.
       </p>
       <DiagnosticContactCta
         track={!staffViewer}

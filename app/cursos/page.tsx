@@ -76,6 +76,23 @@ const CursosPage = async () => {
           hasStandaloneSales={hasStandaloneSales}
         />
 
+        {/* Salida secundaria: quien no sabe por dónde empezar no tiene que elegir
+            un curso; la llamada gratis lo resuelve. El checkout no cambia. */}
+        <aside
+          aria-label="Sesión 1 a 1 gratis"
+          className="mx-auto flex w-full max-w-5xl flex-col items-center gap-3 border-y border-black/10 px-5 py-5 text-center sm:flex-row sm:justify-between sm:px-8 sm:text-left"
+        >
+          <p className="font-[font1] text-base leading-snug text-black/75">
+            ¿No sabes por dónde empezar?
+          </p>
+          <Link
+            href="/llamada?ref=cursos"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-ink px-6 py-2.5 text-center font-[font2] text-[11px] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-ink hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+          >
+            Agenda tu sesión 1 a 1 gratis
+          </Link>
+        </aside>
+
         <section className="mx-auto w-full max-w-5xl px-5 pb-20 pt-16 sm:px-8">
           {courses.length === 0 ? (
             <p className="rounded-3xl border border-black/10 bg-white/50 p-8 font-[font1] text-lg text-black/60">

@@ -115,6 +115,25 @@ const CursoDetallePage = async ({
           )}
         </section>
 
+        <div className="px-5 sm:px-8">
+        {/* Salida secundaria: quien no sabe por dónde empezar no tiene que elegir
+            un curso; la llamada gratis lo resuelve. El checkout no cambia. */}
+        <aside
+          aria-label="Sesión 1 a 1 gratis"
+          className="mx-auto mt-8 flex w-full max-w-3xl flex-col items-start gap-3 rounded-2xl border border-black/10 bg-white/50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p className="font-[font1] text-base leading-snug text-black/75">
+            ¿No sabes por dónde empezar?
+          </p>
+          <Link
+            href="/llamada?ref=cursos"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-ink px-6 py-2.5 text-center font-[font2] text-[11px] uppercase tracking-[0.14em] text-ink transition-colors hover:bg-ink hover:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+          >
+            Agenda tu sesión 1 a 1 gratis
+          </Link>
+        </aside>
+        </div>
+
         {modules.length > 0 && (
           <section className="reveal border-t border-black/10 bg-linen/40">
             <div className="mx-auto w-full max-w-3xl px-5 py-16 sm:px-8 sm:py-20">

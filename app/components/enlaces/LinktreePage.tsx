@@ -456,8 +456,8 @@ const LinktreePage = ({
           <Cta
             href="/llamada?ref=enlaces"
             icon={<Phone className="h-5 w-5" />}
-            title="Agenda tu llamada gratis"
-            subtitle="Dayana te llama por WhatsApp · sin costo"
+            title="Agenda tu sesión 1 a 1 gratis"
+            subtitle="Sana lo que te frena, crece con propósito"
             variant="llamada"
             delay={100}
             internal

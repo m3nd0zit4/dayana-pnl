@@ -74,7 +74,8 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   // Sin menú, sin transición de entrada y sin Lenis, como `/enlaces`: cada
   // enlace de la cabecera es una salida, y GSAP + Lenis son peso que quien
   // llega desde un reel en el celular paga antes de ver el formulario.
-  const isLlamada = pathname === "/llamada" || pathname.startsWith("/llamada/");
+  // La portada es la misma página de venta que `/llamada`: sin menú ni escena.
+  const isLlamada = pathname === "/" || pathname === "/llamada" || pathname.startsWith("/llamada/");
 
   // Dark mode is scoped to the CRM + member portal. It used to be scoped by
   // mounting ThemeProvider only on those routes — but next-themes renders an

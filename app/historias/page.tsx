@@ -51,8 +51,9 @@ Te lo cuentan ellas.`}
           className="mt-5 max-w-3xl font-[font2] text-4xl uppercase leading-[0.92] sm:text-6xl"
         />
         <p className="mt-6 max-w-xl font-[font1] text-lg leading-snug text-black/65">
-          Cada una llegó por algo distinto y ninguna sabía, al empezar, que se
-          podía salir de ahí. Míralas hablar.
+          El camino con Dayana tiene dos tiempos: primero sanar lo que te frena
+          y, después, crecer hacia algo propio. Mira cómo lo cuentan quienes
+          llegaron por motivos muy distintos.
         </p>
       </section>
 
@@ -118,8 +119,8 @@ Te lo cuentan ellas.`}
               cuatro personas contarlo suele querer hablar, no un
               cuestionario. */}
           <p className="mx-auto mt-5 max-w-lg font-[font1] text-lg leading-relaxed text-black/70">
-            Cuéntaselo a Dayana en una llamada gratis: eliges la hora y te
-            llama por WhatsApp. Si prefieres empezar por tu cuenta, responde
+            Cuéntale a Dayana dónde estás hoy y qué quieres construir: eliges
+            la hora y te llama por WhatsApp. Si prefieres empezar por tu cuenta, responde
             unas pocas preguntas y sabrás qué patrón te está frenando y qué
             proceso necesitas para moverlo: son dos minutos y tampoco cuesta
             nada.
@@ -129,7 +130,7 @@ Te lo cuentan ellas.`}
               href="/llamada?ref=historias"
               className="inline-block max-w-full rounded-full bg-terracotta px-6 py-4 font-[font2] text-[11px] uppercase tracking-[0.16em] text-paper transition-colors duration-300 hover:bg-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 sm:px-9 sm:text-xs sm:tracking-[0.18em]"
             >
-              Agenda tu llamada gratis
+              Agenda tu sesión 1 a 1 gratis
             </Link>
             <Link
               href="/terapias/empezar?ref=historias"

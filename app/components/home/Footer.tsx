@@ -130,13 +130,13 @@ const socials: SocialItem[] = [
 // en casi todas las páginas públicas. `ref=footer` le dice al CRM que entró
 // por aquí.
 const quickLinks = [
-  { label: "Agenda tu llamada gratis", href: "/llamada?ref=footer" },
+  { label: "Sesión 1 a 1 gratis", href: "/llamada?ref=footer" },
   { label: "Terapias", href: "/terapias/empezar" },
   { label: "Cursos", href: "/cursos" },
   { label: "Historias", href: "/historias" },
   { label: "Taller virtual", href: "/taller-virtual" },
   { label: "Miembros", href: "/miembros" },
-  { label: "Contacto", href: "#contacto" },
+  { label: "Contacto", href: "/llamada?ref=footer-contacto#agenda" },
 ];
 
 const Footer = () => {

@@ -10,7 +10,8 @@ const Navbar = () => {
   const [navOpen, setNavOpen] = useContext(NavbarContext);
   const [navColor, setNavColor] = useContext(NavbarColorContext);
   const pathname = usePathname();
-  const homeHref = pathname === "/" ? "#hero" : "/#hero";
+  // La portada ya no tiene la escena `#hero` (es la página de venta): el logo lleva a `/`.
+  const homeHref = "/";
   const isHome = pathname === "/";
 
   // Re-suscribe en cada cambio de ruta: el Navbar persiste entre navegaciones

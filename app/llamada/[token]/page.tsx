@@ -38,7 +38,11 @@ const STEPS = [
   },
   {
     title: "Es una conversación",
-    text: "Para entender qué quieres trabajar y contarte cómo sería el proceso.",
+    text: "Dayana te escucha: dónde estás hoy y adónde quieres llegar, ya sea tu paz, tu negocio o tu marca.",
+  },
+  {
+    title: "Te cuenta qué te ayudaría",
+    text: "Según lo que le cuentes, te propone el camino: sesiones 1 a 1, un taller o las dos cosas. La llamada es gratis.",
   },
 ] as const;
 
