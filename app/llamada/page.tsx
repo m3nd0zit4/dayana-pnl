@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "es_ES",
-    url: "/llamada",
+    url: "/",
     siteName: BRAND.shortName,
     title,
     description,

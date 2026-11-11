@@ -277,6 +277,8 @@ export type Answers = {
   occupation: string | null;
   /** Su Instagram o TikTok (opcional). */
   social: string | null;
+  /** Marcó «me comprometo a estar disponible a la hora que elija». */
+  committed: boolean;
   note: string | null;
 };
 
@@ -286,14 +288,25 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 const ALL_TOPICS = [...TOPICS, ...LEGACY_TOPICS];
 
-/** Una cuenta de redes: @usuario o un enlace de Instagram / TikTok; nada más. */
+/** Rutas de Instagram que no son una cuenta (una publicación, un reel…). */
+const NOT_A_PROFILE = new Set(["p", "reel", "reels", "stories", "explore", "tv"]);
+
+/**
+ * Su cuenta de redes. `@usuario` o un enlace a un perfil de Instagram/TikTok
+ * quedan como `@usuario (Instagram)`; cualquier otra cosa que escriba («mi insta
+ * es ana») se guarda tal cual, sin enlaces ni signos raros, para que Dayana la
+ * lea. Idempotente: lo guardado se vuelve a leer igual.
+ */
 export const cleanSocial = (raw: unknown): string | null => {
   const v = clip(raw, 120);
   if (!v) return null;
+  if (/^@[A-Za-z0-9._]{1,40}( \((Instagram|TikTok)\))?$/.test(v)) return v;
   const url = v.match(/^(?:https?:\/\/)?(?:www\.)?(instagram\.com|tiktok\.com)\/@?([A-Za-z0-9._]{1,40})/i);
-  if (url) return `@${url[2]} (${url[1].toLowerCase().startsWith("tiktok") ? "TikTok" : "Instagram"})`;
+  if (url && !NOT_A_PROFILE.has(url[2].toLowerCase())) return `@${url[2]} (${url[1].toLowerCase().startsWith("tiktok") ? "TikTok" : "Instagram"})`;
   const handle = v.replace(/^@/, "");
-  return /^[A-Za-z0-9._]{1,40}$/.test(handle) ? `@${handle}` : null;
+  if (/^[A-Za-z0-9._]{1,40}$/.test(handle)) return `@${handle}`;
+  // Texto libre: sin enlaces (nada en el CRM se vuelve un enlace a otro sitio).
+  return /https?:|www\.|[<>]|\.[a-z]{2,}\//i.test(v) ? null : v;
 };
 
 export const parseAnswersBody = (raw: unknown): Parsed<AnswersInput> => {
@@ -312,6 +325,7 @@ export const parseAnswersBody = (raw: unknown): Parsed<AnswersInput> => {
       invest: INVESTS.find((i) => i.id === r.invest)?.id ?? null,
       occupation: clip(r.occupation, 120),
       social: cleanSocial(r.social),
+      committed: r.committed === true,
       note: clip(r.note, 500),
       email: email && EMAIL.test(email) ? email : null,
     },
@@ -342,6 +356,7 @@ export const answersNote = (answers: Answers, stamp: string): string =>
     answers.invest ? `¿Invertir en su proceso?: ${investLabel(answers.invest)}.` : null,
     answers.occupation ? `Se dedica a: ${answers.occupation}.` : null,
     answers.social ? `Redes: ${answers.social}.` : null,
+    answers.committed ? "Se comprometió a estar a la hora que elija." : null,
     answers.note ? `Contó: «${answers.note}»` : null,
   ]
     .filter(Boolean)

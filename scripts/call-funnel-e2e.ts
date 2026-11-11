@@ -101,15 +101,15 @@ const main = async () => {
 
     // 3 ────────────────────────────────────────────────────────────────────
     const email = `e2e-llamada-${run}@example.com`;
-    const saved = await saveAnswers(a.token, { topic: "ansiedad", urgency: "ya", goal: null, invest: null, occupation: null, social: null, note: "Me cuesta dormir.", email });
-    await saveAnswers(a.token, { topic: "agotamiento", urgency: "mes", goal: "marca", invest: "si", occupation: null, social: "@ana.e2e", note: null, email: null });
+    const saved = await saveAnswers(a.token, { topic: "ansiedad", urgency: "ya", goal: null, invest: null, occupation: null, social: null, committed: true, note: "Me cuesta dormir.", email });
+    await saveAnswers(a.token, { topic: "agotamiento", urgency: "mes", goal: "marca", invest: "si", occupation: null, social: "@ana.e2e", committed: true, note: null, email: null });
     const afterAnswers = await prisma.contact.findUniqueOrThrow({ where: { id: a.contactId } });
     const leadAnswered = await prisma.callFunnelLead.findUniqueOrThrow({ where: { token: a.token } });
     check("3. respuestas guardadas (la última gana)", saved && (leadAnswered.answers as { topic?: string } | null)?.topic === "agotamiento", leadAnswered.answers);
     check("3. una sola nota en el contacto", (afterAnswers.notes?.match(/Pidió su llamada gratis/g) ?? []).length === 1, afterAnswers.notes);
     check("3. la nota dice qué quiere trabajar", Boolean(afterAnswers.notes?.includes("Hoy: Ansiedad y miedo")), afterAnswers.notes);
     check("3. el correo completa el que faltaba", afterAnswers.email === email, afterAnswers.email);
-    check("3. un enlace que no existe no guarda nada", !(await saveAnswers("x".repeat(32), { topic: "otro", urgency: "ya", goal: null, invest: null, occupation: null, social: null, note: null, email: null })));
+    check("3. un enlace que no existe no guarda nada", !(await saveAnswers("x".repeat(32), { topic: "otro", urgency: "ya", goal: null, invest: null, occupation: null, social: null, committed: false, note: null, email: null })));
 
     // 4 ────────────────────────────────────────────────────────────────────
     const slots = await funnelSlots();

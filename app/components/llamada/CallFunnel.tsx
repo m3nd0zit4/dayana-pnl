@@ -344,6 +344,7 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
           invest,
           occupation: occupation.trim() || null,
           social: social.trim() || null,
+          committed: commit,
           note: note.trim() || null,
           email: mail || null,
         }),
@@ -387,7 +388,7 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
   const helpUrl = buildWhatsAppUrl(firstName.trim() ? helpMessage(firstName.trim()) : "Hola, quiero agendar mi llamada gratis con Dayana.");
 
   return (
-    <section ref={cardRef} id="agendar" aria-label="Agenda tu llamada gratis" className={funnelCard} data-testid="llamada-formulario">
+    <section ref={cardRef} id="agendar" aria-label="Agenda tu sesión 1 a 1 gratis" className={funnelCard} data-testid="llamada-formulario">
       <div className="flex items-center justify-between gap-4">
         {/* El título de abajo ya lo dice para el lector de pantalla. */}
         <p aria-hidden="true" className="font-[font2] text-xs uppercase tracking-[0.18em] text-muted-foreground">

@@ -11,7 +11,16 @@ export const metadata: Metadata = {
   title,
   description,
   alternates: { canonical: "/" },
-  openGraph: { url: "/", type: "website", title, description },
+  openGraph: {
+    type: "website",
+    locale: "es_ES",
+    url: "/",
+    siteName: BRAND.shortName,
+    title,
+    description,
+    images: [{ url: "/og-image.png", width: 1083, height: 568, alt: `${BRAND.name}, ${BRAND.tagline}` }],
+  },
+  twitter: { card: "summary_large_image", title, description, images: ["/og-image.png"] },
 };
 
 // Lee el país de quien visita, los ajustes del embudo y el evento abierto en cada pedido.

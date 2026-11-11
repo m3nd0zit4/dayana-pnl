@@ -150,6 +150,12 @@ describe("paso 2: preguntas", () => {
     expect(cleanSocial("tiktok.com/@dayanapnl")).toBe("@dayanapnl (TikTok)");
     expect(cleanSocial("https://spam.example/x")).toBeNull();
     expect(cleanSocial("<script>")).toBeNull();
+    // Una publicación no es una cuenta; texto libre se guarda para que Dayana lo lea.
+    expect(cleanSocial("instagram.com/p/AbC123")).toBeNull();
+    expect(cleanSocial("https://www.instagram.com/p/AbC123/")).toBeNull();
+    expect(cleanSocial("mi insta es ana")).toBe("mi insta es ana");
+    // Lo guardado se vuelve a leer igual.
+    expect(cleanSocial(cleanSocial("tiktok.com/@ana"))).toBe("@ana (TikTok)");
   });
 
   test("una opción que no existe en las preguntas nuevas se ignora sin fallar", () => {
@@ -166,6 +172,7 @@ describe("paso 2: preguntas", () => {
       invest: null,
       occupation: null,
       social: null,
+      committed: false,
       note: null,
     });
     expect(

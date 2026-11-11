@@ -30,7 +30,7 @@ const WHATSAPP_MESSAGE = "Hola, quiero agendar mi llamada gratis con Dayana.";
  * vacía): un recuadro de «video pendiente» no puede verlo quien llega de un
  * anuncio. En local y en las vistas previas sí, para saber qué falta.
  */
-const SHOW_PENDING = process.env.VERCEL_ENV !== "production";
+const SHOW_PENDING = process.env.VERCEL_ENV ? process.env.VERCEL_ENV !== "production" : process.env.NODE_ENV !== "production";
 const visible = (slot: Slot) => Boolean(slot.src) || SHOW_PENDING;
 
 /** Cuánto se espera por el calendario antes de seguir sin las horas (el selector las pide él mismo). */
@@ -230,7 +230,7 @@ const CallSalesPage = async ({ home = false }: Props) => {
               {
                 n: "02",
                 t: "Crecer y construir lo tuyo",
-                d: "Con la mente en su sitio, das el siguiente paso: tu propio negocio, tu marca personal, tu contenido en redes y tus primeros clientes. Algo que te dé propósito.",
+                d: "Con la mente en su sitio, das el siguiente paso: tu propio negocio, tu marca personal, tu contenido en redes y cómo conseguir tus primeros clientes. Algo que te dé propósito.",
               },
             ].map((s) => (
               <li key={s.n} className="rounded-3xl bg-paper p-6 sm:p-8">
@@ -264,20 +264,22 @@ const CallSalesPage = async ({ home = false }: Props) => {
           <p className="font-[font2] text-lg uppercase leading-tight tracking-tight text-terracotta md:text-right">Tu entorno cambia lo que crees posible.</p>
         </div>
         <div className="mt-10">
-          <CtaButton label="Agenda una reunión gratis" />
+          <CtaButton />
         </div>
       </section>
 
       {/* 5. Una historia, con sus mensajes. */}
       {showStory ? (
-        <section aria-labelledby="historia" className="mx-auto w-full max-w-5xl px-4 pb-16 sm:px-6 lg:pb-20">
+        <section aria-labelledby={story.title || SHOW_PENDING ? "historia" : undefined} aria-label={story.title || SHOW_PENDING ? undefined : "Una historia real"} className="mx-auto w-full max-w-5xl px-4 pb-16 sm:px-6 lg:pb-20">
           <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:items-center">
             {visible(story.photo) ? <MediaSlot slot={story.photo} sizes="(min-width: 768px) 50vw, 100vw" /> : null}
             <div>
               <p className={eyebrow}>Una historia real</p>
-              <h2 id="historia" className={`${h2} mt-3`}>
-                {story.title || (SHOW_PENDING ? "[Título de la historia: lo manda Dayana]" : "")}
-              </h2>
+              {story.title || SHOW_PENDING ? (
+                <h2 id="historia" className={`${h2} mt-3`}>
+                  {story.title || "[Título de la historia: lo manda Dayana]"}
+                </h2>
+              ) : null}
               {story.text || SHOW_PENDING ? <p className={`${body} mt-4`}>{story.text || "[Su historia en una o dos frases.]"}</p> : null}
             </div>
           </div>
