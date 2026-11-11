@@ -162,7 +162,7 @@ const EmbudoPageClient = ({ rows: loadedRows, stats, config: initialConfig, tzLa
       if (!inGroup(r, group) && !(group === "seguimiento" && kept.has(r.id))) return false;
       if (channel !== ALL_CHANNELS && r.channel !== channel) return false;
       if (!q) return true;
-      return [r.name, r.phoneE164, r.campaign, r.topic, r.note].some((v) => v?.toLowerCase().includes(q));
+      return [r.name, r.phoneE164, r.campaign, r.topic, r.goal, r.occupation, r.social, r.note].some((v) => v?.toLowerCase().includes(q));
     });
   }, [rows, group, kept, channel, query]);
 
@@ -382,6 +382,11 @@ const EmbudoPageClient = ({ rows: loadedRows, stats, config: initialConfig, tzLa
                       </p>
                       {r.topic || r.urgency ? (
                         <p className="mt-1 text-sm [overflow-wrap:anywhere]">{[r.topic, r.urgency].filter(Boolean).join(" · ")}</p>
+                      ) : null}
+                      {r.goal || r.invest || r.occupation || r.social ? (
+                        <p className="mt-1 text-sm text-muted-foreground [overflow-wrap:anywhere]">
+                          {[r.goal ? `Quiere: ${r.goal}` : null, r.invest ? `Invertir: ${r.invest}` : null, r.occupation, r.social].filter(Boolean).join(" · ")}
+                        </p>
                       ) : null}
                       {r.note ? <Note text={r.note} /> : null}
                       {r.callLabel || r.confirmed ? (

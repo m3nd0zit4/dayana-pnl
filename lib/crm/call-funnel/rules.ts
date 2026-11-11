@@ -211,16 +211,38 @@ export const parseStartBody = (raw: unknown): Parsed<StartInput> => {
 };
 
 // ── Paso 2: preguntas ───────────────────────────────────────────────────────
+//
+// El modelo de Dayana es híbrido: primero acompaña a la persona a salir de lo
+// que la tiene mal (agotamiento, tristeza, ansiedad…) y después a crecer (su
+// negocio, su marca personal, su contenido, algo que le dé propósito). Las
+// preguntas recogen las dos puntas —cómo está hoy y a dónde quiere llegar— para
+// que Dayana llegue a la llamada sabiendo qué ofrecer. Son de elegir: rápidas en
+// el celular. Lo personal que se escribe a mano es opcional.
 
-/** Los temas son los del cuestionario del sitio (`lib/diagnostico/questions.ts`), con las mismas palabras. */
+/** Cómo está hoy (lo emocional y lo de crecimiento, en una sola lista). */
 export const TOPICS = [
+  { id: "agotamiento", label: "Me siento sin energía, con agotamiento" },
+  { id: "duelo", label: "Tristeza o algo que no he soltado" },
   { id: "ansiedad", label: "Ansiedad y miedo" },
-  { id: "pareja", label: "Mi relación de pareja" },
-  { id: "duelo", label: "Un duelo o algo que no he soltado" },
   { id: "suficiente", label: "No me siento suficiente" },
   { id: "rumbo", label: "No sé para dónde voy" },
-  { id: "dinero", label: "Mi relación con el dinero" },
+  { id: "estancamiento", label: "Siento que mi trabajo no me llena" },
   { id: "otro", label: "Otra cosa" },
+] as const;
+
+/** Temas de versiones anteriores del formulario: ya no se ofrecen, pero se siguen leyendo. */
+const LEGACY_TOPICS = [
+  { id: "pareja", label: "Mi relación de pareja" },
+  { id: "dinero", label: "Mi relación con el dinero" },
+] as const;
+
+/** A dónde quiere llegar. */
+export const GOALS = [
+  { id: "paz", label: "Sentirme en paz y con energía otra vez" },
+  { id: "negocio", label: "Tener mi propio negocio" },
+  { id: "marca", label: "Vivir de mi marca personal y mi contenido" },
+  { id: "clientes", label: "Conseguir más clientes en lo que ya hago" },
+  { id: "proposito", label: "Encontrar algo que me dé propósito" },
 ] as const;
 
 export const URGENCIES = [
@@ -229,40 +251,97 @@ export const URGENCIES = [
   { id: "explorando", label: "Solo estoy explorando" },
 ] as const;
 
-export type TopicId = (typeof TOPICS)[number]["id"];
-export type UrgencyId = (typeof URGENCIES)[number]["id"];
+/**
+ * Si la llamada le convence, ¿puede invertir en su proceso? Suave a propósito:
+ * es para que Dayana sepa qué proponer, no un filtro que deje a nadie sin
+ * llamada.
+ */
+export const INVESTS = [
+  { id: "si", label: "Sí, estoy en disposición" },
+  { id: "depende", label: "Depende de lo que me propongan" },
+  { id: "no_ahora", label: "Por ahora no puedo" },
+] as const;
 
-export type Answers = { topic: TopicId; urgency: UrgencyId; note: string | null };
+export type TopicId = (typeof TOPICS)[number]["id"] | (typeof LEGACY_TOPICS)[number]["id"];
+export type GoalId = (typeof GOALS)[number]["id"];
+export type UrgencyId = (typeof URGENCIES)[number]["id"];
+export type InvestId = (typeof INVESTS)[number]["id"];
+
+export type Answers = {
+  topic: TopicId;
+  urgency: UrgencyId;
+  /** Desde que existe la pregunta; las filas anteriores no lo tienen. */
+  goal: GoalId | null;
+  invest: InvestId | null;
+  /** A qué se dedica hoy (opcional). */
+  occupation: string | null;
+  /** Su Instagram o TikTok (opcional). */
+  social: string | null;
+  note: string | null;
+};
 
 export type AnswersInput = Answers & { email: string | null };
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+const ALL_TOPICS = [...TOPICS, ...LEGACY_TOPICS];
+
+/** Una cuenta de redes: @usuario o un enlace de Instagram / TikTok; nada más. */
+export const cleanSocial = (raw: unknown): string | null => {
+  const v = clip(raw, 120);
+  if (!v) return null;
+  const url = v.match(/^(?:https?:\/\/)?(?:www\.)?(instagram\.com|tiktok\.com)\/@?([A-Za-z0-9._]{1,40})/i);
+  if (url) return `@${url[2]} (${url[1].toLowerCase().startsWith("tiktok") ? "TikTok" : "Instagram"})`;
+  const handle = v.replace(/^@/, "");
+  return /^[A-Za-z0-9._]{1,40}$/.test(handle) ? `@${handle}` : null;
+};
+
 export const parseAnswersBody = (raw: unknown): Parsed<AnswersInput> => {
   if (!raw || typeof raw !== "object") return { ok: false, error: "invalid" };
   const r = raw as Record<string, unknown>;
-  const topic = TOPICS.find((t) => t.id === r.topic)?.id;
+  const topic = ALL_TOPICS.find((t) => t.id === r.topic)?.id;
   const urgency = URGENCIES.find((u) => u.id === r.urgency)?.id;
   if (!topic || !urgency) return { ok: false, error: "invalid" };
   const email = clip(r.email, 160)?.toLowerCase() ?? null;
-  return { ok: true, value: { topic, urgency, note: clip(r.note, 500), email: email && EMAIL.test(email) ? email : null } };
+  return {
+    ok: true,
+    value: {
+      topic,
+      urgency,
+      goal: GOALS.find((g) => g.id === r.goal)?.id ?? null,
+      invest: INVESTS.find((i) => i.id === r.invest)?.id ?? null,
+      occupation: clip(r.occupation, 120),
+      social: cleanSocial(r.social),
+      note: clip(r.note, 500),
+      email: email && EMAIL.test(email) ? email : null,
+    },
+  };
 };
 
 /** Lo guardado en `answers`, leído con cuidado (es JSON de la base). */
 export const readAnswers = (raw: unknown): Answers | null => {
   const parsed = parseAnswersBody(raw);
-  return parsed.ok ? { topic: parsed.value.topic, urgency: parsed.value.urgency, note: parsed.value.note } : null;
+  if (!parsed.ok) return null;
+  const { email: _email, ...answers } = parsed.value;
+  void _email;
+  return answers;
 };
 
-export const topicLabel = (id: string | null | undefined): string | null => TOPICS.find((t) => t.id === id)?.label ?? null;
+export const topicLabel = (id: string | null | undefined): string | null => ALL_TOPICS.find((t) => t.id === id)?.label ?? null;
+export const goalLabel = (id: string | null | undefined): string | null => GOALS.find((g) => g.id === id)?.label ?? null;
 export const urgencyLabel = (id: string | null | undefined): string | null => URGENCIES.find((u) => u.id === id)?.label ?? null;
+export const investLabel = (id: string | null | undefined): string | null => INVESTS.find((i) => i.id === id)?.label ?? null;
 
 /** La línea para las notas del contacto: Dayana la lee antes de llamar. */
 export const answersNote = (answers: Answers, stamp: string): string =>
   [
     `[${stamp}] Pidió su llamada gratis en la página.`,
-    `Quiere trabajar: ${topicLabel(answers.topic)}.`,
+    `Hoy: ${topicLabel(answers.topic)}.`,
+    answers.goal ? `Quiere llegar a: ${goalLabel(answers.goal)}.` : null,
     `Para cuándo: ${urgencyLabel(answers.urgency)}.`,
+    answers.invest ? `¿Invertir en su proceso?: ${investLabel(answers.invest)}.` : null,
+    answers.occupation ? `Se dedica a: ${answers.occupation}.` : null,
+    answers.social ? `Redes: ${answers.social}.` : null,
     answers.note ? `Contó: «${answers.note}»` : null,
   ]
     .filter(Boolean)

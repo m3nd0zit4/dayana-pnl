@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   attributionFromUrl,
   buildIcs,
+  cleanSocial,
   channelOf,
   cleanTimezone,
   confirmMessage,
@@ -144,8 +145,32 @@ describe("paso 2: preguntas", () => {
     });
   });
 
+  test("redes: solo una cuenta, nunca un enlace cualquiera", () => {
+    expect(cleanSocial("@dayana.pnl")).toBe("@dayana.pnl");
+    expect(cleanSocial("tiktok.com/@dayanapnl")).toBe("@dayanapnl (TikTok)");
+    expect(cleanSocial("https://spam.example/x")).toBeNull();
+    expect(cleanSocial("<script>")).toBeNull();
+  });
+
+  test("una opción que no existe en las preguntas nuevas se ignora sin fallar", () => {
+    const parsed = parseAnswersBody({ topic: "ansiedad", urgency: "mes", goal: "hackear", invest: 5 });
+    expect(parsed.ok && [parsed.value.goal, parsed.value.invest]).toEqual([null, null]);
+  });
+
   test("lo guardado se vuelve a leer igual", () => {
-    expect(readAnswers({ topic: "dinero", urgency: "explorando", note: null })).toEqual({ topic: "dinero", urgency: "explorando", note: null });
+    // Una fila de antes (tema que ya no se ofrece, sin las preguntas nuevas) se sigue leyendo.
+    expect(readAnswers({ topic: "dinero", urgency: "explorando", note: null })).toEqual({
+      topic: "dinero",
+      urgency: "explorando",
+      goal: null,
+      invest: null,
+      occupation: null,
+      social: null,
+      note: null,
+    });
+    expect(
+      readAnswers({ topic: "agotamiento", goal: "marca", urgency: "ya", invest: "depende", occupation: "Contadora", social: "https://www.instagram.com/ana.pnl/" })
+    ).toMatchObject({ goal: "marca", invest: "depende", occupation: "Contadora", social: "@ana.pnl (Instagram)" });
     expect(readAnswers(null)).toBeNull();
     expect(readAnswers({ topic: "x" })).toBeNull();
   });

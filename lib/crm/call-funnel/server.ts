@@ -45,6 +45,8 @@ import {
   STAGE_LABEL,
   stageOf,
   topicLabel,
+  goalLabel,
+  investLabel,
   urgencyLabel,
   type AnswersInput,
   type Attribution,
@@ -238,7 +240,8 @@ export const saveAnswers = async (token: string, input: AnswersInput, deps: { no
   const now = deps.now ?? new Date();
   const lead = await loadLead(token);
   if (!lead) return false;
-  const answers = { topic: input.topic, urgency: input.urgency, note: input.note };
+  const { email: _email, ...answers } = input;
+  void _email;
   await prisma.callFunnelLead.update({ where: { id: lead.id }, data: { answers, answeredAt: lead.answeredAt ?? now } });
   // La nota para Dayana, solo la primera vez (corregir una respuesta no llena las notas).
   if (!lead.answeredAt) {
@@ -588,6 +591,12 @@ export type FunnelLeadRow = {
   campaign: string | null;
   topic: string | null;
   urgency: string | null;
+  /** A dónde quiere llegar. */
+  goal: string | null;
+  /** Si puede invertir en su proceso. */
+  invest: string | null;
+  occupation: string | null;
+  social: string | null;
   note: string | null;
   call: { startIso: string; endIso: string } | null;
   /** Confirmó por WhatsApp (escribió después de agendar o tocó el botón). */
@@ -702,6 +711,10 @@ export const listFunnelLeads = async (opts: { sinceDays?: number; limit?: number
         campaign: attribution.utmCampaign,
         topic: topicLabel(answers?.topic),
         urgency: urgencyLabel(answers?.urgency),
+        goal: goalLabel(answers?.goal),
+        invest: investLabel(answers?.invest),
+        occupation: answers?.occupation ?? null,
+        social: answers?.social ?? null,
         note: answers?.note ?? null,
         call: live ? { startIso: live.startsAt.toISOString(), endIso: live.endsAt.toISOString() } : null,
         confirmed: Boolean(row.confirmClickAt || (row.bookedAt && inbound && inbound.getTime() > row.bookedAt.getTime())),

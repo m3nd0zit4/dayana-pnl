@@ -9,7 +9,7 @@ import CheckoutCountrySelect from "@/app/components/payments/CheckoutCountrySele
 import { useCookieConsent } from "@/app/context/CookieConsentContext";
 import { pushDataLayerEvent } from "@/lib/analytics/dataLayer";
 import { buildWhatsAppUrl } from "@/lib/contact";
-import { attributionFromUrl, helpMessage, TOPICS, URGENCIES, type TopicId, type UrgencyId } from "@/lib/crm/call-funnel/rules";
+import { attributionFromUrl, GOALS, helpMessage, INVESTS, TOPICS, URGENCIES, type GoalId, type InvestId, type TopicId, type UrgencyId } from "@/lib/crm/call-funnel/rules";
 import { getLocalPhonePlaceholder, sanitizeLocalPhoneInput, validateLocalPhone } from "@/lib/phone";
 
 import { captureAttribution, storedAttribution } from "./attribution";
@@ -47,7 +47,7 @@ export type CallFunnelProps = {
 type Step = 1 | 2 | 3;
 
 type DetailErrors = { firstName?: string; phone?: string; consent?: string };
-type AnswerErrors = { topic?: string; urgency?: string; email?: string };
+type AnswerErrors = { topic?: string; goal?: string; urgency?: string; invest?: string; commit?: string; email?: string };
 
 const STEP_TITLE: Record<Step, string> = { 1: "Tus datos", 2: "Cuéntanos un poco", 3: "Elige tu hora" };
 
@@ -68,6 +68,41 @@ const FieldError = ({ id, text }: { id: string; text?: string }) =>
       {text}
     </p>
   ) : null;
+
+/** Una pregunta de elegir una opción: tarjetas grandes para el dedo (radio oculto + `optionBox`). */
+const Choice = <T extends string>(props: {
+  id: string;
+  name: string;
+  legend: string;
+  hint?: string;
+  options: readonly { id: T; label: string }[];
+  value: T | null;
+  onChange: (v: T) => void;
+  error?: string;
+  cols?: string;
+}) => (
+  <fieldset className="min-w-0" aria-describedby={props.error ? `${props.id}-${props.name}-error` : undefined}>
+    <legend className={labelCls}>{props.legend}</legend>
+    {props.hint ? <p className="mt-1 font-[font1] text-xs leading-snug text-muted-foreground">{props.hint}</p> : null}
+    <div className={`mt-2 grid grid-cols-1 gap-2 ${props.cols ?? "sm:grid-cols-2"}`}>
+      {props.options.map((o, i) => (
+        <label key={o.id} className="relative block">
+          <input
+            id={i === 0 ? `${props.id}-${props.name}` : undefined}
+            type="radio"
+            name={`${props.id}-${props.name}`}
+            value={o.id}
+            checked={props.value === o.id}
+            onChange={() => props.onChange(o.id)}
+            className="peer sr-only"
+          />
+          <span className={`${optionBox} font-[font1]`}>{o.label}</span>
+        </label>
+      ))}
+    </div>
+    <FieldError id={`${props.id}-${props.name}-error`} text={props.error} />
+  </fieldset>
+);
 
 const browserZone = (): string | null => {
   try {
@@ -113,6 +148,12 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
   // Paso 2
   const [topic, setTopic] = useState<TopicId | null>(null);
   const [urgency, setUrgency] = useState<UrgencyId | null>(null);
+  const [goal, setGoal] = useState<GoalId | null>(null);
+  const [invest, setInvest] = useState<InvestId | null>(null);
+  const [occupation, setOccupation] = useState("");
+  const [social, setSocial] = useState("");
+  /** «Si agendo, estaré a la hora que elija»: el compromiso de asistir (como en las páginas que más convierten). */
+  const [commit, setCommit] = useState(false);
   const [note, setNote] = useState("");
   const [email, setEmail] = useState("");
   const [answerErrors, setAnswerErrors] = useState<AnswerErrors>({});
@@ -267,11 +308,15 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
     const mail = email.trim();
     const errors: AnswerErrors = {};
     if (!topic) errors.topic = "Elige la opción que más se parezca a lo tuyo.";
+    if (!goal) errors.goal = "Elige a dónde te gustaría llegar.";
     if (!urgency) errors.urgency = "Elige una opción.";
+    if (!invest) errors.invest = "Elige una opción. Ninguna te deja sin llamada.";
+    if (!commit) errors.commit = "Marca esta casilla para seguir: Dayana reserva ese espacio solo para ti.";
     if (mail && !EMAIL_RE.test(mail)) errors.email = "Revisa tu correo, o déjalo vacío.";
-    if (errors.topic || errors.urgency || errors.email) {
+    const first = (["topic", "goal", "urgency", "invest", "commit", "email"] as const).find((k) => errors[k]);
+    if (first) {
       setAnswerErrors(errors);
-      focusField(errors.topic ? "tema" : errors.urgency ? "urgencia" : "correo");
+      focusField({ topic: "tema", goal: "meta", urgency: "urgencia", invest: "invertir", commit: "compromiso", email: "correo" }[first]);
       return;
     }
     setAnswerErrors({});
@@ -280,7 +325,7 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
       return;
     }
 
-    const answers = JSON.stringify([token, topic, urgency, note.trim(), mail]);
+    const answers = JSON.stringify([token, topic, goal, urgency, invest, occupation.trim(), social.trim(), note.trim(), mail]);
     if (answers === savedAnswers) {
       setStep(3);
       return;
@@ -292,7 +337,16 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
       const res = await fetch(`/api/llamada/${encodeURIComponent(token)}/respuestas`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, urgency, note: note.trim() || null, email: mail || null }),
+        body: JSON.stringify({
+          topic,
+          goal,
+          urgency,
+          invest,
+          occupation: occupation.trim() || null,
+          social: social.trim() || null,
+          note: note.trim() || null,
+          email: mail || null,
+        }),
       });
       if (res.ok) {
         setSavedAnswers(answers);
@@ -479,61 +533,100 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
             {sending ? "Guardando…" : "Continuar"}
             {sending ? null : <ArrowRight className="size-4 shrink-0" aria-hidden="true" />}
           </button>
-          <p className="-mt-1 text-center font-[font1] text-xs leading-snug text-muted-foreground">Siguen dos preguntas cortas y eliges tu hora.</p>
+          <p className="-mt-1 text-center font-[font1] text-xs leading-snug text-muted-foreground">Siguen unas preguntas rápidas y eliges tu hora.</p>
         </form>
       ) : null}
 
       {step === 2 ? (
         <form onSubmit={submitAnswers} noValidate className="mt-2 flex flex-col gap-6" data-testid="llamada-paso-2">
-          <p className="font-[font1] text-sm leading-relaxed text-muted-foreground">Así Dayana sabe de qué quieres hablar antes de llamarte.</p>
+          <p className="font-[font1] text-sm leading-relaxed text-muted-foreground">Así Dayana llega a la llamada sabiendo cómo ayudarte. Todo se responde tocando.</p>
 
-          <fieldset className="min-w-0" aria-describedby={answerErrors.topic ? `${id}-tema-error` : undefined}>
-            <legend className={labelCls}>¿Qué quieres trabajar?</legend>
-            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {TOPICS.map((t, i) => (
-                <label key={t.id} className="relative block">
-                  <input
-                    id={i === 0 ? `${id}-tema` : undefined}
-                    type="radio"
-                    name={`${id}-tema`}
-                    value={t.id}
-                    checked={topic === t.id}
-                    onChange={() => {
-                      setTopic(t.id);
-                      clearAnswerError("topic");
-                    }}
-                    className="peer sr-only"
-                  />
-                  <span className={`${optionBox} font-[font1]`}>{t.label}</span>
-                </label>
-              ))}
-            </div>
-            <FieldError id={`${id}-tema-error`} text={answerErrors.topic} />
-          </fieldset>
+          <Choice
+            id={id}
+            name="tema"
+            legend="¿Cómo te sientes hoy?"
+            options={TOPICS}
+            value={topic}
+            onChange={(v) => {
+              setTopic(v);
+              clearAnswerError("topic");
+            }}
+            error={answerErrors.topic}
+          />
 
-          <fieldset className="min-w-0" aria-describedby={answerErrors.urgency ? `${id}-urgencia-error` : undefined}>
-            <legend className={labelCls}>¿Para cuándo quieres empezar?</legend>
-            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {URGENCIES.map((u, i) => (
-                <label key={u.id} className="relative block">
-                  <input
-                    id={i === 0 ? `${id}-urgencia` : undefined}
-                    type="radio"
-                    name={`${id}-urgencia`}
-                    value={u.id}
-                    checked={urgency === u.id}
-                    onChange={() => {
-                      setUrgency(u.id);
-                      clearAnswerError("urgency");
-                    }}
-                    className="peer sr-only"
-                  />
-                  <span className={`${optionBox} font-[font1]`}>{u.label}</span>
-                </label>
-              ))}
+          <Choice
+            id={id}
+            name="meta"
+            legend="¿A dónde te gustaría llegar en los próximos meses?"
+            options={GOALS}
+            value={goal}
+            onChange={(v) => {
+              setGoal(v);
+              clearAnswerError("goal");
+            }}
+            error={answerErrors.goal}
+          />
+
+          <Choice
+            id={id}
+            name="urgencia"
+            legend="¿Para cuándo quieres empezar?"
+            options={URGENCIES}
+            value={urgency}
+            onChange={(v) => {
+              setUrgency(v);
+              clearAnswerError("urgency");
+            }}
+            error={answerErrors.urgency}
+            cols="sm:grid-cols-3"
+          />
+
+          <Choice
+            id={id}
+            name="invertir"
+            legend="Si la llamada te convence, ¿estás en disposición de invertir en tu proceso?"
+            hint="Es para que Dayana sepa qué proponerte. Ninguna respuesta te deja sin llamada."
+            options={INVESTS}
+            value={invest}
+            onChange={(v) => {
+              setInvest(v);
+              clearAnswerError("invest");
+            }}
+            error={answerErrors.invest}
+            cols="sm:grid-cols-3"
+          />
+
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor={`${id}-oficio`} className={labelCls}>
+                ¿A qué te dedicas hoy? <span className="font-[font1] text-muted-foreground">(opcional)</span>
+              </label>
+              <input
+                id={`${id}-oficio`}
+                value={occupation}
+                onChange={(e) => setOccupation(e.target.value)}
+                maxLength={120}
+                autoComplete="organization-title"
+                placeholder="Ej.: trabajo en una empresa, estudio…"
+                className={`${fieldInput} h-13`}
+              />
             </div>
-            <FieldError id={`${id}-urgencia-error`} text={answerErrors.urgency} />
-          </fieldset>
+            <div>
+              <label htmlFor={`${id}-redes`} className={labelCls}>
+                Tu Instagram o TikTok <span className="font-[font1] text-muted-foreground">(opcional)</span>
+              </label>
+              <input
+                id={`${id}-redes`}
+                value={social}
+                onChange={(e) => setSocial(e.target.value)}
+                maxLength={120}
+                autoCapitalize="none"
+                autoCorrect="off"
+                placeholder="@tuusuario"
+                className={`${fieldInput} h-13`}
+              />
+            </div>
+          </div>
 
           <div>
             <label htmlFor={`${id}-nota`} className={labelCls}>
@@ -575,6 +668,27 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
               className={`${fieldInput} h-13`}
             />
             <FieldError id={`${id}-correo-error`} text={answerErrors.email} />
+          </div>
+
+          <div>
+            <label className="flex cursor-pointer items-start gap-3 py-1">
+              <input
+                id={`${id}-compromiso`}
+                type="checkbox"
+                checked={commit}
+                onChange={(e) => {
+                  setCommit(e.target.checked);
+                  clearAnswerError("commit");
+                }}
+                aria-invalid={Boolean(answerErrors.commit)}
+                aria-describedby={answerErrors.commit ? `${id}-compromiso-error` : undefined}
+                className={checkbox}
+              />
+              <span className="font-[font1] text-sm leading-snug text-foreground">
+                Me comprometo a estar disponible a la hora que elija, con mi WhatsApp a mano. Si no puedo, la cambio desde mi página con tiempo.
+              </span>
+            </label>
+            <FieldError id={`${id}-compromiso-error`} text={answerErrors.commit} />
           </div>
 
           <div className="flex flex-col gap-2">
