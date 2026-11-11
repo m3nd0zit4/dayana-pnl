@@ -56,14 +56,14 @@ const MediaSlot = ({ slot, className = "", sizes = "100vw" }: { slot: Slot; clas
   const Icon = slot.kind === "video" ? Video : Camera;
   return (
     <div
-      className={`${box} flex flex-col items-center justify-center gap-2 border-2 border-dashed border-linen/35 bg-linen/[0.06] p-5 text-center`}
+      className={`${box} flex flex-col items-center justify-center gap-2 border-2 border-dashed border-foreground/25 bg-foreground/[0.04] p-5 text-center`}
       data-media-slot={slot.id}
     >
       <Icon className="size-7 text-terracotta" aria-hidden="true" />
-      <p className="font-[font2] text-xs uppercase tracking-[0.2em] text-linen">
+      <p className="font-[font2] text-xs uppercase tracking-[0.2em] text-foreground">
         {slot.kind === "video" ? "Video pendiente" : "Foto pendiente"} · {slot.label}
       </p>
-      <p className="max-w-md font-[font1] text-xs leading-snug text-linen/70">{slot.brief}</p>
+      <p className="max-w-md font-[font1] text-xs leading-snug text-foreground/70">{slot.brief}</p>
     </div>
   );
 };

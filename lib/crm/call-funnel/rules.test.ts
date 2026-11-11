@@ -298,11 +298,11 @@ describe("su página", () => {
 
 describe("ajustes", () => {
   test("valores de siempre, y cada clave se arregla sola", () => {
-    expect(parseFunnelConfig(null)).toEqual({ enabled: true, days: 3, perDay: 6, bookingsPerIpPerDay: 2 });
+    expect(parseFunnelConfig(null)).toEqual({ enabled: true, days: 14, perDay: 48, bookingsPerIpPerDay: 2 });
     expect(parseFunnelConfig({ enabled: false, days: 99, perDay: "cuatro", bookingsPerIpPerDay: 0 })).toEqual({
       enabled: false,
-      days: 7,
-      perDay: 6,
+      days: 30,
+      perDay: 48,
       bookingsPerIpPerDay: 1,
     });
   });

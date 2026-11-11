@@ -88,12 +88,14 @@ const ProvidersInner = ({ children }: { children: ReactNode }) => {
   // and the scoping happens with `forcedTheme`: outside the panel and the
   // portal the theme is pinned to light, which is exactly what "no dark mode
   // here" means.
-  const themed = isAdmin || isPortal;
+  // La página de venta (`/` y `/llamada`) también: arranca con el tema del
+  // sistema de la persona (dueño, 11-nov) y tiene su botón claro/oscuro.
+  const themed = isAdmin || isPortal || isLlamada;
 
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="light"
+      defaultTheme={isLlamada ? "system" : "light"}
       enableSystem
       forcedTheme={themed ? undefined : "light"}
     >

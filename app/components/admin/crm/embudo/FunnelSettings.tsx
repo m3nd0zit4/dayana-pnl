@@ -10,8 +10,8 @@ import { CrmField } from "../ui";
 export type FunnelSettingsValue = { enabled: boolean; days: number; perDay: number };
 
 /** Los mismos límites que `parseFunnelConfig` (`lib/crm/call-funnel/rules.ts`). */
-const DAYS = [1, 2, 3, 4, 5, 6, 7];
-const PER_DAY = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+const DAYS = [3, 5, 7, 10, 14, 21, 30];
+const PER_DAY = [4, 6, 8, 12, 48];
 
 /** Donde Dayana pone su horario de citas: de ahí salen las horas de la página. */
 const BOOKING_SETTINGS_HREF = "/admin/whatsapp/ajustes?tab=citas";
@@ -101,7 +101,7 @@ const FunnelSettings = ({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <CrmField label="Días que se muestran" description="Los próximos días con cupo que ve la persona al elegir su hora.">
+        <CrmField label="Días que se muestran" description="Cuántos días con cupo muestra el calendario de la página.">
           {numberSelect({
             value: value.days,
             options: DAYS,
@@ -111,11 +111,11 @@ const FunnelSettings = ({
             onChange: (days) => onChange({ days }),
           })}
         </CrmField>
-        <CrmField label="Horas por día" description="Cuántas horas de cada día se ofrecen, repartidas a lo largo del día.">
+        <CrmField label="Horas por día" description="Cuántas horas de cada día se ofrecen. «Todas las libres» muestra cada hora disponible de tu agenda.">
           {numberSelect({
             value: value.perDay,
             options: PER_DAY,
-            unit: (n) => `${n} horas`,
+            unit: (n) => (n >= 48 ? "Todas las libres" : `${n} horas`),
             ariaLabel: "Horas por día",
             disabled: !canWrite || saving,
             onChange: (perDay) => onChange({ perDay }),

@@ -530,15 +530,19 @@ export const googleCalendarUrl = (input: { startIso: string; endIso: string; url
 export type CallFunnelConfig = {
   /** La página pública abierta. Cerrada, `/llamada` manda a WhatsApp. */
   enabled: boolean;
-  /** Cuántos días con cupo se muestran (pocos: entre más lejos, menos gente llega). */
+  /**
+   * Cuántos días con cupo se muestran en el calendario. El dueño pidió un
+   * calendario completo (11-nov) en vez de pocas horas: por defecto dos semanas,
+   * siempre dentro del horizonte de Ajustes → Horarios y citas.
+   */
   days: number;
-  /** Cuántas horas por día. */
+  /** Cuántas horas por día (48 = todas las libres). */
   perDay: number;
   /** Cuántas llamadas puede agendar una misma conexión en 24 h (contra el abuso). */
   bookingsPerIpPerDay: number;
 };
 
-export const DEFAULT_FUNNEL_CONFIG: CallFunnelConfig = { enabled: true, days: 3, perDay: 6, bookingsPerIpPerDay: 2 };
+export const DEFAULT_FUNNEL_CONFIG: CallFunnelConfig = { enabled: true, days: 14, perDay: 48, bookingsPerIpPerDay: 2 };
 
 const int = (raw: unknown, min: number, max: number, fallback: number): number => {
   const n = typeof raw === "number" ? raw : typeof raw === "string" && raw.trim() ? Number(raw) : NaN;
@@ -551,8 +555,8 @@ export const parseFunnelConfig = (raw: unknown): CallFunnelConfig => {
   const d = DEFAULT_FUNNEL_CONFIG;
   return {
     enabled: typeof r.enabled === "boolean" ? r.enabled : d.enabled,
-    days: int(r.days, 1, 7, d.days),
-    perDay: int(r.perDay, 2, 12, d.perDay),
+    days: int(r.days, 1, 30, d.days),
+    perDay: int(r.perDay, 2, 48, d.perDay),
     bookingsPerIpPerDay: int(r.bookingsPerIpPerDay, 1, 10, d.bookingsPerIpPerDay),
   };
 };

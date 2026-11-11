@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type JSX } from "react";
-import { MessageCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, MessageCircle } from "lucide-react";
 
 import { dayLabel, timeLabel, whenLabel } from "@/lib/crm/call-funnel/rules";
 
@@ -144,6 +144,46 @@ const cleanSlots = (raw: unknown): Slot[] => {
 const sameInstant = (a: string | null | undefined, b: string | null | undefined): boolean =>
   Boolean(a && b) && Date.parse(a as string) === Date.parse(b as string);
 
+// ── El calendario ───────────────────────────────────────────────────────────
+
+const MONTHS = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+
+const WEEKDAYS = ["L", "M", "M", "J", "V", "S", "D"];
+
+/** «2026-11» → «Noviembre 2026». */
+const monthTitle = (month: string): string => {
+  const [y, m] = month.split("-").map(Number);
+  const name = MONTHS[(m || 1) - 1] ?? "";
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} ${y}`;
+};
+
+/** «2026-11» ± n meses. */
+const shiftMonth = (month: string, by: number): string => {
+  const [y, m] = month.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + by, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+};
+
+/** Las casillas del mes, empezando en lunes: `null` = hueco, si no, la clave «2026-11-12». */
+const monthCells = (month: string): (string | null)[] => {
+  const [y, m] = month.split("-").map(Number);
+  const lead = (new Date(Date.UTC(y, m - 1, 1)).getUTCDay() + 6) % 7;
+  const count = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return [...Array<null>(lead).fill(null), ...Array.from({ length: count }, (_, i) => `${month}-${String(i + 1).padStart(2, "0")}`)];
+};
+
+const longDayFormatter = new Intl.DateTimeFormat("es-CO", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" });
+
+/** «jueves 13 de noviembre» de una clave de día. */
+const spokenDay = (key: string): string => {
+  const [y, m, d] = key.split("-").map(Number);
+  return longDayFormatter.format(new Date(Date.UTC(y, m - 1, d))).replace(",", "");
+};
+
+const dayFocus = "outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary";
+
+const navBtn = `inline-flex size-10 items-center justify-center rounded-full border border-border text-foreground transition-colors hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:text-foreground ${dayFocus}`;
+
 // ── Estados ─────────────────────────────────────────────────────────────────
 
 /** Por qué no hay horas que mostrar. */
@@ -229,13 +269,16 @@ export const SlotPickerSkeleton = () => (
   <div role="status" aria-busy="true" className="flex flex-col gap-4" data-testid="llamada-horas-cargando">
     <span className="sr-only">Cargando las horas disponibles…</span>
     <div aria-hidden="true" className={`h-4 w-44 ${skeletonBar}`} />
-    <div aria-hidden="true" className="grid grid-cols-3 gap-2">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className={`h-14 ${skeletonBar}`} />
-      ))}
+    <div aria-hidden="true" className="flex flex-col gap-2">
+      <div className={`mx-auto h-6 w-36 ${skeletonBar}`} />
+      <div className="grid grid-cols-7 gap-1">
+        {Array.from({ length: 35 }, (_, i) => (
+          <div key={i} className="aspect-square rounded-full bg-muted motion-safe:animate-pulse" />
+        ))}
+      </div>
     </div>
-    <div aria-hidden="true" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-      {[0, 1, 2, 3, 4, 5].map((i) => (
+    <div aria-hidden="true" className="grid grid-cols-2 gap-2">
+      {[0, 1, 2, 3].map((i) => (
         <div key={i} className={`h-13 ${skeletonBar}`} />
       ))}
     </div>
@@ -257,6 +300,8 @@ export function SlotPicker({ token, submitLabel, currentStartIso = null, onBooke
     return seeded.length ? { kind: "ready", slots: seeded } : { kind: "loading" };
   });
   const [dayKey, setDayKey] = useState<string | null>(null);
+  /** El mes que se ve («2026-11»); `null` = el del día elegido. */
+  const [viewMonth, setViewMonth] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -321,25 +366,17 @@ export function SlotPicker({ token, submitLabel, currentStartIso = null, onBooke
   const chosen = activeDay?.slots.find((s) => s.startIso === selected) ?? null;
   const chosenIsCurrent = sameInstant(chosen?.startIso, currentStartIso);
 
-  const relativeDay = useMemo(() => {
-    if (!tz) return new Map<string, string>();
-    const keyOf = dayKeyFormatter(tz);
-    return new Map([
-      [keyOf.format(new Date(openedAt)), "Hoy"],
-      [keyOf.format(new Date(openedAt + 86_400_000)), "Mañana"],
-    ]);
-  }, [tz, openedAt]);
-
-  const chipFormat = useMemo(
-    () =>
-      tz
-        ? {
-            weekday: new Intl.DateTimeFormat("es-CO", { timeZone: tz, weekday: "long" }),
-            date: new Intl.DateTimeFormat("es-CO", { timeZone: tz, day: "numeric", month: "short" }),
-          }
-        : null,
-    [tz]
+  const todayKey = useMemo(() => (tz ? dayKeyFormatter(tz).format(new Date(openedAt)) : ""), [tz, openedAt]);
+  const dayByKey = useMemo(() => new Map(days.map((d) => [d.key, d])), [days]);
+  const currentDayKey = useMemo(
+    () => (tz && currentStartIso && Number.isFinite(Date.parse(currentStartIso)) ? dayKeyFormatter(tz).format(new Date(currentStartIso)) : null),
+    [tz, currentStartIso]
   );
+  /** Primer y último mes con horas («2026-11»). */
+  const firstMonth = days[0]?.key.slice(0, 7) ?? "";
+  const lastMonth = days[days.length - 1]?.key.slice(0, 7) ?? "";
+  const month = viewMonth ?? activeDay?.key.slice(0, 7) ?? "";
+  const cells = useMemo(() => (month ? monthCells(month) : []), [month]);
 
   const submit = async () => {
     const justBooked = bookedRef.current !== null && !sameInstant(bookedRef.current, currentStartIso);
@@ -371,6 +408,7 @@ export function SlotPicker({ token, submitLabel, currentStartIso = null, onBooke
         // Esa hora se ocupó (o el día se llenó): la lista de ahora reemplaza a la vieja.
         const fresh = cleanSlots(data.slots);
         setSelected(null);
+        setViewMonth(null);
         if (fresh.length) {
           setView({ kind: "ready", slots: fresh });
           setNotice({ text: "Esa hora se acaba de ocupar. Elige otra.", help: false });
@@ -431,7 +469,7 @@ export function SlotPicker({ token, submitLabel, currentStartIso = null, onBooke
   }
 
   // Cargando, o con horas pero sin saber todavía la zona (en el servidor y al hidratar).
-  if (view.kind === "loading" || !tz || !activeDay || !chipFormat) return <SlotPickerSkeleton />;
+  if (view.kind === "loading" || !tz || !activeDay) return <SlotPickerSkeleton />;
 
   const locked = submitting || settled;
   const offset = zoneOffset(tz, new Date(activeDay.firstIso));
@@ -458,31 +496,74 @@ export function SlotPicker({ token, submitLabel, currentStartIso = null, onBooke
         </div>
       ) : null}
 
+      <div className="@container">
+       <div className="grid gap-5 @lg:grid-cols-[minmax(0,1fr)_minmax(0,13rem)] @lg:gap-6">
       <fieldset disabled={locked} className="min-w-0">
-        <legend className="mb-2 font-[font2] text-sm text-foreground">Día</legend>
-        <div className="-mx-1 grid grid-flow-col auto-cols-[minmax(5.75rem,1fr)] gap-2 overflow-x-auto px-1 py-1">
-          {days.map((day) => {
-            const at = new Date(day.firstIso);
+        <legend className="sr-only">Día</legend>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            aria-label="Mes anterior"
+            disabled={month <= firstMonth}
+            onClick={() => setViewMonth(shiftMonth(month, -1))}
+            className={navBtn}
+          >
+            <ChevronLeft className="size-5" aria-hidden="true" />
+          </button>
+          <p aria-live="polite" className="font-[font2] text-base text-foreground">
+            {monthTitle(month)}
+          </p>
+          <button
+            type="button"
+            aria-label="Mes siguiente"
+            disabled={month >= lastMonth}
+            onClick={() => setViewMonth(shiftMonth(month, 1))}
+            className={navBtn}
+          >
+            <ChevronRight className="size-5" aria-hidden="true" />
+          </button>
+        </div>
+        <div className="grid grid-cols-7 gap-1" aria-hidden="true">
+          {WEEKDAYS.map((w, i) => (
+            <span key={i} className="py-1 text-center font-[font1] text-xs text-muted-foreground">
+              {w}
+            </span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
+          {cells.map((key, i) => {
+            if (!key) return <span key={`gap-${i}`} aria-hidden="true" />;
+            const day = dayByKey.get(key);
+            const n = day?.slots.length ?? 0;
+            const isSelected = key === activeDay.key;
+            const isCurrent = key === currentDayKey;
+            const free = n > 0 && key >= todayKey;
+            const state = isSelected
+              ? "bg-primary font-[font2] text-primary-foreground"
+              : free
+                ? "bg-primary/10 font-[font2] text-foreground hover:bg-primary/20"
+                : "font-[font1] text-muted-foreground/60";
             return (
-              <label key={day.key} className="relative block">
-                <input
-                  type="radio"
-                  name={`${groupId}-dia`}
-                  value={day.key}
-                  checked={day.key === activeDay.key}
-                  onChange={() => {
-                    setDayKey(day.key);
-                    setSelected(null);
-                  }}
-                  className="peer sr-only"
-                />
-                <span className={`${optionBox} flex-col justify-center gap-0.5 px-2 text-center`}>
-                  <span className="font-[font2] text-sm leading-tight first-letter:uppercase">
-                    {relativeDay.get(day.key) ?? chipFormat.weekday.format(at)}
-                  </span>
-                  <span className="font-[font1] text-xs leading-tight opacity-80">{chipFormat.date.format(at)}</span>
-                </span>
-              </label>
+              <button
+                key={key}
+                type="button"
+                disabled={!free}
+                aria-pressed={isSelected}
+                aria-label={`${spokenDay(key)}, ${free ? `${n} ${n === 1 ? "hora libre" : "horas libres"}` : "sin horas libres"}${isCurrent ? ", tu llamada actual" : ""}`}
+                onClick={() => {
+                  setDayKey(key);
+                  setSelected(null);
+                }}
+                className={`relative flex aspect-square w-full items-center justify-center rounded-full text-sm transition-colors disabled:cursor-not-allowed ${dayFocus} ${state} ${key === todayKey ? "ring-1 ring-foreground/40" : ""}`}
+              >
+                {Number(key.slice(8))}
+                {free ? (
+                  <span
+                    aria-hidden="true"
+                    className={`absolute bottom-1 size-1 ${isCurrent ? "rounded-[1px]" : "rounded-full"} ${isSelected ? "bg-primary-foreground" : "bg-primary"}`}
+                  />
+                ) : null}
+              </button>
             );
           })}
         </div>
@@ -490,7 +571,7 @@ export function SlotPicker({ token, submitLabel, currentStartIso = null, onBooke
 
       <fieldset disabled={locked} className="min-w-0">
         <legend className="mb-2 font-[font2] text-sm text-foreground first-letter:uppercase">{dayLabel(activeDay.firstIso, tz)}</legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <div className="grid grid-cols-2 gap-2 @lg:max-h-80 @lg:grid-cols-1 @lg:overflow-y-auto @lg:pr-1">
           {activeDay.slots.map((slot) => {
             const isCurrent = sameInstant(slot.startIso, currentStartIso);
             return (
@@ -516,6 +597,8 @@ export function SlotPicker({ token, submitLabel, currentStartIso = null, onBooke
           })}
         </div>
       </fieldset>
+       </div>
+      </div>
 
       {settled && bookedIso ? (
         <p role="status" className="font-[font1] text-base leading-relaxed text-foreground" data-testid="llamada-horas-agendada">

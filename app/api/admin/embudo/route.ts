@@ -33,11 +33,11 @@ export const PATCH = withStaff("write", async ({ req, staff }) => {
     patch.enabled = body.enabled;
   }
   if (body.days !== undefined) {
-    if (!intIn(body.days, 1, 7)) return apiError("invalid_days", 400);
+    if (!intIn(body.days, 1, 30)) return apiError("invalid_days", 400);
     patch.days = body.days;
   }
   if (body.perDay !== undefined) {
-    if (!intIn(body.perDay, 2, 12)) return apiError("invalid_per_day", 400);
+    if (!intIn(body.perDay, 2, 48)) return apiError("invalid_per_day", 400);
     patch.perDay = body.perDay;
   }
   if (Object.keys(patch).length === 0) return apiError("invalid_body", 400);
