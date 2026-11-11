@@ -53,14 +53,16 @@ Este documento reúne todos los videos en los que habla Dayana: los de la págin
 
 **Dónde va:** arriba de la página personal que ve la persona apenas elige su hora (ya tiene su espacio). Es el video que más sube la asistencia a la llamada.
 **Duración:** alrededor de 1 minuto. **Formato:** horizontal.
-**Toma:** Dayana sonriendo, energía alta, como quien recibe a alguien en la puerta.
+**Toma:** cercano y cálido, a la altura de los ojos. Empezar con una sonrisa y bajar el ritmo en la parte del primer paso: es un momento emotivo, no instrucciones. Música suave de fondo en la edición.
 
 ## Texto para el teleprompter
 
 <div class="tp">
-<p>¡Ya está! Tu llamada quedó agendada, y de verdad me hace muy feliz que hayas dado este paso. No es poca cosa.</p>
-<p>Te pido tres cosas para que nos vaya muy bien. Uno: toca el botón «Confirmar por WhatsApp». Así sé que vas a estar, y ya tenemos el chat abierto. Dos: añade la cita a tu calendario. Está ahí mismo, con un solo toque. Tres: ese día busca un lugar tranquilo, donde puedas hablar con calma, sin interrupciones.</p>
-<p>Te voy a llamar por WhatsApp a la hora que elegiste. No tienes que preparar nada: solo ven como estás. Y si algo se te cruza, desde esta misma página puedes cambiar la hora. Nos hablamos muy pronto.</p>
+<p>Ya está. Tu llamada quedó agendada. Y quiero que te detengas un segundo a sentir lo que acabas de hacer, porque no es poca cosa.</p>
+<p>Muchas personas pasan años sintiendo que algo no está bien, que están para más, y nunca se dan el permiso de pedir ayuda. Tú sí lo hiciste. Este es el primer paso hacia tu crecimiento, hacia tu mejora, hacia tu avance como ser humano. Y ese paso ya lo diste.</p>
+<p>Quiero que sepas que no vas a recorrer este camino en soledad. Desde ahora te acompaño, desde cómo te sientes hoy hasta la persona que quieres llegar a ser.</p>
+<p>Antes de irte, no se te olvide: toca abajo el botón «Confirmar por WhatsApp». Así sé que vas a estar, y nuestro chat queda abierto para que te pueda llamar.</p>
+<p>Ese día solo busca un lugar tranquilo y ven como estás. No tienes que preparar nada. Lo que traes es suficiente. Nos hablamos muy pronto.</p>
 </div>
 
 # 3. Preguntas frecuentes

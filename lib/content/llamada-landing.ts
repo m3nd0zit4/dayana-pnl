@@ -107,7 +107,7 @@ export const BOOKED_VIDEO: MediaSlot = {
   ratio: "16/9",
   label: "Tu llamada quedó agendada",
   brief:
-    "Dayana, alegre, alrededor de 1 minuto: felicita a la persona, le pide confirmar por WhatsApp, añadir la cita al calendario y buscar un lugar tranquilo, y le dice que solo venga como está.",
+    "Dayana, cercana y emotiva, alrededor de 1 minuto: celebra el primer paso que dio la persona, le recuerda que no va sola y le pide tocar «Confirmar por WhatsApp». El texto está en el PDF de guiones.",
 };
 
 /**
