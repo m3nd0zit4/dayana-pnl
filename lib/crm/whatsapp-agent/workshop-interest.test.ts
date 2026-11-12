@@ -352,6 +352,10 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
       expect([t, wantsWorkshopSpot(t, { afterChoice: true })]).toEqual([t, true]);
       expect([t, wantsWorkshopSpot(t)]).toEqual([t, false]);
     }
+    // El enlace de la reunión o del grupo no es pagar el taller (revisión 12-nov).
+    for (const t of ["¿Me mandas el enlace de la reunión?", "Pásame el link del grupo", "el link del meet"]) {
+      expect([t, wantsWorkshopSpot(t)]).toEqual([t, false]);
+    }
     for (const t of [
       "Me pasas el link?",
       "¿Cómo pago?",
@@ -425,6 +429,12 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
     expect(withWorkshopStep(`Es el 15 de noviembre. ${WORKSHOP_CHOICE}`, WP, { upcomingLabel: null })).toBe(
       `Es el 15 de noviembre. Las inscripciones están abiertas. ${WORKSHOP_CALL_OFFER}`
     );
+    // Revisión 12-nov: una cabeza que también habla del cupo y del enlace no recursa sin fin; esa frase se va.
+    expect(
+      withWorkshopStep("Está abierto. Para separar tu cupo, el enlace de pago te lo mando, o agendamos una llamada con Dayana. ¿Desde qué país me escribes?", WP, {
+        upcomingLabel: null,
+      })
+    ).toBe(`Está abierto. ${WORKSHOP_CALL_OFFER}`);
     for (const out of [withWorkshopStep(choice, WP, { upcomingLabel: null }), withWorkshopStep("Sí, el taller está abierto: es el 15 de noviembre.", WP, { upcomingLabel: null })]) {
       expect(isWorkshopChoice(out)).toBe(false);
     }

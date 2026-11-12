@@ -199,6 +199,7 @@ const NOT_NOW = /\b(no (puedo|tengo|me alcanza|se)|todavia no|aun no|pensarlo|lo
 /** Pide pagar o el enlace (sin nuestra pregunta del cupo): «separar mi cupo» solo, es la llamada (12-nov). */
 const PAY_ASK =
   /\b(pagar|pagarlo|pagarla|pago|paga|pagas|pagamos|pagaria|link|enlace|transferencia|consignar|consignacion|tarjeta|paypal|nequi|pse)\b/;
+const OTHER_LINK = /\b(enlace|link)s? (de|del|para) (la |el )?(reunion|meet|zoom|sesion|clase|grupo|comunidad|webinar|evento|videollamada)\b/;
 /** Prefiere hablar antes con Dayana (o mezcla las dos cosas): lo decide el modelo. */
 const WANTS_CALL = /\b(llamada|llamar|llamame|agend\w*|hablar|explique|explica)\b/;
 /** Ya pagó: lo lleva el comprobante, no el enlace otra vez. */
@@ -222,6 +223,8 @@ export const wantsWorkshopSpot = (said: string, opts: { afterChoice?: boolean } 
   if (opts.afterChoice && PRICE.test(t) && !CANT_PAY.test(t)) return true;
   if (NOT_NOW.test(t)) return false;
   if (opts.afterChoice && t.length <= 30 && /^(la |el |lo |opcion )?(1|uno|primer[ao]?)\b(?!\s*pregunta)/.test(t)) return true;
+  // «El enlace de la reunión / del Meet / del grupo» no es el pago del taller (revisión 12-nov).
+  if (!opts.afterChoice && OTHER_LINK.test(t) && !/\b(pagar\w*|pago)\b/.test(t)) return false;
   return opts.afterChoice ? SPOT.test(t) : PAY_ASK.test(t);
 };
 
@@ -440,10 +443,19 @@ export const withWorkshopStep = (text: string, w: OpenWorkshop, opts: { upcoming
   if (isWorkshopChoice(text)) {
     const body = text.trim();
     const q = body.lastIndexOf("¿");
-    const head = (q >= 0 ? body.slice(0, q) : body).trimEnd();
+    // Fuera también cualquier frase que hable del cupo o del enlace de pago (sin volver a
+    // llamarse: revisión 12-nov, una cabeza con «cupo… enlace… llamada» recursaba sin fin).
+    const head = (q >= 0 ? body.slice(0, q) : body)
+      .split(/(?<=[.!?:])\s+/)
+      .filter((s) => !/\b(cupo|enlace|link|pago|pagar)\b/.test(foldForSearch(s)))
+      .join(" ")
+      .trim();
+    const open = /\babiert[oa]s?\b/.test(foldForSearch(head));
     const sep = head ? (/[.!?:]$/.test(head) ? " " : ". ") : "";
-    const fixed = `${head}${sep}${saysOpen ? "" : "Las inscripciones están abiertas. "}${opts.upcomingLabel ? "" : WORKSHOP_CALL_OFFER}`.trim();
-    return withWorkshopStep(fixed, w, { ...opts, linkSent: false });
+    const call = opts.upcomingLabel
+      ? `En tu llamada con Dayana (${opts.upcomingLabel}) ella te cuenta todo del taller y te inscribe.`
+      : WORKSHOP_CALL_OFFER;
+    return `${head}${sep}${open ? "" : "Las inscripciones están abiertas. "}${call}`.trim();
   }
   // «Te agendo una llamada gratis» sin decir que es para inscribirse no basta.
   // «Separar tu cupo» con la llamada también es inscribirse (evaluación: se repetía la frase).

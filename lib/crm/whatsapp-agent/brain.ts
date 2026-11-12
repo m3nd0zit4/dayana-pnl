@@ -2572,6 +2572,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       if (spotOverSlots) state.slotOffer = null;
       text =
         !spotOverSlots && /\b(enlace|link)\b/.test(foldForSearch(text)) ? withoutFakeLinks(text) || text : workshopLinkReply(workshop);
+    } else if (workshop && workshopPay && workshopAskNow && !workshopSpot && !state.links.includes(workshopPay) && promisesWorkshopLink(text)) {
+      // Promete el enlace sin que lo pidiera (12-nov: no se ofrece): va la oferta de la llamada.
+      text = workshopReply(workshop, { upcomingLabel: upcomingLabelText });
     }
     // Eligió el cupo, va el enlace y el texto le vuelve a preguntar (eval 25-oct: «La
     // primera» + el enlace + «¿desde qué país me escribes?»): la respuesta del cupo.
