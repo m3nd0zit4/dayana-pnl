@@ -2,7 +2,7 @@ import { isSilentCategory } from "./chat-category-rules";
 import { foldForSearch } from "./search-normalize";
 import { whatsAppDigits, whatsAppIdVariants } from "@/lib/whatsapp-contact";
 import { isOptOutMessage } from "./whatsapp-outbound-plan";
-import { WORKSHOP_CHOICE, workshopWhen, type OpenWorkshop } from "./whatsapp-agent/workshop-interest";
+import { WORKSHOP_CALL_OFFER, workshopWhen, type OpenWorkshop } from "./whatsapp-agent/workshop-interest";
 
 /**
  * Invitación al taller abierto a quienes se inscribieron en un evento gratuito
@@ -275,7 +275,7 @@ export const workshopInviteText = (
   const when = workshopWhen(w);
   const summary = summaryOf(w);
   const intro = `${hi} Soy la asistente de Dayana Beltrán. Como te inscribiste en ${inviteEventMention(opts.event, opts.timeZone)} y aceptaste recibir información de sus talleres, te cuento que abrió el taller «${oneLine(w.title)}»${when ? `: es el ${when} (hora de Colombia)` : ""}.`;
-  return [`${intro}${summary ? ` ${summary}` : ""} Es un taller de pago.`, WORKSHOP_CHOICE].join("\n\n");
+  return [`${intro}${summary ? ` ${summary}` : ""} Es un taller de pago.`, WORKSHOP_CALL_OFFER].join("\n\n");
 };
 
 /** El título cabe en la variable sin volverse el mensaje entero. */

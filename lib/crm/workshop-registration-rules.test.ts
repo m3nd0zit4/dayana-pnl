@@ -4,12 +4,11 @@ import { fillVars } from "./whatsapp-outbound-plan";
 import { STARTER_TEMPLATES } from "./whatsapp-templates";
 import { META_BODY_MAX, templateBodyProblem, toMetaBody, utilityCategoryWarning } from "./whatsapp-template-rules";
 import {
-  isWorkshopChoice,
+  WORKSHOP_CALL_OFFER, isWorkshopChoice,
   isWorkshopOffer,
   workshopFollowLine,
   workshopLeadActive,
   workshopOutreachSource,
-  WORKSHOP_CHOICE,
   type OpenWorkshop,
 } from "./whatsapp-agent/workshop-interest";
 import {
@@ -178,10 +177,8 @@ describe("el WhatsApp", () => {
     const t = workshopRegistrationText(WS, { firstName: "Ana" });
     expect(t.startsWith("Hola Ana 🙏 Soy la asistente de Dayana Beltrán.")).toBe(true);
     expect(t).toContain("Recibimos tu registro para el taller «Tu Sanación con el Dinero» (domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual, hora de Colombia).");
-    expect(t).toContain(
-      "Para completar tu inscripción puedes hacer el pago en el enlace de inscripción o agendar primero una llamada gratis con Dayana, donde te explica el taller y su valor."
-    );
-    expect(t.endsWith(`\n\n${WORKSHOP_CHOICE}`)).toBe(true);
+    expect(t.endsWith(WORKSHOP_CALL_OFFER)).toBe(true);
+    expect(t).not.toMatch(/enlace|link|pago/i);
     assertVoice(t);
     expect(workshopRegistrationText(WS, { firstName: null }).startsWith("Hola 🙏 Soy la asistente")).toBe(true);
   });
@@ -190,18 +187,18 @@ describe("el WhatsApp", () => {
     const now = new Date("2026-10-28T15:00:00Z");
     const body = workshopRegistrationText(WS, { firstName: "Ana" });
     const ours = { direction: "OUTBOUND", body, source: workshopOutreachSource(WS), sentAt: now };
-    expect(isWorkshopChoice(body)).toBe(true);
+    expect(isWorkshopChoice(body)).toBe(false);
     expect(isWorkshopOffer(ours, WS)).toBe(true);
     const lines = [ours, { direction: "INBOUND", body: "Quiero separar mi cupo", sentAt: new Date(now.getTime() + 60_000) }];
     expect(workshopLeadActive(lines, WS, now.getTime() + 2 * 60_000)).toBe(true);
     // Tres días después, todavía; más, ya no.
     expect(workshopLeadActive([ours], WS, now.getTime() + 71 * 3600_000)).toBe(true);
     expect(workshopLeadActive([ours], WS, now.getTime() + 73 * 3600_000)).toBe(false);
-    expect(workshopFollowLine(lines, WS, now.getTime() + 2 * 60_000)).toContain("le preguntamos si quiere separar su cupo");
+    expect(workshopFollowLine(lines, WS, now.getTime() + 2 * 60_000)).toContain("la oferta se la da Dayana directamente, uno a uno, en esa llamada");
     // La plantilla también.
     const tpl = fillVars(REGISTRATION_TEMPLATE_BODY, workshopRegistrationTemplateVars(WS, { firstName: "Ana" }));
     expect(isWorkshopOffer({ direction: "OUTBOUND", body: tpl, source: workshopOutreachSource(WS) }, WS)).toBe(true);
-    expect(workshopFollowLine([{ direction: "OUTBOUND", body: tpl, sentAt: now }], WS, now.getTime())).toContain("le preguntamos si quiere separar su cupo");
+    expect(workshopFollowLine([{ direction: "OUTBOUND", body: tpl, sentAt: now }], WS, now.getTime())).toContain("la oferta se la da Dayana directamente, uno a uno, en esa llamada");
   });
 
   test("sin precio (sin enlace de pago): la llamada para inscribirse, sin hablar del enlace", () => {

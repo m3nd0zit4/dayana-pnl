@@ -166,7 +166,7 @@ export const isWorkshopOffer = (l: Line, w: OpenWorkshop): boolean => {
 };
 
 /** El enlace de pago de un taller, dentro de un texto (`/pagar/p/taller-<slug>`). */
-const WORKSHOP_PAY_URL = /\S*\/pagar\/p\/taller-[^\s)\]]*/gi;
+const WORKSHOP_PAY_URL = /\S*\/(?:pagar\/p\/taller-|taller-virtual\/|eventos-gratuitos)[^\s)\]]*/gi;
 
 /**
  * La pregunta del cupo o la llamada (dueña, 25-oct: «que pregunte si para
@@ -183,7 +183,7 @@ export const WORKSHOP_CHOICE =
  * si ella misma lo pide.
  */
 export const WORKSHOP_CALL_OFFER =
-  "Para inscribirte, te agendo una llamada con Dayana: es una sesión personalizada donde ella te cuenta todo del taller. ¿Quieres que te la agende?";
+  "Para inscribirte, Dayana te da la oferta del taller directamente, uno a uno, en una llamada personalizada donde te cuenta todo. ¿Quieres que te la agende?";
 
 export const isWorkshopChoice = (text: string | null | undefined): boolean => {
   const t = foldForSearch(text ?? "");
@@ -255,6 +255,16 @@ export const workshopLinkSent = (lines: Line[], now = Date.now()): boolean =>
   lines.some(
     (l) => l.direction === "OUTBOUND" && /\/pagar\/p\/taller-/i.test(l.body ?? "") && (!l.sentAt || l.sentAt.getTime() >= now - DAY_MS)
   );
+
+/**
+ * Quien habla de pagar el taller, pide el enlace o el valor (dueña, 12-nov: «no puede
+ * enviar links… preferiblemente que se lo pase a Dayana… el taller se le da la oferta
+ * Dayana directamente uno a uno en una llamada»). Sin enlace; Dayana se entera aparte.
+ */
+export const workshopPayReply = (w: OpenWorkshop, opts: { promo?: boolean } = {}): string =>
+  opts.promo
+    ? `La promoción y la oferta del taller «${w.title}» te las da Dayana directamente, uno a uno, en una llamada personalizada para inscribirte. ¿Quieres que te la agende?`
+    : `Claro 🙏 Para inscribirte al taller «${w.title}», Dayana te da la oferta directamente, uno a uno, en una llamada personalizada donde te cuenta todo. ¿Quieres que te la agende?`;
 
 /** Lo que recibe quien elige separar su cupo (el enlace va debajo). */
 export const workshopLinkReply = (w: OpenWorkshop, opts: { handoff?: boolean; promo?: boolean } = {}): string =>
@@ -377,9 +387,9 @@ export const workshopLine = (w: OpenWorkshop, opts: { upcomingLabel: string | nu
     `PREGUNTA POR EL TALLER: ${workshopFacts(w)}. ${w.cardSummary ? `De qué trata: ${w.cardSummary.trim()} ` : ""}En 2 o 3 frases cortas (unas 50 palabras en total): dile que sí está abierto, cuándo es y, en pocas palabras, de qué trata.`,
     opts.upcomingLabel
       ? `Ya tiene su llamada con Dayana (${opts.upcomingLabel}): dile que en esa sesión personalizada Dayana le cuenta todo del taller y la inscribe. No le ofrezcas otra.`
-      : `Para inscribirse, ofrécele agendarle una llamada con Dayana: una sesión personalizada donde Dayana le cuenta todo del taller (también si ya tuvo su llamada gratis o solo se inscribió al webinar). Termina con: «¿Quieres que te la agende?». Cuando diga que sí, sigue el agendamiento de siempre (si no sabes desde qué país escribe, pregúntalo primero; luego offer_free_call_slots y book_free_call).`,
+      : `Para inscribirse, ofrécele agendarle una llamada con Dayana: la oferta del taller se la da Dayana directamente, uno a uno, en esa llamada personalizada donde le cuenta todo (también si ya tuvo su llamada gratis o solo se inscribió al webinar). Termina con: «¿Quieres que te la agende?». Cuando diga que sí, sigue el agendamiento de siempre (si no sabes desde qué país escribe, pregúntalo primero; luego offer_free_call_slots y book_free_call).`,
     w.payUrl
-      ? "No le ofrezcas el enlace de pago ni le preguntes si quiere separar su cupo con el enlace: la inscripción es con Dayana. Solo si ella misma pide pagar o el enlace, usa send_workshop_link. No digas el valor ni escribas enlaces. Es otra cosa distinta a su proceso: no le mandes el enlace ni los datos de su proceso."
+      ? `Nunca mandes ni escribas enlaces del taller (ni de pago) ni digas el valor: si pide pagar, el valor o el enlace, dile que la oferta del taller se la da Dayana directamente, uno a uno, en ${opts.upcomingLabel ? "esa llamada que ya tiene" : "la llamada, y ofrécele agendarla"}. Es otra cosa distinta a su proceso: no le mandes el enlace ni los datos de su proceso.`
       : "No le des el valor ni enlaces de pago: se los da Dayana en la llamada. Es otra cosa distinta a su proceso: no le mandes el enlace ni los datos de su proceso.",
   ].join(" ");
 
@@ -392,18 +402,11 @@ export const workshopLine = (w: OpenWorkshop, opts: { upcomingLabel: string | nu
 export const workshopFollowLine = (lines: Line[], w: OpenWorkshop, now = Date.now()): string => {
   const hours =
     "dale horas ya con offer_free_call_slots (sin preguntarle qué día prefiere; si no sabes desde qué país escribe, pregúntalo primero) y, cuando elija una, book_free_call";
-  if (!w.payUrl) {
-    return `SIGUE LO DEL TALLER: está separando su llamada con Dayana para inscribirse al taller «${w.title}» (ya se la ofrecimos). Si dice que sí, ${hours}. No le des el valor ni enlaces de pago.`;
-  }
-  if (workshopLinkSent(lines, now)) {
-    return `SIGUE LO DEL TALLER: ya le mandaste el enlace de pago para separar su cupo en el taller «${w.title}». Contesta sus dudas; no se lo mandes otra vez salvo que lo pida (send_workshop_link). Si prefiere hablar antes con Dayana, ${hours}. Si dice que ya pagó o manda el comprobante, register_payment_receipt. No digas el valor.`;
-  }
-  const lastOffer = [...lines].reverse().find((l) => l.direction === "OUTBOUND" && namesWorkshop(l.body ?? "", w));
-  if (lastOffer && isWorkshopChoice(lastOffer.body)) {
-    return `SIGUE LO DEL TALLER «${w.title}»: le preguntamos si quiere separar su cupo de una vez (el enlace de pago) o agendar primero una llamada con Dayana. Si elige el cupo, pagar o el enlace, o pregunta el valor (está en el enlace): send_workshop_link (va debajo; no lo escribas). Si elige la llamada: ${hours}. Si no queda claro cuál prefiere, pregúntaselo. No digas el valor: lo ve en el enlace.`;
-  }
-  return `SIGUE LO DEL TALLER: le ofrecimos agendarle una llamada con Dayana (una sesión personalizada donde le cuenta todo) para inscribirse al taller «${w.title}». Si dice que sí, ${hours}. No le ofrezcas el enlace de pago; solo si ella misma pide pagar o el enlace, send_workshop_link. No digas el valor.`;
+  void lines;
+  void now;
+  return `SIGUE LO DEL TALLER: le ofrecimos una llamada con Dayana para inscribirse al taller «${w.title}» (la oferta se la da Dayana directamente, uno a uno, en esa llamada). Si dice que sí, o elige el cupo, pagar o el enlace, ${hours}. Nunca mandes enlaces del taller ni digas el valor: eso se lo da Dayana en la llamada.`;
 };
+
 
 /**
  * La línea del prompt cuando habla de pagar el taller y la conversación ya no lo
@@ -412,7 +415,7 @@ export const workshopFollowLine = (lines: Line[], w: OpenWorkshop, now = Date.no
  * contesta Dayana; el enlace va igual.
  */
 export const workshopPayLine = (w: OpenWorkshop): string =>
-  `PAGO DEL TALLER: habla de pagar el taller «${w.title}» (o de la promoción que Dayana dio en el webinar). Mándale el enlace de pago con send_workshop_link (va debajo; no lo escribas) en un mensaje corto: ahí ve el valor y paga en línea. Si pregunta por una promoción o algo que no sabes (cuotas, un descuento), mándale el enlace igual y escala con category=payment para que Dayana se lo confirme; nunca confirmes tú una promoción ni le digas solo que lo consultas. No digas el valor ni le ofrezcas la llamada para pagar.`;
+  `PAGO DEL TALLER: habla de pagar el taller «${w.title}» (o de la promoción que Dayana dio en el webinar). No mandes enlaces ni digas el valor: dile en un mensaje corto que la oferta del taller se la da Dayana directamente, uno a uno, en una llamada, y ofrécele agendarla. Nunca confirmes tú una promoción.`;
 
 /** La respuesta del código si el modelo dice que no hay taller o se lo pasa a Dayana. */
 export const workshopReply = (w: OpenWorkshop, opts: { upcomingLabel: string | null }): string => {

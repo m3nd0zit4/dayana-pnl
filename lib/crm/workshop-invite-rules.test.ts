@@ -9,7 +9,7 @@ import {
   workshopFollowLine,
   workshopLeadActive,
   workshopOutreachSource,
-  WORKSHOP_CHOICE,
+  WORKSHOP_CALL_OFFER,
   type OpenWorkshop,
 } from "./whatsapp-agent/workshop-interest";
 import {
@@ -175,9 +175,9 @@ describe("el mensaje", () => {
     expect(text).toContain("abrió el taller «Sana Tu Relación con el Dinero»: es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia).");
     expect(text).toContain("Un día para mirar tu historia con el dinero y soltar lo que te frena.");
     expect(text).toContain("Es un taller de pago.");
-    expect(text.endsWith(WORKSHOP_CHOICE)).toBe(true);
+    expect(text.endsWith(WORKSHOP_CALL_OFFER)).toBe(true);
     expect(text).not.toMatch(/https?:|\$|COP|USD|\d{2,3}\.\d{3}/);
-    expect(isWorkshopChoice(text)).toBe(true);
+    expect(isWorkshopChoice(text)).toBe(false);
   });
 
   test("sin nombre seguro, sin nombre; sin corazones ni palabras con género", () => {
@@ -227,14 +227,14 @@ describe("su respuesta sigue lo del taller", () => {
     expect(isWorkshopOffer(invite, WS)).toBe(true);
     expect(workshopLeadActive(lines, WS, now)).toBe(true);
     expect(workshopFlowActive(lines, WS, now)).toBe(true);
-    expect(workshopFollowLine(lines, WS, now)).toContain("send_workshop_link");
+    expect(workshopFollowLine(lines, WS, now)).toContain("la oferta se la da Dayana directamente, uno a uno, en esa llamada");
   });
 
   test("la plantilla también cuenta (su texto lleva la pregunta del cupo)", () => {
     const tpl = { ...invite, body: fillVars(INVITE_TEMPLATE_BODY, INVITE_TEMPLATE_EXAMPLE) };
     const lines = [tpl, { direction: "INBOUND", body: "La llamada", sentAt: new Date(now - 60_000), source: null }];
     expect(workshopLeadActive(lines, WS, now)).toBe(true);
-    expect(workshopFollowLine(lines, WS, now)).toContain("le preguntamos si quiere separar su cupo");
+    expect(workshopFollowLine(lines, WS, now)).toContain("la oferta se la da Dayana directamente, uno a uno, en esa llamada");
   });
 
   test("después de 3 días ya no", () => {

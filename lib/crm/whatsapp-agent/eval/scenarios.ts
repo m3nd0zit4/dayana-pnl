@@ -332,7 +332,7 @@ export const SCENARIOS: Scenario[] = [
       dayana("Claro que sí, hay agenda disponible el día de hoy a las 4:15 Pm y se te da toda la información del curso. Conversas directamente con Dayana"),
       person("Disculpe lo he pensado, primero ahorraré y luego me inscribire, gracias"),
     ],
-    expect: { outcome: "reply", anyTool: ["send_workshop_link", "send_community_link", "send_affordable_option"], mustNotMatch: [/\bSF\b/] },
+    expect: { outcome: "reply", anyTool: ["send_community_link", "send_affordable_option"], mustNotMatch: [/\bSF\b/] },
     goal: "Lo respeta sin insistir y le ofrece lo que sí puede hacer ya: lo más económico que hay (el taller abierto con su enlace, entrar gratis a la comunidad de Dayana y/o el curso en vivo en grupo; con las herramientas, sin precios), y le recuerda que la llamada con Dayana no tiene costo. Escribe sin género (no «lista» ni «listo»).",
   },
   {
@@ -347,7 +347,7 @@ export const SCENARIOS: Scenario[] = [
       dayana("Con gusto, te bendigo. Cualquier cosa me escribes."),
       person("Doctora la verdad ahorita no me alcanza para pagar las sesiones, estoy muy apretada con la plata"),
     ],
-    expect: { outcome: "reply", anyTool: ["send_workshop_link", "send_community_link", "send_affordable_option"] },
+    expect: { outcome: "reply", anyTool: ["send_community_link", "send_affordable_option"] },
     goal: "Con empatía, sin insistir en la terapia ni hablar de valores, le ofrece lo más económico que hay (el taller abierto con su enlace de pago, entrar gratis a la comunidad de Dayana o el curso en vivo; con las herramientas, sin precios), y deja la puerta abierta.",
   },
   {
@@ -380,12 +380,12 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      anyTool: ["send_workshop_link"],
+      anyTool: ["send_community_link"],
       noTool: ["offer_free_call_slots", "book_free_call", "send_payment_info"],
-      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
-      mustNotMatch: [/siguiente paso es el pago/i, /cu[aá]ndo te gustar[ií]a empezar/i, /therapy-\d/, /\$|\busd\b|\bcop\b/i],
+      mustMatch: [/uno a uno|llamada/i],
+      mustNotMatch: [/pagar\/p\/taller/i, /siguiente paso es el pago/i, /cu[aá]ndo te gustar[ií]a empezar/i, /therapy-\d/, /\$|\busd\b|\bcop\b/i],
     },
-    goal: "Primero una frase sincera por la muerte de su hermana. Sin insistir con el pago ni con su proceso, le ofrece lo más económico que hay ahora: el taller «Tu Sanación con el Dinero» del domingo 15 de noviembre (es un dato real: está abierto; con el enlace de pago debajo, sin decir el precio) y la comunidad gratis de Dayana. Deja la puerta abierta para cuando pueda iniciar. Un solo mensaje corto y sin presión; sin género (no «lista»).",
+    goal: "Primero una frase sincera por la muerte de su hermana. Sin insistir con el pago ni con su proceso, le ofrece la comunidad gratis de Dayana (enlace debajo). Sin enlaces del taller (dueña, 12-nov). Deja la puerta abierta para cuando pueda iniciar. Un solo mensaje corto y sin presión; sin género (no «lista»).",
   },
   {
     id: "andrea-no-he-tenido-el-dinero",
@@ -411,12 +411,12 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      anyTool: ["send_workshop_link"],
+      anyTool: ["send_community_link"],
       noTool: ["offer_free_call_slots", "book_free_call", "send_payment_info"],
-      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
-      mustNotMatch: [/cu[aá]ndo te gustar[ií]a empezar/i, /therapy-\d/, /d[eé]jame consultarlo|lo consulto/i, /\$|\busd\b|\bcop\b/i],
+      mustMatch: [/uno a uno|llamada/i],
+      mustNotMatch: [/pagar\/p\/taller/i, /cu[aá]ndo te gustar[ií]a empezar/i, /therapy-\d/, /d[eé]jame consultarlo|lo consulto/i, /\$|\busd\b|\bcop\b/i],
     },
-    goal: "Lo recibe con calidez y sin presionar (Dayana queda atenta para cuando pueda iniciar) y le ofrece lo más económico que hay ahora: el taller «Tu Sanación con el Dinero» del domingo 15 de noviembre (es un dato real: está abierto; enlace de pago debajo, sin precio) y la comunidad gratis de Dayana. Un solo mensaje corto. No le vuelve a mandar el enlace de su sesión ni escala.",
+    goal: "Lo recibe con calidez y sin presionar (Dayana queda atenta para cuando pueda iniciar) y le ofrece la comunidad gratis de Dayana (enlace debajo). Sin enlaces del taller (dueña, 12-nov). Un solo mensaje corto. No le vuelve a mandar el enlace de su sesión ni escala.",
   },
   {
     id: "divianys-no-tengo-para-pagar-antes-de-la-llamada",
@@ -1327,10 +1327,10 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
-      mustNotMatch: [/\$|\bcop\b|\busd\b|190|dólares/i, /pagar\/p\/therapy/i, /offer_free_call|¿desde qué país/i],
+      mustMatch: [/uno a uno|llamada/i],
+      mustNotMatch: [/pagar\/p\/taller/i, /\$|\bcop\b|\busd\b|190|dólares/i, /pagar\/p\/therapy/i, /offer_free_call|¿desde qué país/i],
     },
-    goal: "Le manda el enlace de pago del taller (va debajo) en un mensaje corto: ahí ve el valor y paga, y con eso queda su cupo. No le ofrece horas ni le pregunta el país. Sin el valor.",
+    goal: "Sin enlace (dueña, 12-nov): le dice que la oferta del taller se la da Dayana directamente, uno a uno, en una llamada, y le ofrece agendarla. Sin el valor.",
   },
   {
     id: "taller-elige-la-llamada",
@@ -1365,10 +1365,10 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
-      mustNotMatch: [/\$|\bcop\b|\busd\b|190|dólares/i, /¿quieres que te (env[ií]e|mande)/i, /offer_free_call|¿desde qué país/i],
+      mustMatch: [/uno a uno|llamada/i],
+      mustNotMatch: [/pagar\/p\/taller/i, /\$|\bcop\b|\busd\b|190|dólares/i, /¿quieres que te (env[ií]e|mande)/i, /offer_free_call|¿desde qué país/i],
     },
-    goal: "El valor está en el enlace: se lo manda ya (va debajo) en un mensaje corto, sin volver a preguntarle si lo quiere. Sin decir el valor.",
+    goal: "Sin enlace (dueña, 12-nov): le dice que la oferta del taller se la da Dayana directamente, uno a uno, en una llamada, y le ofrece agendarla. Sin el valor.",
   },
   {
     id: "moi-exelente-a-la-invitacion",
@@ -1548,9 +1548,9 @@ export const SCENARIOS: Scenario[] = [
     expect: {
       outcome: "reply",
       mustMatch: [/taller/i],
-      mustNotMatch: [/cuenta que te comparti[óo]|960|nequi|310/i, /^hola malka, te bendigo/i],
+      mustNotMatch: [/pagar\/p\/taller/i, /cuenta que te comparti[óo]|960|nequi|310/i, /^hola malka, te bendigo/i],
     },
-    goal: "Habla del taller abierto (qué y cuándo) y le da el siguiente paso del taller (separar el cupo con el enlace o agendar la llamada), sin empujarle el pago de las 6 sesiones ni volver a saludar.",
+    goal: "Habla del taller abierto (qué y cuándo) y le ofrece la llamada con Dayana, donde ella le da la oferta del taller uno a uno, sin empujarle el pago de las 6 sesiones ni volver a saludar. Sin enlaces.",
   },
   {
     id: "malka-le-pago-a-su-hija",
@@ -1584,10 +1584,10 @@ export const SCENARIOS: Scenario[] = [
     transcript: [person("Hola! Quiero pagar el taller del 15 de noviembre, me pasas el link?")],
     expect: {
       outcome: "reply",
-      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
-      mustNotMatch: [/\$|\bcop\b|\busd\b|190/i, /no (hay|tenemos)[^.]{0,20}taller/i],
+      mustMatch: [/uno a uno|llamada/i],
+      mustNotMatch: [/pagar\/p\/taller/i, /\$|\bcop\b|\busd\b|190/i, /no (hay|tenemos)[^.]{0,20}taller/i],
     },
-    goal: "Ya eligió: le manda el enlace de pago del taller (va debajo) sin preguntarle si prefiere la llamada. Puede decirle en una frase cuándo es el taller. Sin el valor.",
+    goal: "Sin enlace (dueña, 12-nov): le dice que la oferta del taller se la da Dayana directamente, uno a uno, en una llamada, y le ofrece agendarla. Sin el valor.",
   },
   {
     id: "lista-de-interesadas-elige-la-primera",
@@ -1609,10 +1609,10 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
-      mustNotMatch: [/pagar\/p\/therapy/i, /\$|\bcop\b|\busd\b|190/i],
+      mustMatch: [/uno a uno|llamada/i],
+      mustNotMatch: [/pagar\/p\/taller/i, /pagar\/p\/therapy/i, /\$|\bcop\b|\busd\b|190/i],
     },
-    goal: "«La primera» es separar su cupo: le manda el enlace de pago del taller (no el de su paquete de sesiones). Sin horas ni el valor.",
+    goal: "Sin enlace (dueña, 12-nov): le dice que la oferta del taller se la da Dayana directamente, uno a uno, en una llamada, y le ofrece agendarla. Sin el valor. No le manda el enlace de su paquete.",
   },
   // Sergio (25-oct): preguntó por el taller el día antes, fue al webinar y luego habló del pago; la IA
   // le contestó que Dayana le explicaba las formas de pago en la llamada y escaló la promoción de la
@@ -1637,10 +1637,10 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/],
-      mustNotMatch: [/en la llamada/i, /\$|\bcop\b|\busd\b|190/i],
+      mustMatch: [/uno a uno|llamada/i],
+      mustNotMatch: [/pagar\/p\/taller/i, /en la llamada/i, /\$|\bcop\b|\busd\b|190/i],
     },
-    goal: "Habla del pago del taller por el que preguntó ayer: le manda el enlace de pago del taller (va debajo) en un mensaje corto. No le dice que Dayana le explica las formas de pago en una llamada. Sin el valor.",
+    goal: "Sin enlace (dueña, 12-nov): le dice que la oferta del taller se la da Dayana directamente, uno a uno, en una llamada, y le ofrece agendarla. Sin el valor.",
   },
   {
     id: "sergio-promocion-de-la-clase",
@@ -1664,10 +1664,10 @@ export const SCENARIOS: Scenario[] = [
     expect: {
       outcome: "reply",
       silentAlert: "normal",
-      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/, /promoci[oó]n/i, /Dayana/],
-      mustNotMatch: [/s[ií],? (te )?(la )?respet|se respeta|s[ií] aplica|te la respetamos/i, /\$|\bcop\b|\busd\b|190/i],
+      mustMatch: [/uno a uno|llamada/i, /promoci[oó]n/i, /Dayana/],
+      mustNotMatch: [/pagar\/p\/taller/i, /s[ií],? (te )?(la )?respet|se respeta|s[ií] aplica|te la respetamos/i, /\$|\bcop\b|\busd\b|190/i],
     },
-    goal: "No sabe de la promoción del webinar: no la confirma ni la niega, le dice que Dayana se la confirma por aquí y le manda ya el enlace de pago del taller (la promoción puede durar un día). Dayana recibe el aviso. Nunca solo «déjame consultarlo».",
+    goal: "No sabe de la promoción del webinar: no la confirma ni la niega; le dice que la promoción y la oferta del taller se las da Dayana directamente, uno a uno, en una llamada, y le ofrece agendarla. Sin enlace. Dayana recibe el aviso. Nunca solo «déjame consultarlo».",
   },
   {
     id: "webinar-paga-con-la-promocion",
@@ -1680,9 +1680,9 @@ export const SCENARIOS: Scenario[] = [
     expect: {
       outcome: "reply",
       silentAlert: "normal",
-      mustMatch: [/\/pagar\/p\/taller-tu-sanacion-con-el-dinero\b/, /promoci[oó]n/i],
-      mustNotMatch: [/s[ií],? (te )?(la )?respet|se respeta|s[ií] aplica/i, /\$|\bcop\b|\busd\b|190/i],
+      mustMatch: [/uno a uno|llamada/i, /promoci[oó]n/i],
+      mustNotMatch: [/pagar\/p\/taller/i, /s[ií],? (te )?(la )?respet|se respeta|s[ií] aplica/i, /\$|\bcop\b|\busd\b|190/i],
     },
-    goal: "La promoción del webinar es para el taller: le manda el enlace de pago del taller y le dice que Dayana le confirma la promoción. No la confirma ni dice solo «déjame consultarlo». Dayana recibe el aviso.",
+    goal: "Le dice que la promoción y la oferta del taller se las da Dayana directamente, uno a uno, en una llamada, y le ofrece agendarla. Sin enlace; no confirma la promoción ni dice solo «déjame consultarlo». Dayana recibe el aviso.",
   },
 ];

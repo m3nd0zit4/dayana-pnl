@@ -1,5 +1,5 @@
 import { isSilentCategory } from "./chat-category-rules";
-import { WORKSHOP_CHOICE, workshopWhen, type OpenWorkshop } from "./whatsapp-agent/workshop-interest";
+import { WORKSHOP_CALL_OFFER, workshopWhen, type OpenWorkshop } from "./whatsapp-agent/workshop-interest";
 
 /**
  * Registro de interés en el taller desde la página (dueña, 28-oct:
@@ -248,7 +248,9 @@ export const workshopRegistrationText = (w: OpenWorkshop, opts: { firstName: str
   const when = registrationWhen(w);
   const intro = `${hi} Soy la asistente de Dayana Beltrán. Recibimos tu registro para el taller «${oneLine(w.title)}»${when ? ` (${when})` : ""}.`;
   return w.payUrl
-    ? `${intro} Para completar tu inscripción puedes hacer el pago en el enlace de inscripción o agendar primero una llamada gratis con Dayana, donde te explica el taller y su valor.\n\n${WORKSHOP_CHOICE}`
+    ? `${intro}
+
+${WORKSHOP_CALL_OFFER}`
     : `${intro} ${CALL_ONLY}\n\n${CALL_ONLY_ASK}`;
 };
 

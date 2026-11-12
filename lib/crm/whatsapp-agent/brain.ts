@@ -45,7 +45,7 @@ import { saysSelfHarm } from "./pause-rules";
 import { asksForMoreHelp, seriousReply } from "./serious-reply";
 import { familyPaidReply, paidForFamily } from "./family-paid";
 import { insults, RUDE_REPLY, rudeReplied } from "./rude-reply";
-import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls, withoutToolText } from "./reply-guards";
+import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -78,7 +78,7 @@ import {
   workshopLeadActive,
   workshopLine,
   mentionsPromo,
-  workshopLinkReply,
+  workshopPayReply,
   workshopPayLine,
   workshopReply,
   type OpenWorkshop,
@@ -459,7 +459,7 @@ export const businessFacts = async (
     lines.push(
       `- ${e.eventLabel}: «${e.headline}»${e.subheadline ? ` — ${e.subheadline}` : ""}. Cuándo: ${
         when(e.startsAt, e.startsAtHasTime) ?? "fecha por anunciar"
-      }. Dónde: ${e.locationLabel}. Es gratis. Inscripción: ${site}/eventos-gratuitos`
+      }. Dónde: ${e.locationLabel}. Es gratis. Inscripción: Dayana le comparte el enlace por aquí (tú no lo mandas).`
     );
   }
   for (const e of past) {
@@ -723,7 +723,7 @@ Cómo conversas (así trabaja Dayana):
 ${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
 ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
-- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción (de un taller no: ofrécele agendarle una llamada con Dayana, una sesión personalizada donde ella le cuenta todo; el enlace de pago, con send_workshop_link, solo si la persona lo pide). Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace, dale el de la reunión de Google Meet que está ahí, tal cual; nunca la página de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
+- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo y cómo es. Nunca mandes enlaces de talleres ni de eventos (ni de inscripción ni de pago). De un taller: la oferta se la da Dayana directamente, uno a uno, en una llamada: ofrécele agendarla. De un evento gratuito, si quiere inscribirse o pide el enlace: dile que Dayana se lo comparte por aquí y escala con category=other. Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace de la reunión, dale el de Google Meet que está ahí, tal cual. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Grabaciones y grupos: los eventos gratuitos (webinars, masterclasses) NO se graban: si preguntan por la grabación de uno, dile con calidez que no queda grabado: «te esperamos en vivo» (o en el próximo). Nunca digas que hay o habrá una grabación, que se la mandas, que algo está «en el grupo» ni que la persona está en un grupo: quien no ha pagado no tiene grabaciones ni grupo de clases. Si pregunta por grabaciones de clases de un curso o taller, escala con category=unknown (Dayana sabe si pagó y dónde están). Si agradece «por aceptarme» o «en su grupo», contesta solo algo corto como «Con gusto 🙏», sin hablar de grupos (ni que está ni que no está, ni que no hay) y sin ofrecerle nada más en ese mensaje.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
@@ -1274,40 +1274,16 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !dayanaJustWrote &&
     !(input.stage && ["clienta_activa", "clienta_pasada", "por_revisar", "personal"].includes(input.stage)) &&
     saysCantAfford(lastInbound, { at: now, tz: input.freeCall?.personTimezone ?? timezone })
-      ? cheaperOptions({ workshop: workshop?.payUrl ? workshop : null, community, options })
+      ? cheaperOptions({ workshop: null, community, options })
       : [];
-  const cheaperWorkshop = cheaperItems.find((i) => i.kind === "workshop") ?? null;
   const urgentPath = input.clientMode ? null : urgentSessionPath(config);
   const addLink = (url: string) => {
     if (!state.links.includes(url)) state.links.push(url);
   };
   const linkTools = {
     // Con el taller abierto la herramienta está para todos (la lista no cambia por chat: caché de Gemini).
-    ...(openWorkshop?.payUrl
-      ? {
-          send_workshop_link: tool({
-            description: `Manda, debajo de tu mensaje, el enlace de pago del taller «${openWorkshop.title}» para separar su cupo. Úsalo solo cuando la persona pide pagar el taller o el enlace de pago; no lo ofrezcas tú (la inscripción es con una llamada con Dayana). Nunca escribas el enlace ni digas el precio: lo ve en el enlace.`,
-            inputSchema: z.object({}),
-            execute: async () => {
-              if (!workshopPay) return log("send_workshop_link", {}, { ok: false, reason: "Ya pagó este taller: no le mandes el enlace." });
-              // Solo a quien habla del taller (no es el enlace de pago de su proceso), o a quien
-              // no le alcanza: el taller es lo más económico que hay (28-oct).
-              if (!workshopLead && !workshopSpot && !cheaperWorkshop) {
-                return log("send_workshop_link", {}, { ok: false, reason: "No está hablando del taller: no le mandes este enlace." });
-              }
-              // Pregunta por el taller y todavía no eligió (eval 25-oct: a «¿el costo del taller?» le mandaba el enlace sin preguntar).
-              if (workshopAskNow && !workshopSpot) {
-                return log("send_workshop_link", {}, {
-                  ok: false,
-                  reason: "No pidió el enlace: ofrécele agendarle una llamada con Dayana, una sesión personalizada donde le cuenta todo del taller.",
-                });
-              }
-              addLink(workshopPay);
-              return log("send_workshop_link", {}, { ok: true, note: "El enlace va debajo de tu mensaje: no lo escribas ni digas el precio." });
-            },
-          }),
-        }
-      : {}),
+    // Sin send_workshop_link (dueña, 12-nov): el modelo nunca manda enlaces del taller;
+    // la oferta se la da Dayana uno a uno en una llamada.
     ...(community
       ? {
           send_community_link: tool({
@@ -2269,9 +2245,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   if (workshopOnly) {
     state.paymentLink = null;
     state.paymentDetails = [];
-    if (workshopFix === "link" && workshopPay) {
-      addLink(workshopPay);
-      log("send_workshop_link", { auto: true }, { ok: true, note: "Lo pegó el código: eligió separar su cupo en el taller." });
+    if (workshopFix === "link") {
+      // 12-nov: sin enlace; la oferta se la da Dayana en la llamada y ella se entera.
+      log("workshop_handoff", { auto: true }, { ok: true, note: "Habla de pagar el taller: la llamada con Dayana, sin enlace." });
+      state.silentEscalation ??= {
+        category: "payment",
+        severity: "normal",
+        reason: `Quiere pagar o pregunta el valor del taller («${saidNow.slice(0, 160)}»). La asistente le ofreció la llamada contigo (sin enlace).`,
+      };
     } else {
       log("workshop_reply", { auto: true }, { ok: true, note: "Lo puso el código: preguntó por el taller abierto." });
     }
@@ -2281,9 +2262,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         severity: "normal",
         reason: `${modelOutcome.reason} (${
           workshopFix === "link"
-            ? "La asistente le mandó el enlace de pago del taller para separar su cupo."
+            ? "La asistente le ofreció la llamada contigo para el taller (sin enlace)."
             : workshopPay
-              ? "La asistente le contó del taller y le preguntó si separa su cupo o agenda la llamada."
+              ? "La asistente le contó del taller y le ofreció la llamada contigo."
               : "La asistente le contó del taller y le ofreció la llamada para inscribirse."
         })`.slice(0, 300),
       };
@@ -2293,7 +2274,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       state.silentEscalation ??= {
         category: "payment",
         severity: "normal",
-        reason: `Pregunta por una promoción («${saidNow.slice(0, 160)}»). La asistente le mandó el enlace del taller y le dijo que tú le confirmas la promoción.`,
+        reason: `Pregunta por una promoción («${saidNow.slice(0, 160)}»). La asistente le dijo que tú le das la oferta en la llamada (sin enlace).`,
       };
     }
   }
@@ -2486,7 +2467,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   message:
                     workshopFix === "link"
                       ? // Escaló una pregunta que solo Dayana sabe (la promoción, cuotas): el enlace y Dayana le contesta.
-                        workshopLinkReply(workshop, { handoff: modelOutcome.kind === "escalate", promo: promoFix })
+                        workshopPayReply(workshop, { promo: promoFix })
                       : workshopReply(workshop, { upcomingLabel: upcomingLabelText }),
                 }
               : serious
@@ -2548,40 +2529,26 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     // Lo pega el código; sin la palabra «enlace» en el texto, va la respuesta del cupo.
     const typedWorkshop = withoutWorkshopPayUrls(text);
     if (typedWorkshop.had) text = typedWorkshop.text || text;
-    // Eligió el cupo y el modelo le ofreció horas (eval 25-oct: «La primera» → horas
-    // de la llamada): van el enlace y la respuesta del cupo, sin la lista.
-    const spotOverSlots = workshopSpot && Boolean(state.slotOffer);
-    // Al preguntar por primera vez, el enlace solo si ya eligió el cupo (si no, va la pregunta).
-    const mayLink = workshopSpot; // 12-nov: el enlace solo si lo pidió (la inscripción es con la llamada).
+    // 12-nov (dueña): nunca el enlace del taller. Si habla de pagarlo, o el modelo lo
+    // escribió o lo prometió, va la oferta de la llamada con Dayana (no encima de horas o una cita).
     if (
       workshop &&
       workshopPay &&
-      mayLink &&
-      !state.links.includes(workshopPay) &&
-      (!state.slotOffer || spotOverSlots) &&
+      (workshopSpot || typedWorkshop.had || promisesWorkshopLink(text)) &&
+      !state.slotOffer &&
       !state.booking &&
       !state.pendingBooking &&
-      !state.bookingNotice &&
-      (typedWorkshop.had || workshopSpot || promisesWorkshopLink(text))
+      !state.bookingNotice
     ) {
-      addLink(workshopPay);
-      log("send_workshop_link", { auto: true }, { ok: true, note: "Lo pegó el código: eligió separar su cupo o la respuesta hablaba del enlace sin la herramienta." });
-      // Si su texto ya habla del enlace, sale tal cual; si no (Sergio, 25-oct: «Dayana te
-      // explica las formas de pago en la llamada»), la respuesta del cupo: sumarle el enlace
-      // a otra cosa lo contradice.
-      if (spotOverSlots) state.slotOffer = null;
-      text =
-        !spotOverSlots && /\b(enlace|link)\b/.test(foldForSearch(text)) ? withoutFakeLinks(text) || text : workshopLinkReply(workshop);
-    } else if (workshop && workshopPay && workshopAskNow && !workshopSpot && !state.links.includes(workshopPay) && promisesWorkshopLink(text)) {
-      // Promete el enlace sin que lo pidiera (12-nov: no se ofrece): va la oferta de la llamada.
-      text = workshopReply(workshop, { upcomingLabel: upcomingLabelText });
-    }
-    // Eligió el cupo, va el enlace y el texto le vuelve a preguntar (eval 25-oct: «La
-    // primera» + el enlace + «¿desde qué país me escribes?»): la respuesta del cupo.
-    // Y si escribió la herramienta como texto («default_api:send_workshop_link{}», eval 25-oct),
-    // run.ts lo quitaría todo y llegaría solo el enlace: la respuesta del cupo.
-    if (workshop && workshopPay && state.links.includes(workshopPay) && ((workshopSpot && /\?/.test(text)) || withoutToolText(text).had)) {
-      text = workshopLinkReply(workshop);
+      text = workshopAskNow && !workshopSpot ? workshopReply(workshop, { upcomingLabel: upcomingLabelText }) : workshopPayReply(workshop, { promo: workshopPromo });
+      log("workshop_handoff", { auto: true }, { ok: true, note: "Sin enlace del taller: la oferta se la da Dayana en la llamada." });
+      if (workshopSpot) {
+        state.silentEscalation ??= {
+          category: "payment",
+          severity: "normal",
+          reason: `Quiere pagar o pregunta el valor del taller («${saidNow.slice(0, 160)}»). La asistente le ofreció la llamada contigo (sin enlace).`,
+        };
+      }
     }
     // Ningún enlace que no leyó en una fuente de verdad (Ruth, 23-oct: «…/comunidad»,
     // que no existe): las reglas, los DATOS, las notas, lo que escribieron Dayana o
@@ -2607,8 +2574,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         community,
         ...options.map((o) => absoluteUrl(o.url)),
         urgentPath ? absoluteUrl(urgentPath) : null,
-        crmPayUrl,
-        workshopPay
+        crmPayUrl
       ),
       siteHosts()
     );
@@ -2800,7 +2766,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     outcome === modelOutcome &&
     !state.bookingNotice &&
     (!workshopPay || (!state.slotOffer && !state.booking && !state.pendingBooking))
-      ? withWorkshopStep(text, workshop, { upcomingLabel: upcomingLabelText, linkSent: Boolean(workshopPay && state.links.includes(workshopPay)) })
+      ? withWorkshopStep(text, workshop, { upcomingLabel: upcomingLabelText, linkSent: false })
       : text;
   // Lo delicado sale tal cual (apoyo o el paso del pago), sin la lista de horas.
   // Bloqueado y con horas del código: sale la lista (con la frase de siempre), no «Déjame consultarlo».
