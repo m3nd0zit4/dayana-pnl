@@ -585,7 +585,7 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
           <Choice
             id={id}
             name="invertir"
-            legend="Si la llamada te convence, ¿estás en disposición de invertir en tu proceso?"
+            legend="¿Estás dispuesto a invertir en ti?"
             hint="Es para que Dayana sepa qué proponerte. Ninguna respuesta te deja sin llamada."
             options={INVESTS}
             value={invest}

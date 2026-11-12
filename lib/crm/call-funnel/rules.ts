@@ -252,20 +252,23 @@ export const URGENCIES = [
 ] as const;
 
 /**
- * Si la llamada le convence, ¿puede invertir en su proceso? Suave a propósito:
- * es para que Dayana sepa qué proponer, no un filtro que deje a nadie sin
- * llamada.
+ * «¿Estás dispuesto a invertir en ti?» Sí o no (dueño, 12-nov). Es para que
+ * Dayana sepa qué proponer, no un filtro: ninguna respuesta deja sin llamada.
  */
 export const INVESTS = [
-  { id: "si", label: "Sí, estoy en disposición" },
-  { id: "depende", label: "Depende de lo que me propongan" },
-  { id: "no_ahora", label: "Por ahora no puedo" },
+  { id: "si", label: "Sí" },
+  { id: "no_ahora", label: "No" },
 ] as const;
+
+/** Respuesta de una versión anterior del formulario: ya no se ofrece, se sigue leyendo. */
+const LEGACY_INVESTS = [{ id: "depende", label: "Depende de lo que me propongan" }] as const;
+
+const ALL_INVESTS = [...INVESTS, ...LEGACY_INVESTS];
 
 export type TopicId = (typeof TOPICS)[number]["id"] | (typeof LEGACY_TOPICS)[number]["id"];
 export type GoalId = (typeof GOALS)[number]["id"];
 export type UrgencyId = (typeof URGENCIES)[number]["id"];
-export type InvestId = (typeof INVESTS)[number]["id"];
+export type InvestId = (typeof INVESTS)[number]["id"] | (typeof LEGACY_INVESTS)[number]["id"];
 
 export type Answers = {
   topic: TopicId;
@@ -322,7 +325,7 @@ export const parseAnswersBody = (raw: unknown): Parsed<AnswersInput> => {
       topic,
       urgency,
       goal: GOALS.find((g) => g.id === r.goal)?.id ?? null,
-      invest: INVESTS.find((i) => i.id === r.invest)?.id ?? null,
+      invest: ALL_INVESTS.find((i) => i.id === r.invest)?.id ?? null,
       occupation: clip(r.occupation, 120),
       social: cleanSocial(r.social),
       committed: r.committed === true,
@@ -344,7 +347,7 @@ export const readAnswers = (raw: unknown): Answers | null => {
 export const topicLabel = (id: string | null | undefined): string | null => ALL_TOPICS.find((t) => t.id === id)?.label ?? null;
 export const goalLabel = (id: string | null | undefined): string | null => GOALS.find((g) => g.id === id)?.label ?? null;
 export const urgencyLabel = (id: string | null | undefined): string | null => URGENCIES.find((u) => u.id === id)?.label ?? null;
-export const investLabel = (id: string | null | undefined): string | null => INVESTS.find((i) => i.id === id)?.label ?? null;
+export const investLabel = (id: string | null | undefined): string | null => ALL_INVESTS.find((i) => i.id === id)?.label ?? null;
 
 /** La línea para las notas del contacto: Dayana la lee antes de llamar. */
 export const answersNote = (answers: Answers, stamp: string): string =>
@@ -353,7 +356,7 @@ export const answersNote = (answers: Answers, stamp: string): string =>
     `Hoy: ${topicLabel(answers.topic)}.`,
     answers.goal ? `Quiere llegar a: ${goalLabel(answers.goal)}.` : null,
     `Para cuándo: ${urgencyLabel(answers.urgency)}.`,
-    answers.invest ? `¿Invertir en su proceso?: ${investLabel(answers.invest)}.` : null,
+    answers.invest ? `¿Invertir en sí?: ${investLabel(answers.invest)}.` : null,
     answers.occupation ? `Se dedica a: ${answers.occupation}.` : null,
     answers.social ? `Redes: ${answers.social}.` : null,
     answers.committed ? "Se comprometió a estar a la hora que elija." : null,
