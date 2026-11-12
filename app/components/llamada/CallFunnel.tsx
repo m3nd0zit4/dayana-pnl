@@ -14,7 +14,7 @@ import { getLocalPhonePlaceholder, sanitizeLocalPhoneInput, validateLocalPhone }
 
 import { captureAttribution, storedAttribution } from "./attribution";
 import { SlotPicker, SlotPickerSeedProvider, SlotPickerSkeleton, type SlotPickerProps, type SlotPickerSeed } from "./SlotPicker";
-import { funnelCard, optionBox, primaryBtn, textLink } from "./styles";
+import { funnelCard, primaryBtn, textLink } from "./styles";
 import { readStoredToken, saveStoredToken } from "./token-store";
 
 /**
@@ -69,7 +69,7 @@ const FieldError = ({ id, text }: { id: string; text?: string }) =>
     </p>
   ) : null;
 
-/** Una pregunta de elegir una opción: tarjetas grandes para el dedo (radio oculto + `optionBox`). */
+/** Una pregunta de elegir una opción, como lista con circulitos. */
 const Choice = <T extends string>(props: {
   id: string;
   name: string;
@@ -79,14 +79,15 @@ const Choice = <T extends string>(props: {
   value: T | null;
   onChange: (v: T) => void;
   error?: string;
-  cols?: string;
 }) => (
   <fieldset className="min-w-0" aria-describedby={props.error ? `${props.id}-${props.name}-error` : undefined}>
     <legend className={labelCls}>{props.legend}</legend>
     {props.hint ? <p className="mt-1 font-[font1] text-xs leading-snug text-muted-foreground">{props.hint}</p> : null}
-    <div className={`mt-2 grid grid-cols-1 gap-2 ${props.cols ?? "sm:grid-cols-2"}`}>
+    {/* Una lista sencilla con su circulito (dueño, 12-nov: «en lugar de botones,
+        como una lista, más sencilla»). Cada fila mide 44 px para el dedo. */}
+    <div className="mt-1.5 divide-y divide-border">
       {props.options.map((o, i) => (
-        <label key={o.id} className="relative block">
+        <label key={o.id} className="flex min-h-11 cursor-pointer items-center gap-3 py-2">
           <input
             id={i === 0 ? `${props.id}-${props.name}` : undefined}
             type="radio"
@@ -94,9 +95,9 @@ const Choice = <T extends string>(props: {
             value={o.id}
             checked={props.value === o.id}
             onChange={() => props.onChange(o.id)}
-            className="peer sr-only"
+            className="size-[18px] shrink-0 cursor-pointer accent-primary"
           />
-          <span className={`${optionBox} font-[font1]`}>{o.label}</span>
+          <span className="font-[font1] text-[0.95rem] leading-snug text-foreground">{o.label}</span>
         </label>
       ))}
     </div>
@@ -579,7 +580,6 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
               clearAnswerError("urgency");
             }}
             error={answerErrors.urgency}
-            cols="sm:grid-cols-3"
           />
 
           <Choice
@@ -594,7 +594,6 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
               clearAnswerError("invest");
             }}
             error={answerErrors.invest}
-            cols="sm:grid-cols-3"
           />
 
           <div className="grid gap-5 sm:grid-cols-2">
