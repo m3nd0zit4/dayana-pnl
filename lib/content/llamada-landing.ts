@@ -97,7 +97,7 @@ export const DAYANA_PHOTO: MediaSlot = {
   label: "Foto de Dayana",
   brief: "Foto de Dayana trabajando o a cámara, vertical.",
   src: "/dayana-photos/opt/IMG_4009-900.webp",
-  alt: "Dayana Beltrán, Maestra en Programación Neurolingüística",
+  alt: "Dayana Beltrán, coach",
 };
 
 /** El video de la página personal, justo después de agendar («Tu llamada quedó agendada»). */

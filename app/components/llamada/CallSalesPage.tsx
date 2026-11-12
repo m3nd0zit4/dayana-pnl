@@ -25,6 +25,13 @@ import { funnelSlots } from "@/lib/crm/call-funnel/server";
 import { formatWebinarScheduleLabel, getOpenFreeEvent } from "@/lib/crm/free-webinar";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 
+/**
+ * Cómo se presenta Dayana en esta página (dueño, 12-nov: «lo que diga de PNL…
+ * elimínalo; coloca coach»). Solo aquí: `BRAND.tagline` lo usan también el
+ * aviso de privacidad y la asistente de WhatsApp.
+ */
+const ROLE = "Coach";
+
 const WHATSAPP_MESSAGE = "Hola, quiero agendar mi llamada gratis con Dayana.";
 
 /**
@@ -177,7 +184,7 @@ const CallSalesPage = async ({ home = false }: Props) => {
         <p className="flex flex-col items-center gap-1 font-[font2] text-xs uppercase tracking-[0.3em] text-foreground/70 sm:flex-row sm:gap-2">
           <span>{BRAND.name}</span>
           <span aria-hidden="true" className="hidden sm:inline">·</span>
-          <span className="normal-case tracking-normal text-foreground/60">{BRAND.tagline}</span>
+          <span className="normal-case tracking-normal text-foreground/60">{ROLE}</span>
         </p>
         <h1 className="max-w-4xl font-[font2] text-[clamp(1.75rem,7vw,3.6rem)] uppercase leading-[0.98] tracking-tight text-foreground">
           De sentirte sin energía a construir la vida <span className="text-terracotta">y el negocio que te dé propósito</span>
@@ -235,7 +242,7 @@ const CallSalesPage = async ({ home = false }: Props) => {
               {
                 n: "01",
                 t: "Sanar lo que te frena",
-                d: "Sesiones de Programación Neurolingüística para soltar la tristeza, el cansancio, la ansiedad o lo que no has superado, y cambiar los hábitos que te tienen en el mismo lugar.",
+                d: "Sesiones de coaching 1 a 1 para soltar la tristeza, el cansancio, la ansiedad o lo que no has superado, y cambiar los hábitos que te tienen en el mismo lugar.",
               },
               {
                 n: "02",
@@ -313,12 +320,12 @@ const CallSalesPage = async ({ home = false }: Props) => {
               {BRAND.name}
             </h2>
             <p className={`${body} mt-4`}>
-              Hola, soy Dayana, {BRAND.tagline.toLowerCase()}. Acompaño a personas que llegan sin energía, con tristeza o sin rumbo, primero a
+              Hola, soy Dayana, tu coach. Acompaño a personas que llegan sin energía, con tristeza o sin rumbo, primero a
               sanar lo que las frena y después a convertir lo que saben en algo propio: un negocio, una marca, un contenido que las represente.
             </p>
             <ul className="mt-6 space-y-3 font-[font1] text-base leading-relaxed text-foreground/85">
               {[
-                "Sesiones 1 a 1 de PNL para soltar lo que te pesa y cambiar tus hábitos.",
+                "Sesiones de coaching 1 a 1 para soltar lo que te pesa y cambiar tus hábitos.",
                 "Acompañamiento para crear tu negocio, tu marca personal y tu contenido.",
                 "Talleres y comunidad para que no avances en soledad.",
               ].map((line) => (
@@ -436,7 +443,7 @@ const CallSalesPage = async ({ home = false }: Props) => {
       <footer className="border-t border-foreground/10">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 py-6 font-[font1] text-xs text-foreground/50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p>
-            © {BRAND.name} · {BRAND.tagline}
+            © {BRAND.name} · {ROLE}
           </p>
           <nav aria-label="Legal" className="flex flex-wrap gap-x-5 gap-y-2">
             {[

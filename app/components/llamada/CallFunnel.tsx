@@ -57,7 +57,7 @@ const NOT_A_NAME = /https?:|www\.|[<>@]/i;
 
 const labelCls = "block font-[font2] text-sm text-foreground";
 const fieldInput =
-  "mt-1.5 block w-full rounded-xl border border-input bg-paper/70 px-4 font-[font1] text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary focus:ring-2 focus:ring-primary/25 aria-invalid:border-destructive aria-invalid:focus:ring-destructive/25";
+  "mt-1.5 block w-full rounded-xl border border-input bg-paper/70 dark:bg-background px-4 font-[font1] text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground/70 dark:border-foreground/20 dark:placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/25 aria-invalid:border-destructive aria-invalid:focus:ring-destructive/25";
 const backBtn =
   "inline-flex min-h-11 items-center gap-2 self-start rounded-full px-2 font-[font2] text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/60 disabled:opacity-50";
 const checkbox = "mt-0.5 size-5 shrink-0 cursor-pointer accent-primary";
@@ -447,7 +447,7 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
 
           <div role="group" aria-label="País de tu WhatsApp">
             <CheckoutCountrySelect
-              light
+              themed
               label="País de tu WhatsApp"
               value={country}
               disabled={sending}

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     siteName: BRAND.shortName,
     title,
     description,
-    images: [{ url: "/og-image.png", width: 1083, height: 568, alt: `${BRAND.name}, ${BRAND.tagline}` }],
+    images: [{ url: "/og-image.png", width: 1083, height: 568, alt: `${BRAND.name}, coach` }],
   },
   twitter: { card: "summary_large_image", title, description, images: ["/og-image.png"] },
 };

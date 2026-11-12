@@ -13,7 +13,7 @@ export { primaryBtn, secondaryBtn } from "./styles";
 
 /** Para lo que cancela: la forma del botón secundario, en el color de error. */
 export const dangerBtn =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-full border border-destructive/40 bg-paper/70 px-6 py-3 text-center font-[font2] text-sm leading-tight text-destructive outline-none transition-colors hover:border-destructive hover:bg-destructive/5 focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-55";
+  "inline-flex min-h-12 w-full items-center justify-center gap-2.5 rounded-full border border-destructive/40 bg-paper/70 dark:bg-background px-6 py-3 text-center font-[font2] text-sm leading-tight text-destructive outline-none transition-colors hover:border-destructive hover:bg-destructive/5 focus-visible:ring-2 focus-visible:ring-destructive/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-not-allowed disabled:opacity-55";
 
 /** Un enlace suelto (no dentro de un párrafo): con zona de toque de 44 px. */
 export const tapLink = `inline-flex min-h-11 items-center font-[font1] text-[15px] leading-snug disabled:opacity-55 ${textLink}`;

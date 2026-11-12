@@ -5,7 +5,7 @@ import { BRAND } from "@/lib/contact";
 
 const title = `${BRAND.name} | Sana lo que te frena y construye lo tuyo`;
 const description =
-  "Sesiones 1 a 1 con Dayana Beltrán, Maestra en Programación Neurolingüística: primero sanas lo que te frena, después creces con tu negocio, tu marca personal y tu contenido. Agenda tu sesión gratis.";
+  "Sesiones de coaching 1 a 1 con Dayana Beltrán: primero sanas lo que te frena, después creces con tu negocio, tu marca personal y tu contenido. Agenda tu sesión gratis.";
 
 export const metadata: Metadata = {
   title,
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     siteName: BRAND.shortName,
     title,
     description,
-    images: [{ url: "/og-image.png", width: 1083, height: 568, alt: `${BRAND.name}, ${BRAND.tagline}` }],
+    images: [{ url: "/og-image.png", width: 1083, height: 568, alt: `${BRAND.name}, coach` }],
   },
   twitter: { card: "summary_large_image", title, description, images: ["/og-image.png"] },
 };
