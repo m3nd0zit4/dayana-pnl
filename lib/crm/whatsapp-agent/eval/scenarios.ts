@@ -1186,10 +1186,10 @@ export const SCENARIOS: Scenario[] = [
     transcript: [person("Buenas  tardes el costo  del taller  15 noviembre  xf me puede información")],
     expect: {
       outcome: "reply",
-      mustMatch: [/abiert[oa]s?/i, /llamada/i, /cupo/i],
-      mustNotMatch: [/no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190|dólares/i, /https?:\/\//i],
+      mustMatch: [/abiert[oa]s?/i, /llamada/i, /sesi[oó]n personalizada|cuenta todo/i],
+      mustNotMatch: [/separar (tu|su) cupo (ya|de una vez)|enlace de pago|pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190|dólares/i, /https?:\/\//i],
     },
-    goal: "Le dice que el taller sí está abierto, cuándo es (domingo 15 de noviembre) y le pregunta si quiere separar su cupo de una vez (le manda el enlace de pago, donde ve el valor) o prefiere agendar primero una llamada con Dayana (dueña, 25-oct). Todavía no le manda el enlace: no ha elegido. Sin el valor.",
+    goal: "Le dice que el taller sí está abierto, cuándo es (domingo 15 de noviembre) y le ofrece agendarle una llamada con Dayana, una sesión personalizada donde ella le cuenta todo (dueña, 12-nov). No le ofrece ni manda el enlace de pago. Sin el valor.",
   },
   {
     id: "naty-taller-tras-la-llamada",
@@ -1206,10 +1206,10 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/abiert[oa]s?/i, /llamada/i, /cupo/i],
-      mustNotMatch: [/pagar\/p\/therapy/i, /pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
+      mustMatch: [/abiert[oa]s?/i, /llamada/i, /sesi[oó]n personalizada|cuenta todo/i],
+      mustNotMatch: [/pagar\/p\/therapy/i, /separar (tu|su) cupo (ya|de una vez)|enlace de pago|pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
     },
-    goal: "El taller es otra cosa distinta a su proceso: le dice que sí está abierto, cuándo es y le pregunta si separa su cupo de una vez (el enlace de pago) o agenda primero una llamada con Dayana (aunque ya tuvo su llamada gratis). No le manda el enlace de su paquete ni el valor.",
+    goal: "El taller es otra cosa distinta a su proceso: le dice que sí está abierto, cuándo es y le ofrece agendarle una llamada con Dayana, una sesión personalizada donde le cuenta todo (aunque ya tuvo su llamada gratis). No le ofrece el enlace de pago del taller ni le manda el de su paquete, ni el valor.",
   },
   {
     id: "naty-taller-dice-que-si",
@@ -1291,10 +1291,10 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/llamada/i, /cupo/i],
-      mustNotMatch: [/no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
+      mustMatch: [/llamada/i, /sesi[oó]n personalizada|cuenta todo/i],
+      mustNotMatch: [/separar (tu|su) cupo (ya|de una vez)|enlace de pago|pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
     },
-    goal: "Preguntar por el taller es pedir algo: le dice que el taller está abierto, cuándo es y el horario, y le pregunta si separa su cupo de una vez (el enlace de pago, donde ve el valor) o agenda primero una llamada con Dayana. Puede saludarle por el webinar. Sin el valor.",
+    goal: "Preguntar por el taller es pedir algo: le dice que el taller está abierto, cuándo es y el horario, y le ofrece agendarle una llamada con Dayana, una sesión personalizada donde le cuenta todo; no le ofrece el enlace de pago. Puede saludarle por el webinar. Sin el valor.",
   },
   {
     id: "boton-inscribirme-al-taller",
@@ -1305,10 +1305,10 @@ export const SCENARIOS: Scenario[] = [
     transcript: [person('Hola Dayana, me interesa inscribirme al taller "Tu Sanacion con el Dinero".')],
     expect: {
       outcome: "reply",
-      mustMatch: [/llamada/i, /cupo/i],
-      mustNotMatch: [/no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i, /https?:\/\//i],
+      mustMatch: [/llamada/i, /sesi[oó]n personalizada|cuenta todo/i],
+      mustNotMatch: [/separar (tu|su) cupo (ya|de una vez)|enlace de pago|pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i, /https?:\/\//i],
     },
-    goal: "Le da la bienvenida, le confirma el taller (cuándo es) y le pregunta si quiere separar su cupo de una vez (le manda el enlace de pago) o agendar primero una llamada con Dayana. Todavía no le manda el enlace.",
+    goal: "Le da la bienvenida, le confirma el taller (cuándo es) y le ofrece agendarle una llamada con Dayana, una sesión personalizada donde le cuenta todo. No le ofrece ni manda el enlace de pago.",
   },
   // El cupo o la llamada (dueña, 25-oct: «que el modelo envíe el enlace de pago pero que pregunte si para
   // separar su cupo o agendar, ya que algunos pueden querer separar su cupo ya»).

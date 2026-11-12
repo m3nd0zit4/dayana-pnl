@@ -11,6 +11,7 @@ import {
   wantsWorkshopSpot,
   withoutWorkshopPayUrls,
   withWorkshopStep,
+  WORKSHOP_CALL_OFFER,
   WORKSHOP_CHOICE,
   workshopAskedRecently,
   workshopFlowActive,
@@ -225,16 +226,16 @@ describe("la lista de interesadas: Dayana toca «Ofrecerle la llamada» (24-oct)
   test("el mensaje sin enlace de pago: el taller, abierto y la llamada para inscribirse", () => {
     const m = workshopOfferText(W, { firstName: "Naty" });
     expect(m.startsWith("Hola Naty 🙏 Sobre el taller «Tu Sanacion con el Dinero» por el que preguntaste: está abierto y es el domingo 15 de noviembre")).toBe(true);
-    expect(m).toContain("La inscripción es con una llamada con Dayana");
-    expect(m.endsWith("¿Quieres que te la separe?")).toBe(true);
+    expect(m).toContain("Para inscribirte, te agendo una llamada con Dayana: es una sesión personalizada");
+    expect(m.endsWith("¿Quieres que te la agende?")).toBe(true);
     expect(m).not.toMatch(/\$|USD|COP|https?:/);
     expect(workshopOfferText(W, { firstName: null }).startsWith("Hola 🙏 Sobre")).toBe(true);
   });
-  test("el mensaje con enlace de pago (25-oct): pregunta si separa su cupo o agenda la llamada; sin el enlace ni el valor", () => {
+  test("el mensaje con enlace de pago (12-nov): solo la llamada con Dayana, sin ofrecer el enlace ni el valor", () => {
     const m = workshopOfferText(WP, { firstName: "Naty" });
     expect(m.startsWith("Hola Naty 🙏 Sobre el taller «Tu Sanacion con el Dinero» por el que preguntaste: está abierto")).toBe(true);
-    expect(m.endsWith(WORKSHOP_CHOICE)).toBe(true);
-    expect(isWorkshopChoice(m)).toBe(true);
+    expect(m.endsWith(WORKSHOP_CALL_OFFER)).toBe(true);
+    expect(isWorkshopChoice(m)).toBe(false);
     expect(isWorkshopOffer({ direction: "OUTBOUND", body: m }, WP)).toBe(true);
     expect(m).not.toMatch(/\$|USD|COP|https?:/);
   });
@@ -242,22 +243,22 @@ describe("la lista de interesadas: Dayana toca «Ofrecerle la llamada» (24-oct)
     const m = workshopOfferTemplateMessage(W);
     expect(m).not.toContain("\n");
     expect(m.length).toBeLessThanOrEqual(300);
-    expect(m.endsWith("¿Quieres que te la separe?")).toBe(true);
+    expect(m.endsWith("¿Quieres que te la agende?")).toBe(true);
     const long = workshopOfferTemplateMessage({ ...W, title: "Un título muy largo ".repeat(6).trim(), scheduleLabel: "8:30 a.m. – 4:30 p.m. · virtual por Google Meet con descansos" });
     expect(long.length).toBeLessThanOrEqual(300);
     expect(long).not.toContain("8:30");
     // Un título larguísimo se acorta; la pregunta del final queda entera.
     const huge = workshopOfferTemplateMessage({ ...W, title: "Palabra ".repeat(60).trim() });
     expect(huge.length).toBeLessThanOrEqual(300);
-    expect(huge.endsWith("¿Quieres que te la separe?")).toBe(true);
+    expect(huge.endsWith("¿Quieres que te la agende?")).toBe(true);
     expect(huge).toContain("…»");
   });
-  test("la plantilla con enlace de pago: la pregunta del cupo o la llamada, entera y dentro de 300", () => {
+  test("la plantilla con enlace de pago: la oferta de la llamada, entera y dentro de 300", () => {
     for (const w of [WP, { ...WP, title: "Un título muy largo ".repeat(6).trim() }, { ...WP, title: "Palabra ".repeat(60).trim() }]) {
       const m = workshopOfferTemplateMessage(w);
       expect(m.length).toBeLessThanOrEqual(300);
       expect(m).not.toContain("\n");
-      expect(m.endsWith(WORKSHOP_CHOICE)).toBe(true);
+      expect(m.endsWith(WORKSHOP_CALL_OFFER)).toBe(true);
     }
   });
 });
@@ -269,19 +270,19 @@ describe("lo que dice", () => {
   test("la respuesta del código: abierto + la llamada para inscribirse (o la que ya tiene); sin precio ni enlace", () => {
     const r = workshopReply(W, { upcomingLabel: null });
     expect(r).toBe(
-      "Sí, el taller «Tu Sanacion con el Dinero» está abierto: es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia). La inscripción es con una llamada con Dayana, donde te explica todo. ¿Quieres que te la separe?"
+      "Sí, el taller «Tu Sanacion con el Dinero» está abierto: es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia). Para inscribirte, te agendo una llamada con Dayana: es una sesión personalizada donde ella te cuenta todo del taller. ¿Quieres que te la agende?"
     );
     const booked = workshopReply(W, { upcomingLabel: "domingo, 25 de octubre, 1:00 p. m." });
-    expect(booked).toContain("En tu llamada con Dayana (domingo, 25 de octubre, 1:00 p. m.) ella te explica todo y te inscribe.");
+    expect(booked).toContain("En tu llamada con Dayana (domingo, 25 de octubre, 1:00 p. m.) ella te cuenta todo del taller y te inscribe.");
     for (const x of [r, booked]) expect(x).not.toMatch(/\$|cop|usd|https?:/i);
   });
-  test("la respuesta del código con enlace de pago: abierto + cupo o llamada; con la llamada ya agendada, el enlace si lo quiere", () => {
+  test("la respuesta del código con enlace de pago (12-nov): abierto + la llamada; nunca ofrece el enlace", () => {
     expect(workshopReply(WP, { upcomingLabel: null })).toBe(
-      `Sí, el taller «Tu Sanacion con el Dinero» está abierto: es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia). ${WORKSHOP_CHOICE}`
+      `Sí, el taller «Tu Sanacion con el Dinero» está abierto: es el domingo 15 de noviembre, 8:30 a. m. – 4:30 p. m., virtual (hora de Colombia). ${WORKSHOP_CALL_OFFER}`
     );
-    expect(workshopReply(WP, { upcomingLabel: "lunes, 26 de octubre, 9:00 a. m." })).toContain(
-      "En tu llamada con Dayana (lunes, 26 de octubre, 9:00 a. m.) ella te explica todo. Si quieres separar tu cupo de una vez, dime y te envío el enlace de pago."
-    );
+    const booked = workshopReply(WP, { upcomingLabel: "lunes, 26 de octubre, 9:00 a. m." });
+    expect(booked).toContain("En tu llamada con Dayana (lunes, 26 de octubre, 9:00 a. m.) ella te cuenta todo del taller y te inscribe.");
+    expect(booked).not.toMatch(/enlace|link/i);
     expect(workshopLinkReply(WP)).toBe(
       "Claro 🙏 Aquí tienes el enlace para separar tu cupo en el taller «Tu Sanacion con el Dinero». Ahí ves el valor y puedes pagar en línea; con el pago tu cupo queda separado."
     );
@@ -293,10 +294,11 @@ describe("lo que dice", () => {
     expect(l).toContain("No le des el valor ni enlaces de pago");
     expect(workshopLine(W, { upcomingLabel: "lunes, 26 de octubre, 9:00 a. m." })).toContain("No le ofrezcas otra.");
   });
-  test("la línea del prompt con enlace de pago: pregunta cupo o llamada, el enlace con la herramienta, sin el valor", () => {
+  test("la línea del prompt con enlace de pago (12-nov): la llamada, el enlace solo si lo pide, sin el valor", () => {
     const l = workshopLine(WP, { upcomingLabel: null });
-    expect(l).toContain("separar su cupo de una vez (le mandas el enlace de pago con send_workshop_link)");
-    expect(l).toContain("Si ya dijo que quiere separar su cupo, pagar o pide el enlace, usa send_workshop_link de una vez");
+    expect(l).toContain("ofrécele agendarle una llamada con Dayana: una sesión personalizada");
+    expect(l).toContain("No le ofrezcas el enlace de pago");
+    expect(l).toContain("Solo si ella misma pide pagar o el enlace, usa send_workshop_link");
     expect(l).toContain("offer_free_call_slots y book_free_call");
     expect(l).toContain("No digas el valor ni escribas enlaces");
     expect(l).not.toContain("No le des el valor ni enlaces de pago");
@@ -305,19 +307,19 @@ describe("lo que dice", () => {
   test("withWorkshopCall: siempre «abierto» y la llamada para inscribirse, antes de la pregunta del final (evaluación 24-oct)", () => {
     const asked = "Natividad, el taller Tu Sanación con el Dinero es el domingo 15 de noviembre de 8:30 a. m. a 4:30 p. m. de forma virtual. ¿Desde qué país me escribes?";
     expect(withWorkshopStep(asked, W, { upcomingLabel: null })).toBe(
-      "Natividad, el taller Tu Sanación con el Dinero es el domingo 15 de noviembre de 8:30 a. m. a 4:30 p. m. de forma virtual. Las inscripciones están abiertas y son con una llamada con Dayana, donde te explica todo. ¿Desde qué país me escribes?"
+      "Natividad, el taller Tu Sanación con el Dinero es el domingo 15 de noviembre de 8:30 a. m. a 4:30 p. m. de forma virtual. Las inscripciones están abiertas y son con una llamada con Dayana, una sesión personalizada donde te cuenta todo del taller. ¿Desde qué país me escribes?"
     );
     expect(withWorkshopStep("Las inscripciones están abiertas: es el domingo 15 de noviembre", W, { upcomingLabel: null })).toBe(
-      "Las inscripciones están abiertas: es el domingo 15 de noviembre. La inscripción es con una llamada con Dayana, donde te explica todo. ¿Quieres que te la separe?"
+      "Las inscripciones están abiertas: es el domingo 15 de noviembre. La inscripción es con una llamada con Dayana, una sesión personalizada donde te cuenta todo del taller. ¿Quieres que te la agende?"
     );
     expect(withWorkshopStep("El taller es el 15 de noviembre.", W, { upcomingLabel: null })).toBe(
-      "El taller es el 15 de noviembre. Las inscripciones están abiertas y son con una llamada con Dayana, donde te explica todo. ¿Quieres que te la separe?"
+      "El taller es el 15 de noviembre. Las inscripciones están abiertas y son con una llamada con Dayana, una sesión personalizada donde te cuenta todo del taller. ¿Quieres que te la agende?"
     );
     const done = "Sí, está abierto y la inscripción es con una llamada con Dayana. ¿Quieres que te la separe?";
     expect(withWorkshopStep(done, W, { upcomingLabel: null })).toBe(done);
     // «Llamada» sin la inscripción no basta (revisión 24-oct).
     expect(withWorkshopStep("El taller está abierto. Si quieres, te agendo una llamada gratis.", W, { upcomingLabel: null })).toBe(
-      "El taller está abierto. Si quieres, te agendo una llamada gratis. La inscripción es con una llamada con Dayana, donde te explica todo."
+      "El taller está abierto. Si quieres, te agendo una llamada gratis. La inscripción es con una llamada con Dayana, una sesión personalizada donde te cuenta todo del taller."
     );
     // «Separar tu cupo… llamada con Dayana» ya dice cómo inscribirse: no se repite.
     expect(withWorkshopStep("Para separar tu cupo agendamos una llamada corta con Dayana. ¿Desde qué país me escribes?", W, { upcomingLabel: null })).toBe(
@@ -345,11 +347,12 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
   const at = (h: number) => new Date(now - h * 3600_000);
   const choice = `Sí, el taller «Tu Sanacion con el Dinero» está abierto. ${WORKSHOP_CHOICE}`;
 
-  test("elige separar su cupo", () => {
+  test("pide pagar o el enlace (sin la pregunta vieja del cupo, «separar mi cupo» solo es la llamada: 12-nov)", () => {
+    for (const t of ["Quiero separar mi cupo", "el cupo", "Separarlo de una vez"]) {
+      expect([t, wantsWorkshopSpot(t, { afterChoice: true })]).toEqual([t, true]);
+      expect([t, wantsWorkshopSpot(t)]).toEqual([t, false]);
+    }
     for (const t of [
-      "Quiero separar mi cupo",
-      "el cupo",
-      "Separarlo de una vez",
       "Me pasas el link?",
       "¿Cómo pago?",
       "Quiero pagar el taller",
@@ -411,18 +414,20 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
     expect(isWorkshopChoice("La inscripción es con una llamada con Dayana. ¿Quieres que te la separe?")).toBe(false);
     expect(isWorkshopChoice("Te envío el enlace para separar tu cupo.")).toBe(false);
   });
-  test("withWorkshopStep: sin la pregunta del cupo o la llamada, la pone en lugar de la suya; con el enlace ya pegado, no toca nada", () => {
+  test("withWorkshopStep con enlace de pago (12-nov): la llamada, nunca la pregunta del enlace; con el enlace ya pegado, no toca nada", () => {
     expect(
       withWorkshopStep("Natividad, el taller es el domingo 15 de noviembre, virtual. ¿Desde qué país me escribes?", WP, { upcomingLabel: null })
-    ).toBe(`Natividad, el taller es el domingo 15 de noviembre, virtual. Las inscripciones están abiertas. ${WORKSHOP_CHOICE}`);
-    expect(withWorkshopStep("Sí, el taller está abierto: es el 15 de noviembre.", WP, { upcomingLabel: null })).toBe(
-      `Sí, el taller está abierto: es el 15 de noviembre. ${WORKSHOP_CHOICE}`
+    ).toBe(
+      "Natividad, el taller es el domingo 15 de noviembre, virtual. Las inscripciones están abiertas y son con una llamada con Dayana, una sesión personalizada donde te cuenta todo del taller. ¿Desde qué país me escribes?"
     );
-    expect(withWorkshopStep(choice, WP, { upcomingLabel: null })).toBe(choice);
-    // Ya pregunta por el cupo o la llamada sin «abierto»: solo eso, antes de la pregunta.
+    // El modelo copió la pregunta vieja del cupo o la llamada: va la oferta de la llamada.
+    expect(withWorkshopStep(choice, WP, { upcomingLabel: null })).toBe(`Sí, el taller «Tu Sanacion con el Dinero» está abierto. ${WORKSHOP_CALL_OFFER}`);
     expect(withWorkshopStep(`Es el 15 de noviembre. ${WORKSHOP_CHOICE}`, WP, { upcomingLabel: null })).toBe(
-      `Es el 15 de noviembre. Las inscripciones están abiertas. ${WORKSHOP_CHOICE}`
+      `Es el 15 de noviembre. Las inscripciones están abiertas. ${WORKSHOP_CALL_OFFER}`
     );
+    for (const out of [withWorkshopStep(choice, WP, { upcomingLabel: null }), withWorkshopStep("Sí, el taller está abierto: es el 15 de noviembre.", WP, { upcomingLabel: null })]) {
+      expect(isWorkshopChoice(out)).toBe(false);
+    }
     const linked = "Claro, aquí tienes el enlace para separar tu cupo.";
     expect(withWorkshopStep(linked, WP, { upcomingLabel: null, linkSent: true })).toBe(linked);
   });
@@ -453,7 +458,8 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
     expect(workshopLinkSent(sent, now)).toBe(true);
     expect(workshopFollowLine(sent, WP, now)).toContain("ya le mandaste el enlace de pago");
     const old = workshopFollowLine([asked, { direction: "OUTBOUND", body: "El taller está abierto. La inscripción es con una llamada con Dayana. ¿Quieres que te la separe?", sentAt: at(1) }], WP, now);
-    expect(old).toContain("está separando su llamada con Dayana");
+    expect(old).toContain("le ofrecimos agendarle una llamada con Dayana");
+    expect(old).toContain("No le ofrezcas el enlace de pago");
     expect(old).toContain("send_workshop_link");
     // Sin enlace de pago, como antes.
     expect(workshopFollowLine([asked], W, now)).toContain("No le des el valor ni enlaces de pago.");

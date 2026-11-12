@@ -723,7 +723,7 @@ Cómo conversas (así trabaja Dayana):
 ${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
 ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
-- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción (de un taller no: pregúntale si separa su cupo de una vez con el enlace de pago, que mandas con send_workshop_link, o agenda primero una llamada con Dayana). Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace, dale el de la reunión de Google Meet que está ahí, tal cual; nunca la página de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
+- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo, cómo es y comparte el enlace de inscripción (de un taller no: ofrécele agendarle una llamada con Dayana, una sesión personalizada donde ella le cuenta todo; el enlace de pago, con send_workshop_link, solo si la persona lo pide). Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace, dale el de la reunión de Google Meet que está ahí, tal cual; nunca la página de inscripción. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Grabaciones y grupos: los eventos gratuitos (webinars, masterclasses) NO se graban: si preguntan por la grabación de uno, dile con calidez que no queda grabado: «te esperamos en vivo» (o en el próximo). Nunca digas que hay o habrá una grabación, que se la mandas, que algo está «en el grupo» ni que la persona está en un grupo: quien no ha pagado no tiene grabaciones ni grupo de clases. Si pregunta por grabaciones de clases de un curso o taller, escala con category=unknown (Dayana sabe si pagó y dónde están). Si agradece «por aceptarme» o «en su grupo», contesta solo algo corto como «Con gusto 🙏», sin hablar de grupos (ni que está ni que no está, ni que no hay) y sin ofrecerle nada más en ese mensaje.
 - Si dudas cómo lo diría Dayana, usa search_past_chats.
 
@@ -1286,7 +1286,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     ...(openWorkshop?.payUrl
       ? {
           send_workshop_link: tool({
-            description: `Manda, debajo de tu mensaje, el enlace de pago del taller «${openWorkshop.title}» para separar su cupo. Úsalo cuando elige separar su cupo, quiere pagar o inscribirse ya, o pide el enlace del taller. Nunca escribas el enlace ni digas el precio: lo ve en el enlace.`,
+            description: `Manda, debajo de tu mensaje, el enlace de pago del taller «${openWorkshop.title}» para separar su cupo. Úsalo solo cuando la persona pide pagar el taller o el enlace de pago; no lo ofrezcas tú (la inscripción es con una llamada con Dayana). Nunca escribas el enlace ni digas el precio: lo ve en el enlace.`,
             inputSchema: z.object({}),
             execute: async () => {
               if (!workshopPay) return log("send_workshop_link", {}, { ok: false, reason: "Ya pagó este taller: no le mandes el enlace." });
@@ -1299,7 +1299,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               if (workshopAskNow && !workshopSpot) {
                 return log("send_workshop_link", {}, {
                   ok: false,
-                  reason: "Todavía no eligió: pregúntale si quiere separar su cupo ya con el enlace de pago o agendar primero una llamada con Dayana.",
+                  reason: "No pidió el enlace: ofrécele agendarle una llamada con Dayana, una sesión personalizada donde le cuenta todo del taller.",
                 });
               }
               addLink(workshopPay);
@@ -2552,7 +2552,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     // de la llamada): van el enlace y la respuesta del cupo, sin la lista.
     const spotOverSlots = workshopSpot && Boolean(state.slotOffer);
     // Al preguntar por primera vez, el enlace solo si ya eligió el cupo (si no, va la pregunta).
-    const mayLink = workshopSpot || (workshopFlow && !workshopAskNow);
+    const mayLink = workshopSpot; // 12-nov: el enlace solo si lo pidió (la inscripción es con la llamada).
     if (
       workshop &&
       workshopPay &&
