@@ -445,7 +445,7 @@ export const businessFacts = async (
     lines.push(
       `- ${w.title}${date ? ` — ${date}` : ""}${w.scheduleLabel ? ` (${w.scheduleLabel})` : ""}${
         w.status === "OPEN" ? " — INSCRIPCIONES ABIERTAS" : ` — ${w.status === "CLOSED" ? "inscripciones cerradas" : "próximamente"}`
-      }. Página (ahí está toda la información): ${site}/taller-virtual/${w.slug}${w.cardSummary ? `\n  De qué trata: ${w.cardSummary}` : ""}`
+      }. Enlaces: no los mandas; la oferta e inscripción se la da Dayana uno a uno en una llamada${w.cardSummary ? `\n  De qué trata: ${w.cardSummary}` : ""}`
     );
   }
 
@@ -2467,7 +2467,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   message:
                     workshopFix === "link"
                       ? // Escaló una pregunta que solo Dayana sabe (la promoción, cuotas): el enlace y Dayana le contesta.
-                        workshopPayReply(workshop, { promo: promoFix })
+                        workshopPayReply(workshop, { promo: promoFix, upcomingLabel: upcomingLabelText })
                       : workshopReply(workshop, { upcomingLabel: upcomingLabelText }),
                 }
               : serious
@@ -2528,27 +2528,38 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     // separar su cupo (o el modelo dice «aquí tienes el enlace») sin la herramienta.
     // Lo pega el código; sin la palabra «enlace» en el texto, va la respuesta del cupo.
     const typedWorkshop = withoutWorkshopPayUrls(text);
-    if (typedWorkshop.had) text = typedWorkshop.text || text;
-    // 12-nov (dueña): nunca el enlace del taller. Si habla de pagarlo, o el modelo lo
-    // escribió o lo prometió, va la oferta de la llamada con Dayana (no encima de horas o una cita).
+    // Solo un enlace escrito a mano y nada más: sin él no queda mensaje (revisión 12-nov).
+    if (typedWorkshop.had) text = typedWorkshop.text || (workshop ? workshopPayReply(workshop, { upcomingLabel: upcomingLabelText }) : "");
+    // 12-nov (dueña): nunca el enlace del taller. Si habla de pagarlo, o (hablando del
+    // taller) el modelo lo escribió o lo prometió, va la oferta de la llamada con Dayana.
+    // Nunca encima de horas, una cita, ni el enlace o los datos de su proceso (revisión 12-nov:
+    // «aquí tienes el enlace» del pago de su terapia o del Meet no es el taller).
+    const aboutWorkshop = workshopSpot || workshopAskNow || workshopFlow;
     if (
       workshop &&
       workshopPay &&
+      aboutWorkshop &&
       (workshopSpot || typedWorkshop.had || promisesWorkshopLink(text)) &&
       !state.slotOffer &&
       !state.booking &&
       !state.pendingBooking &&
-      !state.bookingNotice
+      !state.bookingNotice &&
+      !state.paymentLink &&
+      state.paymentDetails.length === 0
     ) {
-      text = workshopAskNow && !workshopSpot ? workshopReply(workshop, { upcomingLabel: upcomingLabelText }) : workshopPayReply(workshop, { promo: workshopPromo });
+      text =
+        workshopAskNow && !workshopSpot
+          ? workshopReply(workshop, { upcomingLabel: upcomingLabelText })
+          : workshopPayReply(workshop, { promo: workshopPromo, upcomingLabel: upcomingLabelText });
       log("workshop_handoff", { auto: true }, { ok: true, note: "Sin enlace del taller: la oferta se la da Dayana en la llamada." });
-      if (workshopSpot) {
-        state.silentEscalation ??= {
-          category: "payment",
-          severity: "normal",
-          reason: `Quiere pagar o pregunta el valor del taller («${saidNow.slice(0, 160)}»). La asistente le ofreció la llamada contigo (sin enlace).`,
-        };
-      }
+    }
+    // Quiere pagar el taller o pregunta el valor: Dayana se entera siempre (también si va con horas).
+    if (workshop && workshopPay && workshopSpot) {
+      state.silentEscalation ??= {
+        category: "payment",
+        severity: "normal",
+        reason: `Quiere pagar o pregunta el valor del taller («${saidNow.slice(0, 160)}»). La asistente le ofreció la llamada contigo (sin enlace).`,
+      };
     }
     // Ningún enlace que no leyó en una fuente de verdad (Ruth, 23-oct: «…/comunidad»,
     // que no existe): las reglas, los DATOS, las notas, lo que escribieron Dayana o

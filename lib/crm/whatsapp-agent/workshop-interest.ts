@@ -261,10 +261,13 @@ export const workshopLinkSent = (lines: Line[], now = Date.now()): boolean =>
  * enviar links… preferiblemente que se lo pase a Dayana… el taller se le da la oferta
  * Dayana directamente uno a uno en una llamada»). Sin enlace; Dayana se entera aparte.
  */
-export const workshopPayReply = (w: OpenWorkshop, opts: { promo?: boolean } = {}): string =>
-  opts.promo
-    ? `La promoción y la oferta del taller «${w.title}» te las da Dayana directamente, uno a uno, en una llamada personalizada para inscribirte. ¿Quieres que te la agende?`
-    : `Claro 🙏 Para inscribirte al taller «${w.title}», Dayana te da la oferta directamente, uno a uno, en una llamada personalizada donde te cuenta todo. ¿Quieres que te la agende?`;
+export const workshopPayReply = (w: OpenWorkshop, opts: { promo?: boolean; upcomingLabel?: string | null } = {}): string =>
+  opts.upcomingLabel
+    ? // Ya tiene su llamada: no se le ofrece otra (revisión 12-nov).
+      `${opts.promo ? "La promoción y la oferta" : "La oferta"} del taller «${w.title}» te ${opts.promo ? "las" : "la"} da Dayana directamente, uno a uno, en tu llamada con ella (${opts.upcomingLabel}).`
+    : opts.promo
+      ? `La promoción y la oferta del taller «${w.title}» te las da Dayana directamente, uno a uno, en una llamada personalizada para inscribirte. ¿Quieres que te la agende?`
+      : `Claro 🙏 Para inscribirte al taller «${w.title}», Dayana te da la oferta directamente, uno a uno, en una llamada personalizada donde te cuenta todo. ¿Quieres que te la agende?`;
 
 /** Lo que recibe quien elige separar su cupo (el enlace va debajo). */
 export const workshopLinkReply = (w: OpenWorkshop, opts: { handoff?: boolean; promo?: boolean } = {}): string =>

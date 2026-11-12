@@ -469,7 +469,7 @@ export const SCENARIOS: Scenario[] = [
       outcome: "reply",
       noTool: ["escalate", "send_workshop_link", "offer_free_call_slots"],
       mustMatch: [/comprobante|atenta/i],
-      mustNotMatch: [/\btaller\b|m[aá]s econ[oó]mic/i, /d[eé]jame consultarlo/i, /\$|\busd\b|\bcop\b/i],
+      mustNotMatch: [/pagar\/p\/taller-|taller-virtual|eventos-gratuitos/i, /\btaller\b|m[aá]s econ[oó]mic/i, /d[eé]jame consultarlo/i, /\$|\busd\b|\bcop\b/i],
     },
     goal: "Va a pagar cuando reciba el dinero la próxima semana: con calidez, que Dayana queda atenta y que cuando haga el pago le mande el comprobante por aquí. No la presiona ni la desvía al taller u otra opción más barata; no escala.",
   },

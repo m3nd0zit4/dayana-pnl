@@ -477,6 +477,10 @@ describe("pagar el taller sin nombrarlo (Sergio, 25-oct: «Es que es respecto al
     expect(l).toContain("Nunca confirmes tú una promoción");
     expect(workshopPayReply(WP)).toContain("¿Quieres que te la agende?");
     expect(workshopPayReply(WP, { promo: true })).toMatch(/^La promoción y la oferta del taller/);
+    // Ya tiene su llamada: no se le ofrece otra (revisión 12-nov).
+    const booked = workshopPayReply(WP, { upcomingLabel: "viernes, 13 de noviembre, 9:00 a. m." });
+    expect(booked).toContain("en tu llamada con ella (viernes, 13 de noviembre, 9:00 a. m.)");
+    expect(booked).not.toContain("¿Quieres que te la agende?");
     for (const r of [workshopPayReply(WP), workshopPayReply(WP, { promo: true })]) {
       expect(r).not.toMatch(/https?:|\$|usd|cop/i);
       expect(isWorkshopOffer({ direction: "OUTBOUND", body: r }, WP)).toBe(true);
