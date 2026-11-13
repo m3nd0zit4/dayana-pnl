@@ -337,7 +337,7 @@ type Props = {
   webinarCtaSubtitle?: string;
   webinarStartsAtIso?: string | null;
   webinarHasTime?: boolean;
-  /** El taller con inscripciones abiertas: su nombre y el registro. null = sin botón. */
+  /** El taller con inscripciones abiertas: su nombre y el enlace a WhatsApp. null = sin botón. */
   workshop?: { title: string; href: string } | null;
   userCountry?: string | null;
 };
@@ -466,9 +466,8 @@ const LinktreePage = ({
             />
           )}
           {/* El taller abierto (dueña, 28-oct: «que diga "Taller" y abajo del
-              taller el nombre, y colocarle "si estás interesado, regístrate"»):
-              lleva al registro, que la anota en «Interesadas» y le escribe por
-              WhatsApp para separar el cupo o agendar la llamada gratis. */}
+              taller el nombre»). Desde el 13-nov sin registro: abre WhatsApp
+              con la pregunta por el taller ya escrita. */}
           {workshop && (
             <Cta
               href={workshop.href}
@@ -478,7 +477,6 @@ const LinktreePage = ({
               note={WORKSHOP_LINK_CTA.note}
               variant="workshop"
               delay={300}
-              internal
             />
           )}
         </div>

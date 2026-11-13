@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import { BRAND } from "@/lib/contact";
+import { BRAND, buildWhatsAppUrl } from "@/lib/contact";
 import LinktreePage from "@/app/components/enlaces/LinktreePage";
 import { getOpenFreeEvent } from "@/lib/crm/free-webinar";
 import { openWorkshopForRegistration } from "@/lib/crm/workshop-registration";
-import { workshopRegistrationPath } from "@/lib/crm/workshop-registration-rules";
+import { workshopWhatsAppMessage } from "@/lib/crm/workshop-registration-rules";
 import { getServerUserCountry } from "@/lib/geo/user-country";
 
 const title = `Enlaces — ${BRAND.name}`;
@@ -31,11 +31,12 @@ const Page = async () => {
   // El taller con inscripciones abiertas (dueña, 28-oct: «cuando se crea un
   // taller aparezca ahí en la página de enlaces el botón del taller, que diga
   // "Taller" y abajo del taller el nombre»). Solo, sin ajuste en el CRM, y
-  // lleva al registro; desaparece cuando empieza (`isRegistrationOpen`).
+  // abre WhatsApp con la pregunta por el taller (13-nov: ya no hay registro);
+  // desaparece cuando empieza (`isRegistrationOpen`).
   let workshop: { title: string; href: string } | null = null;
   try {
     const open = await openWorkshopForRegistration();
-    if (open) workshop = { title: open.title, href: `${workshopRegistrationPath(open.slug)}?ref=enlaces` };
+    if (open) workshop = { title: open.title, href: buildWhatsAppUrl(workshopWhatsAppMessage(open.title)) };
   } catch {
     /* DB down — hide workshop CTA */
   }

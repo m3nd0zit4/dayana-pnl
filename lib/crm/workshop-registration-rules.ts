@@ -39,8 +39,16 @@ import { WORKSHOP_CALL_OFFER, workshopWhen, type OpenWorkshop } from "./whatsapp
 /** La página del registro. */
 export const workshopRegistrationPath = (slug: string): string => `/taller-virtual/${encodeURIComponent(slug)}/registro`;
 
-/** El botón de `/enlaces`: el texto de la dueña, en neutro («si estás interesado» → «si te interesa»). */
-export const WORKSHOP_LINK_CTA = { title: "Taller", note: "Si te interesa, regístrate" } as const;
+/**
+ * El botón de `/enlaces` (dueña, 13-nov: «quita la lógica de registro… que
+ * llegue la persona directamente a WhatsApp preguntando por ello»): abre
+ * WhatsApp con la pregunta por el taller ya escrita; la asistente la lee como
+ * una pregunta por el taller y le ofrece la llamada con Dayana.
+ */
+export const WORKSHOP_LINK_CTA = { title: "Taller", note: "Pregunta por WhatsApp" } as const;
+
+/** El mensaje con el que la persona llega a WhatsApp desde el botón o un enlace viejo del registro. */
+export const workshopWhatsAppMessage = (title: string): string => `Hola Dayana, quiero información del taller «${title}».`;
 
 /** «2026-11-15» en la zona del taller (para comparar días). */
 const dayIn = (d: Date, timeZone: string): string =>

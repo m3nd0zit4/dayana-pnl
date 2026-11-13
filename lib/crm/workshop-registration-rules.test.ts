@@ -28,6 +28,7 @@ import {
   registrationWaStatus,
   registrationWhen,
   WORKSHOP_LINK_CTA,
+  workshopWhatsAppMessage,
   WORKSHOP_REGISTRATION_TEMPLATE_CAP,
   REGISTRATION_TEMPLATES_PER_IP_PER_DAY,
   RETRYABLE_STATES,
@@ -79,10 +80,10 @@ const assertVoice = (text: string) => {
 };
 
 describe("dónde", () => {
-  test("la página del registro y el botón de Enlaces con el texto de la dueña, en neutro", () => {
-    expect(workshopRegistrationPath("tu-sanacion-con-el-dinero")).toBe("/taller-virtual/tu-sanacion-con-el-dinero/registro");
+  test("el botón de Enlaces lleva a WhatsApp con la pregunta por el taller (13-nov: sin registro)", () => {
     expect(workshopRegistrationPath("a b")).toBe("/taller-virtual/a%20b/registro");
-    expect(WORKSHOP_LINK_CTA).toEqual({ title: "Taller", note: "Si te interesa, regístrate" });
+    expect(WORKSHOP_LINK_CTA).toEqual({ title: "Taller", note: "Pregunta por WhatsApp" });
+    expect(workshopWhatsAppMessage("Sana Tu Relación con el Dinero")).toBe("Hola Dayana, quiero información del taller «Sana Tu Relación con el Dinero».");
   });
 
   test("abierto: publicado, sin terminar y sin empezar (con hora: hasta esa hora)", () => {
