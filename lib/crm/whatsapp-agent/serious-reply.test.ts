@@ -86,7 +86,7 @@ describe("ya tuvo su llamada: puede pedir otra o reagendar (dueña, 12-nov)", ()
     for (const t of ["¿Puedo reagendar la llamada?", "Quiero otra llamada con Dayana", "me puedes agendar otra cita", "quiero hablar con Dayana"]) {
       expect([t, asksForCall([t])]).toEqual([t, true]);
     }
-    for (const t of ["Quítame esta angustia", "Necesito acompañamiento", "¿Me das una sesión gratis?"]) {
+    for (const t of ["Quítame esta angustia", "Necesito acompañamiento", "¿Me das una sesión gratis?", "Gracias por la llamada, ¿y ahora qué?", "Mañana tengo la cita médica"]) {
       expect([t, asksForCall([t])]).toEqual([t, false]);
     }
   });

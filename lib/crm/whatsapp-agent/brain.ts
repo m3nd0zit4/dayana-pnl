@@ -322,7 +322,7 @@ export const businessFacts = async (
    * agenda la llamada gratis. `guest`: solo se inscribió al evento gratuito y
    * no ha pedido nada personal: tampoco (`webinar-guest.ts`).
    */
-  opts: { noFreeCall?: boolean; guest?: boolean } = {}
+  opts: { noFreeCall?: boolean; guest?: boolean; afterCall?: boolean } = {}
 ): Promise<string> => {
   const site = getSiteUrl();
   const [products, workshops, events, magnets] = await Promise.all([
@@ -400,6 +400,12 @@ export const businessFacts = async (
     lines.push(
       "",
       "AGENDAR: esta persona no agenda la llamada gratis (ya fue clienta, ya la tuvo o está por revisar): no se la ofrezcas. Si quiere una sesión o retomar su proceso, usa request_booking: Dayana revisa su agenda y le confirma por aquí, sin que tú prometas día ni hora."
+    );
+  } else if (config.salesFlow.enabled && config.booking.enabled && opts.afterCall) {
+    // Ya tuvo su llamada (dueña, 12-nov): otra solo si la pide, y la aprueba Dayana.
+    lines.push(
+      "",
+      "AGENDAR: ya tuvo su llamada gratis con Dayana: no le ofrezcas otra por tu cuenta. Si ELLA pide otra llamada, reagendar o hablar con Dayana: offer_free_call_slots y, cuando elija, book_free_call (queda como pedido que Dayana aprueba; dile que Dayana le confirma por aquí). Nunca envíes enlaces de agenda."
     );
   } else if (config.salesFlow.enabled && config.booking.enabled) {
     lines.push(
@@ -1949,7 +1955,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       // Primero la hora (como cuando iba en las reglas): fuera de las reglas
       // para que la caché de Gemini cubra reglas y herramientas.
       `AHORA: ${nowLabel}.`,
-      `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall, guest: Boolean(guestEvent) })}`,
+      `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall, guest: Boolean(guestEvent), afterCall })}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
       chatLink
@@ -2035,7 +2041,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       ? { ...tools, no_reply: noReplyTool }
       : tools;
 
-  const system = systemPrompt(config, { salesFlow: salesOn && !input.clientMode, autoBook, clientMode: input.clientMode });
+  const system = systemPrompt(config, { salesFlow: funnelOn && !input.clientMode, autoBook, clientMode: input.clientMode });
   const result = await generateText({
     model: google(modelId()),
     system,
@@ -2308,7 +2314,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !state.paymentLink &&
     state.paymentDetails.length === 0 &&
     !saysSelfHarm([...lastInbound, modelOutcome.kind === "escalate" ? modelOutcome.reason : null]) &&
-    cheaperOverEscalation(modelOutcome, { beforeCall: salesOn });
+    cheaperOverEscalation(modelOutcome, { beforeCall: funnelOn });
   if (cheaperOnly && modelOutcome.kind === "escalate") {
     state.silentEscalation ??= {
       category: modelOutcome.category,
@@ -2647,7 +2653,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       const fixed = withCheaper(text, cheaperItems, {
         attached: state.links,
         replace: cheaperOnly || handoff,
-        beforeCall: salesOn,
+        beforeCall: funnelOn,
         name: sureFirstName(nameInfo),
         hard: saysHardNews(lastInbound),
         talk: wantsToTalk(lastInbound),

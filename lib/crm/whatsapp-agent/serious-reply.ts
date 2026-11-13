@@ -89,5 +89,6 @@ export const asksForMoreHelp = (texts: string[]): boolean => texts.some((t) => M
  * que ya tuvieron una llamada… quiero que sí sea posible») eso se agenda, no va
  * a la escalera del pago.
  */
-const WANTS_CALL = /\b(llamada|llamar|llamame|llamen|agendar|reagendar|agendame|cita|hablar con (dayana|ella))\b/;
+const WANTS_CALL =
+  /\b(reagendar\w*|agendame|agendarme|otra (llamada|cita)|cambiar (la|mi) (llamada|cita)|mover (la|mi) (llamada|cita)|(quiero|quisiera|puedo|podemos|podria|podriamos|necesito|me (puedes|podrias|das)|se puede)\b[^.?!]{0,30}\b(llamada|cita|agendar|hablar con (dayana|ella)))\b/;
 export const asksForCall = (texts: string[]): boolean => texts.some((t) => WANTS_CALL.test(foldForSearch(t)));

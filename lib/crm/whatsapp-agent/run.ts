@@ -642,8 +642,10 @@ export const runWhatsAppAi = async (input: {
       (route.segment === "new_lead" ||
         route.segment === "returning_lead" ||
         route.segment === "free_call_booked" ||
-        // Ya tuvo su llamada y pide otra o reagendar (dueña, 12-nov): también se agenda sola.
-        route.segment === "after_call");
+        (workshopCall && route.segment === "after_call"));
+    // Ya tuvo su llamada y pide otra (dueña, 12-nov: «la gente termina agendando de
+    // 15 en 15 sesiones gratuitas y no pagan»): nunca se agenda sola; queda como
+    // pedido que Dayana aprueba o rechaza en el CRM.
     const nameInfo = await chatNameInfo(conversationId);
     const freeCallOn =
       config.salesFlow.enabled && config.booking.enabled && (!(stage && NO_FREE_CALL_STAGES.has(stage)) || workshopCall);
@@ -1086,7 +1088,9 @@ export const runWhatsAppAi = async (input: {
         stickerUrl: result.stickerUrl,
         ...(saysPrice
           ? { reason: "La IA escribió un precio: los precios solo los das tú. Cámbialo o descártalo." }
-          : {}),
+          : result.pendingBooking && stage === "tuvo_llamada"
+            ? { reason: "Ya tuvo su llamada gratis contigo y pide otra. Apruébala solo si quieres darle otra llamada; si no, recházala." }
+            : {}),
       };
       await proposeForApproval({ runId: run.id, conversationId, name, proposal, meta, important: saysPrice });
       // En modo IA la persona no se queda esperando la aprobación de Dayana
