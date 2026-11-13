@@ -49,6 +49,7 @@ import { configWithSpendLevel } from "./spend-store";
 import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
 import { pauseHolds, saysSelfHarm } from "./pause-rules";
+import { CANCELLED_BOOKING } from "./free-call-rules";
 import { sendsReceipt, wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
@@ -1350,7 +1351,7 @@ const promiseBacking = async (input: {
     if (t.tool === "book_free_call" && (out.booked === true || out.alreadyBooked === true)) bookedNow = true;
     if ((t.tool === "book_appointment" || t.tool === "confirm_appointment") && (out as { ok?: unknown }).ok === true) bookedNow = true;
   }
-  const [offered, dayanaLines, appts] = await Promise.all([
+  const [offered, dayanaLines, appts, bookings] = await Promise.all([
     offeredFreeCallSlots(input.conversationId, now).catch(() => [] as string[]),
     // Las horas que Dayana misma escribió (el botón «Horas libres», su celular) también valen.
     prisma.conversationMessage
@@ -1384,9 +1385,18 @@ const promiseBacking = async (input: {
         take: 10,
       })
       .catch(() => [] as { startsAt: Date }[]),
+    // Su llamada agendada por la IA (la fila del calendario puede no estar sincronizada aún):
+    // la hora que se le recuerda («tu llamada sigue el…») tiene respaldo (13-nov).
+    prisma.whatsAppBooking
+      .findMany({
+        where: { conversationId: input.conversationId, startsAt: { gte: now }, status: { notIn: CANCELLED_BOOKING } },
+        select: { startsAt: true },
+        take: 5,
+      })
+      .catch(() => [] as { startsAt: Date }[]),
   ]);
   for (const l of dayanaLines) if (l.body) labels.push(l.body);
-  const booked = [...appts.map((a) => a.startsAt), ...(input.booking ? [input.booking.startsAt] : [])];
+  const booked = [...appts.map((a) => a.startsAt), ...bookings.map((b) => b.startsAt), ...(input.booking ? [input.booking.startsAt] : [])];
   const zones = [...new Set([input.personTz, input.inferredTz, input.timezone].filter((z): z is string => Boolean(z)))];
   for (const d of [...offered.map((iso) => new Date(iso)), ...booked]) {
     if (Number.isNaN(d.getTime())) continue;
