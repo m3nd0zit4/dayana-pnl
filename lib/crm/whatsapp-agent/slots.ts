@@ -402,47 +402,66 @@ export const matchesWish = (slot: Slot, wish: SlotWish, personTz: string): boole
  * salieron las 12:00 porque «tarde» incluye el mediodía). Lo más nuevo manda.
  * Sin a. m./p. m., de 1 a 7 es de la tarde («después de las 5» = 17:00).
  */
-const TIME = String.raw`(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?)?`;
-const hmFrom = (h: string, m: string | undefined, ampm: string | undefined, plusMin = 0): string | null => {
+const TIME = String.raw`(\d{1,2})(?::(\d{2}))?(?:\s*(a\.?\s?m|p\.?\s?m)\b\.?|\s+de\s+la\s+(manana|tarde|noche))?(?![\d:])(?!\s*(?:semanas?|dias?|meses|mes|horas?|veces|anos?|minutos?)\b)`;
+/**
+ * «5», «5 pm», «7 de la mañana» → «17:00»: con a. m./p. m. o «de la mañana/tarde/noche»
+ * manda eso; sin nada, de 1 a 7 es de la tarde («después de las 5» = 17:00) y de 8 a
+ * 11 se queda como está (ambiguo: no limita de más).
+ */
+const hmFrom = (h: string, m: string | undefined, ampm: string | undefined, word: string | undefined, plusMin = 0): string | null => {
   let hour = Number(h);
   const min = Number(m ?? 0);
   if (!Number.isFinite(hour) || hour > 23 || min > 59) return null;
-  const suffix = (ampm ?? "").replace(/[^ap]/g, "");
+  const suffix = (ampm ?? "").replace(/[^ap]/g, "") || (word === "manana" ? "a" : word ? "p" : "");
   if (suffix === "p" && hour < 12) hour += 12;
   else if (suffix === "a" && hour === 12) hour = 0;
   else if (!suffix && hour >= 1 && hour <= 7) hour += 12;
   const total = Math.min(hour * 60 + min + plusMin, 23 * 60 + 59);
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 };
+/** Las 4 partes de `TIME` desde el grupo `i` de una coincidencia. */
+const timeAt = (m: RegExpMatchArray, i: number, plusMin = 0) => hmFrom(m[i]!, m[i + 1], m[i + 2], m[i + 3], plusMin);
+
+// «mi trabajo va desde 7 am a 4 pm» (la hora del final; media hora para llegar).
 const WORK_RANGE = new RegExp(
-  String.raw`\b(trabajo|trabajar|laboro|jornada|turno|horario)\b[^.!?\n]{0,30}?\b(de|desde)\s+(las\s+)?${TIME}\s*(a|hasta|-)\s*(las\s+)?${TIME}`
+  String.raw`\b(trabajo|trabajar|laboro|jornada|turno)\b[^.!?\n]{0,30}?\b(?:de|desde)\s+(?:las\s+)?${TIME}\s*(?:a|hasta|-)\s*(?:las\s+)?${TIME}`
 );
-const LEAVE_AT = new RegExp(
-  String.raw`\b(salgo|sale|salimos|termino|desocupo|me desocupo|estoy libre|quedo libre)\b[^.!?\n]{0,25}?\b(a|como a|desde)\s+las?\s+${TIME}`
-);
+// «salgo a las 6» (no «sale»: «sale, a las 3 me queda bien»).
+const LEAVE_AT = new RegExp(String.raw`\b(salgo|salimos|termino|me desocupo|desocupo)\b[^.!?\n]{0,25}?\b(?:a|como a|desde)\s+las?\s+${TIME}`);
+const FREE_FROM = new RegExp(String.raw`\b(?:estoy libre|quedo libre|libre)\b[^.!?\n]{0,15}?\bdesde\s+las?\s+${TIME}`);
 const WORK_UNTIL = new RegExp(String.raw`\b(trabajo|trabajar|laboro|estoy trabajando)\b[^.!?\n]{0,20}?\bhasta\s+las?\s+${TIME}`);
-const AFTER = new RegExp(String.raw`\b(despues de|a partir de)\s+las?\s+${TIME}`);
-const BEFORE = new RegExp(String.raw`\b(antes de|hasta)\s+las?\s+${TIME}`);
+const AFTER = new RegExp(String.raw`\b(?:despues de|a partir de)\s+las?\s+${TIME}`);
+const BEFORE = new RegExp(String.raw`\b(?:antes de|hasta)\s+las?\s+${TIME}`);
 const NO_MIDDAY = /\bno\s+(puedo|podre|alcanzo|me queda|me sirve)\b[^.!?\n]{0,25}\b(medio\s?dia|mediodia|almuerzo|hora del almuerzo)\b/;
+/** Lo de un día en particular («los lunes trabajo de 8 a 12») no vale para todos los días. */
+const A_WEEKDAY = /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo|fines? de semana)\b/;
+
 export const hourLimitsFrom = (textsNewestFirst: (string | null | undefined)[]): Pick<SlotWish, "fromTime" | "toTime" | "avoidMidday"> => {
   const out: Pick<SlotWish, "fromTime" | "toTime" | "avoidMidday"> = {};
   for (const raw of textsNewestFirst) {
-    const t = fold(raw ?? "").replace(/\bbuen[oa]s (tardes|noches|dias)\b/g, " ");
-    if (!t) continue;
-    if (!out.avoidMidday && NO_MIDDAY.test(t)) out.avoidMidday = true;
-    if (!out.fromTime) {
-      const w = t.match(WORK_RANGE);
-      const l = w ? null : t.match(LEAVE_AT);
-      const u = w || l ? null : t.match(WORK_UNTIL);
-      const a = w || l || u ? null : t.match(AFTER);
-      // Al salir del trabajo, media hora para llegar.
-      const from = w ? hmFrom(w[9]!, w[10], w[11], 30) : l ? hmFrom(l[3]!, l[4], l[5], 30) : u ? hmFrom(u[2]!, u[3], u[4], 30) : a ? hmFrom(a[2]!, a[3], a[4]) : null;
-      if (from) out.fromTime = from;
-    }
-    if (!out.toTime && !WORK_UNTIL.test(t)) {
-      const b = t.match(BEFORE);
-      const to = b ? hmFrom(b[2]!, b[3], b[4]) : null;
-      if (to) out.toTime = to;
+    const t = fold(raw ?? "")
+      .replace(/\bbuen[oa]s (tardes|noches|dias)\b/g, " ")
+      // «7 p. m.» → «7pm»: el punto no parte la frase.
+      .replace(/\b([ap])\.\s?m\b\.?/g, "$1m");
+    // La última frase manda.
+    for (const s of t.split(/[.!?\n]+/).map((x) => x.trim()).filter(Boolean).reverse()) {
+      if (A_WEEKDAY.test(s)) continue;
+      if (!out.avoidMidday && NO_MIDDAY.test(s)) out.avoidMidday = true;
+      if (!out.fromTime) {
+        const w = s.match(WORK_RANGE);
+        const l = w ? null : s.match(LEAVE_AT);
+        const u = w || l ? null : s.match(WORK_UNTIL);
+        const f = w || l || u ? null : s.match(FREE_FROM);
+        const a = w || l || u || f ? null : s.match(AFTER);
+        // Al salir del trabajo, media hora para llegar.
+        const from = w ? timeAt(w, 6, 30) : l ? timeAt(l, 2, 30) : u ? timeAt(u, 2, 30) : f ? timeAt(f, 1) : a ? timeAt(a, 1) : null;
+        if (from) out.fromTime = from;
+      }
+      if (!out.toTime && !WORK_UNTIL.test(s)) {
+        const b = s.match(BEFORE);
+        const to = b ? timeAt(b, 1) : null;
+        if (to) out.toTime = to;
+      }
     }
     if (out.fromTime && out.avoidMidday) break;
   }
@@ -495,12 +514,22 @@ export const isWithinBookingHours = (
  * Con la llamada agendada, dice que a esa hora no puede o que es a otra hora
  * (Carito, 12 y 13-nov: «no puedo a mediodía por mi trabajo», «Recuerda que es
  * a la 7 pm»): se le buscan horas que le sirvan y, cuando elija, se mueve.
- * No «no puedo pagar».
+ * Solo un «no puedo» sobre la hora (no «no puedo esperar», «no puedo pagar») o
+ * pedir cambiarla. Una hora que repite la que ya tiene («perfecto, es a las 7»)
+ * es confirmarla: con `booked` (la hora de su cita en su zona, «19:15») solo
+ * cuenta si es otra.
  */
-const CANT_MAKE_IT =
-  /\b(no (puedo|podre|voy a poder|alcanzo|me queda|me sirve|llego)|cambiar|mover|correr|reagendar|otra hora|otro dia|se me (cruzo|complico)|tengo (un )?(compromiso|trabajo|cita)|(es|era|quedamos|quedo) (a|para) las? \d)/;
-export const saysCantMakeIt = (texts: (string | null | undefined)[]): boolean =>
+const NO_TIME =
+  /\bno\s+(?:puedo|podre|voy a poder|alcanzo|llego|me queda|me sirve|me va bien)\b[^.!?\n]{0,30}?\b(?:a las|a la|a esa hora|esa hora|a ese horario|ese horario|a medio\s?dia|medio\s?dia|a esa|ese dia|hoy)\b/;
+const RESCHEDULE =
+  /\b(?:cambiar|mover|correr|reagendar|reprogramar)\w{0,3}\b[^.!?\n]{0,25}?\b(?:llamada|cita|hora)\b|\bla\s+(?:puedo|podemos|podria|podriamos|pueden|podrian)\s+(?:cambiar|mover|correr|reagendar|reprogramar)\b|\b(?:otra|otro)\s+(?:hora|dia|horario|fecha)\b|\bse me\s+(?:cruzo|complico)\b|\btengo\s+(?:un\s+)?(?:compromiso|trabajo)\b/;
+const OTHER_HOUR = new RegExp(String.raw`\b(?:recuerd\w*|ojo|era|es)\b[^.!?\n]{0,20}?\b(?:a|para)\s+las?\s+${TIME}`);
+export const saysCantMakeIt = (texts: (string | null | undefined)[], booked?: { hm: string }): boolean =>
   texts.some((raw) => {
-    const t = fold(raw ?? "");
-    return CANT_MAKE_IT.test(t) && !/\bpag(ar|o|ue)\b/.test(t);
+    const t = fold(raw ?? "").replace(/\b([ap])\.\s?m\b\.?/g, "$1m");
+    if (/\bpag(ar|o|ue)\b/.test(t)) return false;
+    if (NO_TIME.test(t) || RESCHEDULE.test(t)) return true;
+    const o = t.match(OTHER_HOUR);
+    const said = o ? timeAt(o, 1) : null;
+    return Boolean(said) && (!booked || said!.slice(0, 2) !== booked.hm.slice(0, 2));
   });

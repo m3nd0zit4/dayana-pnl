@@ -158,18 +158,60 @@ describe("hourLimitsFrom (Carito, 9 y 12-nov: le salieron las 12:00)", () => {
 });
 
 describe("saysCantMakeIt (Carito, 12 y 13-nov)", () => {
-  test("no puede a esa hora o dice otra hora: se le buscan horas", () => {
+  const booked = { hm: "12:00" };
+  test("no puede a esa hora, pide cambiarla o dice otra hora: se le buscan horas", () => {
     for (const t of [
       "🎤 Hola, buenos días, recuerda hoy es que no puedo a mediodía por mi trabajo",
       "Recuerda que es a la 7 pm gracias",
       "¿Podemos cambiar la llamada?",
+      "¿La puedo mover para mañana?",
       "Mejor otro día",
       "Se me complicó, tengo un compromiso",
+      "no puedo a esa hora",
     ]) {
-      expect([t, saysCantMakeIt([t])]).toEqual([t, true]);
+      expect([t, saysCantMakeIt([t], booked)]).toEqual([t, true]);
     }
-    for (const t of ["Sí, ahí estaré", "Gracias", "No puedo pagar todavía", "Ok perfecto 👍"]) {
-      expect([t, saysCantMakeIt([t])]).toEqual([t, false]);
+  });
+  test("lo demás no (revisión 13-nov: «no puedo esperar», confirmar la hora que ya tiene)", () => {
+    for (const t of [
+      "Sí, ahí estaré",
+      "Gracias",
+      "No puedo pagar todavía",
+      "Ok perfecto 👍",
+      "no puedo esperar a hablar con ella",
+      "no puedo creer que me llame",
+      "no puedo hablar ahora, mejor luego te escribo",
+      "quedamos a las 12 entonces",
+      "Perfecto, es a las 12",
+      "ya tengo cita con Dayana",
+    ]) {
+      expect([t, saysCantMakeIt([t], booked)]).toEqual([t, false]);
     }
+    // La misma hora de su cita (19:15) dicha como «7 pm» es confirmarla.
+    expect(saysCantMakeIt(["Recuerda que es a la 7 pm gracias"], { hm: "19:15" })).toBe(false);
+  });
+});
+
+describe("hourLimitsFrom: casos de revisión (13-nov)", () => {
+  test("no confunde plazos, otras frases ni días en particular", () => {
+    for (const t of [
+      "después de las 2 semanas te escribo",
+      "hasta las 3 semanas",
+      "Sale, a las 3 me queda bien",
+      "mi hija sale a las 3 del colegio",
+      "el horario de 3 a 5 me sirve",
+      "estoy libre a las 3",
+      "los lunes trabajo de 8 a 12",
+      "después de las vacaciones",
+    ]) {
+      expect([t, hourLimitsFrom([t])]).toEqual([t, {}]);
+    }
+  });
+  test("a. m./p. m. y «de la mañana»", () => {
+    expect(hourLimitsFrom(["después de las 7 de la mañana"])).toEqual({ fromTime: "07:00" });
+    expect(hourLimitsFrom(["después de las 8 de la noche"])).toEqual({ fromTime: "20:00" });
+    expect(hourLimitsFrom(["después de las 5 p. m."])).toEqual({ fromTime: "17:00" });
+    expect(hourLimitsFrom(["salgo a las 4 a mi casa"])).toEqual({ fromTime: "16:30" });
+    expect(hourLimitsFrom(["estoy libre desde las 5"])).toEqual({ fromTime: "17:00" });
   });
 });

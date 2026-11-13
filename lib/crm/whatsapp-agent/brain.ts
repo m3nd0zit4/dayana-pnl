@@ -9,7 +9,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { BRAND } from "@/lib/contact";
 import { getSiteUrl } from "@/lib/site-url";
-import { getDateKeyInTz, getTimeLabelInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
+import { getDateKeyInTz, getTimeHmInTz, getTimeLabelInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { findSimilarExamples, humanReplySql, notLearnableChatSql, type SimilarExample } from "../whatsapp-learning";
 import { lastInboundSeen } from "../whatsapp-pending-rules";
@@ -1402,15 +1402,18 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       // Sus horas («después de las 5», «salgo a las 4», «no puedo a mediodía»): siempre
       // se respetan, aunque el modelo no las pase (Carito, 9 y 12-nov: le salió las 12:00).
       const recentInbound = input.transcript
-        .filter((l) => l.direction === "INBOUND" && (!l.sentAt || now.getTime() - l.sentAt.getTime() < 30 * 86_400_000))
-        .slice(-20)
+        .filter((l) => l.direction === "INBOUND" && (!l.sentAt || now.getTime() - l.sentAt.getTime() < 3 * 86_400_000))
+        .slice(-12)
         .reverse()
         .map((l) => l.body);
       const wish = { ...wishFromWords(said ? args : { ...args, franja: undefined }, tz, now), ...hourLimitsFrom(recentInbound) };
       const { options, matchedWish, closest } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
       if (options.length === 0) {
+        const limited = Boolean(wish.fromTime || wish.toTime || wish.avoidMidday);
         return log("offer_free_call_slots", args, {
-          error: "No hay horas libres en los próximos días. Dile con calidez que Dayana le escribe para buscar un espacio y escala con category=other.",
+          error: limited
+            ? "No hay horas libres dentro de las horas que ella dijo que puede (después de cierta hora, no a mediodía…). Dile con calidez que le pasas su caso a Dayana para buscar un espacio que le quede bien y escala con category=other; no le ofrezcas otras horas."
+            : "No hay horas libres en los próximos días. Dile con calidez que Dayana le escribe para buscar un espacio y escala con category=other.",
         });
       }
       options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
@@ -1628,6 +1631,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // «la 2» es la 2 de la última lista numerada que RECIBIÓ (no una que
               // el modelo pidió en esta vuelta y ella no vio: revisión 21-oct). Si no
               // cuadra (la lista fue de Dayana), el startIso.
+              // Una lista que acabas de pedir en esta vuelta todavía no se la mandas: no la eligió.
+              if (args.option && offeredNow.size > 0) {
+                return log("book_free_call", args, {
+                  error: "Esa lista todavía no se la has enviado: espera a que ella elija una hora y entonces agenda.",
+                });
+              }
               const list = input.latestOffer ?? [];
               const picked = args.option ? list[args.option - 1] : undefined;
               // ¿La última lista numerada que RECIBIÓ es esa? (Carito, 9-nov: después de la
@@ -2780,7 +2789,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Tiene la llamada agendada y dice que a esa hora no puede (Carito, 12-nov: el modelo
   // le dijo «la dejamos para el viernes a las 7:00 p. m.» sin mover nada): horas que le
   // sirvan, y la elegida se mueve (el código, como cualquier lista).
-  const cantMakeIt = Boolean(upcomingCall) && upcomingCall?.source !== "calendar" && saysCantMakeIt(lastInbound);
+  const cantMakeIt = Boolean(upcomingCall) && upcomingCall?.source !== "calendar" && saysCantMakeIt(lastInbound, upcomingCall ? { hm: getTimeHmInTz(upcomingCall.startsAt, personTz() ?? timezone) } : undefined);
   if (
     outcome === modelOutcome &&
     (outcome.kind === "reply" || Boolean(blockedBy)) &&
