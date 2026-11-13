@@ -19,13 +19,11 @@ import {
   workshopFollowLine,
   workshopLeadActive,
   workshopLine,
-  workshopLinkReply,
   workshopPayReply,
   workshopOfferTemplateMessage,
   workshopOfferText,
   mentionsPromo,
   workshopOutreachSource,
-  workshopPayLine,
   workshopReply,
   type OpenWorkshop,
 } from "./workshop-interest";
@@ -283,9 +281,6 @@ describe("lo que dice", () => {
     const booked = workshopReply(WP, { upcomingLabel: "lunes, 26 de octubre, 9:00 a. m." });
     expect(booked).toContain("En tu llamada con Dayana (lunes, 26 de octubre, 9:00 a. m.) ella te cuenta todo del taller y te inscribe.");
     expect(booked).not.toMatch(/enlace|link/i);
-    expect(workshopLinkReply(WP)).toBe(
-      "Claro 🙏 Aquí tienes el enlace para separar tu cupo en el taller «Tu Sanacion con el Dinero». Ahí ves el valor y puedes pagar en línea; con el pago tu cupo queda separado."
-    );
   });
   test("la línea del prompt: abierto, la llamada (también tras la llamada gratis o del webinar), sin valor ni el enlace de su proceso", () => {
     const l = workshopLine(W, { upcomingLabel: null });
@@ -447,7 +442,7 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
     expect(promisesWorkshopLink(WORKSHOP_CHOICE)).toBe(false);
     expect(promisesWorkshopLink("¿Quieres que te envíe el enlace?")).toBe(false);
   });
-  test("el enlace escrito a mano se quita (lo pega el código)", () => {
+  test("el enlace escrito a mano se quita (nunca sale: 12-nov)", () => {
     expect(withoutWorkshopPayUrls(`Aquí tienes el enlace:\n${PAY}`)).toEqual({ text: "Aquí tienes el enlace:", had: true });
     expect(withoutWorkshopPayUrls("Aquí: dayanabeltran.com/pagar/p/taller-x. Ahí ves el valor.")).toEqual({ text: "Aquí: Ahí ves el valor.", had: true });
     expect(withoutWorkshopPayUrls("Sin enlace")).toEqual({ text: "Sin enlace", had: false });
@@ -456,7 +451,7 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
     const asked = { direction: "INBOUND", body: "El costo del taller del 15 de noviembre?", sentAt: at(2) };
     for (const lines of [
       [asked, { direction: "OUTBOUND", body: choice, sentAt: at(1) }],
-      [asked, { direction: "OUTBOUND", body: `${workshopLinkReply(WP)}\n\n${PAY}`, sentAt: at(1) }],
+      [asked, { direction: "OUTBOUND", body: `Claro 🙏 Aquí tienes el enlace para separar tu cupo en el taller «Tu Sanacion con el Dinero».\n\n${PAY}`, sentAt: at(1) }],
       [asked],
     ]) {
       for (const w of [W, WP]) {
@@ -470,11 +465,8 @@ describe("el cupo o la llamada (dueña, 25-oct: «que pregunte si para separar s
 });
 
 describe("pagar el taller sin nombrarlo (Sergio, 25-oct: «Es que es respecto al pago»)", () => {
-  test("la línea del prompt (12-nov): sin enlace, la oferta se la da Dayana en la llamada", () => {
-    const l = workshopPayLine(WP);
-    expect(l).not.toContain("send_workshop_link");
-    expect(l).toContain("la oferta del taller se la da Dayana directamente, uno a uno, en una llamada");
-    expect(l).toContain("Nunca confirmes tú una promoción");
+  test("la respuesta del código (12-nov): sin enlace, la oferta se la da Dayana en la llamada", () => {
+    expect(workshopPayReply(WP)).toContain("Dayana te da la oferta directamente, uno a uno, en una llamada personalizada");
     expect(workshopPayReply(WP)).toContain("¿Quieres que te la agende?");
     expect(workshopPayReply(WP, { promo: true })).toMatch(/^La promoción y la oferta del taller/);
     // Ya tiene su llamada: no se le ofrece otra (revisión 12-nov).
@@ -485,11 +477,6 @@ describe("pagar el taller sin nombrarlo (Sergio, 25-oct: «Es que es respecto al
       expect(r).not.toMatch(/https?:|\$|usd|cop/i);
       expect(isWorkshopOffer({ direction: "OUTBOUND", body: r }, WP)).toBe(true);
     }
-  });
-  test("la respuesta con aviso a Dayana: su pregunta va a Dayana y el enlace va igual", () => {
-    expect(workshopLinkReply(WP, { handoff: true })).toBe(
-      "Tu pregunta se la paso a Dayana y te confirma por aquí 🙏 Mientras, aquí tienes el enlace para separar tu cupo en el taller «Tu Sanacion con el Dinero»: ahí ves el valor y puedes pagar en línea."
-    );
   });
   test("aboutOwnProcess: el pago de su terapia no es el del taller", () => {
     expect(aboutOwnProcess("¿Cómo pago mi terapia?")).toBe(true);
@@ -511,12 +498,12 @@ describe("promociones del webinar (dueña, 25-oct: «el modelo no tiene contexto
     }
     for (const t of ["la llamada gratis", "¿cuánto cuesta?", "quiero pagar"]) expect([t, mentionsPromo(t)]).toEqual([t, false]);
   });
-  test("la respuesta: Dayana confirma la promoción, el enlace va ya (nunca la confirma la IA)", () => {
-    const r = workshopLinkReply(WP, { promo: true, handoff: true });
+  test("la respuesta: la promoción y la oferta se las da Dayana en la llamada, sin enlace (nunca la confirma la IA)", () => {
+    const r = workshopPayReply(WP, { promo: true });
     expect(r).toBe(
-      "La promoción te la confirma Dayana por aquí 🙏 Para que no la pierdas, aquí tienes el enlace para separar tu cupo en el taller «Tu Sanacion con el Dinero»: ahí ves el valor y puedes pagar en línea."
+      "La promoción y la oferta del taller «Tu Sanacion con el Dinero» te las da Dayana directamente, uno a uno, en una llamada personalizada para inscribirte. ¿Quieres que te la agende?"
     );
-    expect(r).not.toMatch(/se respeta|aplica|s[ií] (te )?la respet/i);
+    expect(r).not.toMatch(/https?:|enlace|link|se respeta|aplica|s[ií] (te )?la respet/i);
   });
 });
 

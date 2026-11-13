@@ -2,7 +2,6 @@ import { foldForSearch } from "../search-normalize";
 import { askedPackage } from "./chat-payment-link";
 import { absoluteUrl, type AffordableOption } from "./community";
 import { asksHowToPay, stateFromReply } from "./quote-follow-up-rules";
-import type { OpenWorkshop } from "./workshop-interest";
 
 /**
  * Dice que no le alcanza para iniciar (dueña, 28-oct: «quiero mejorar el
@@ -19,9 +18,10 @@ import type { OpenWorkshop } from "./workshop-interest";
  * abierto el taller «Tu Sanación con el Dinero», más económico que el proceso.
  *
  * Así que a quien dice ahora que no le alcanza: lo más económico que hay en
- * este momento, en orden (el taller abierto con su enlace de pago, la comunidad
- * gratis, la opción económica de Ajustes: el curso en vivo), como mucho dos,
- * sin precios ni presión. Lo que no existe no se nombra.
+ * este momento, en orden (la comunidad gratis, la opción económica de Ajustes:
+ * el curso en vivo), como mucho dos, sin precios ni presión. Lo que no existe
+ * no se nombra. El taller ya no (dueña, 12-nov: la asistente nunca manda
+ * enlaces del taller; la oferta del taller la da Dayana en una llamada).
  *
  * No es «no le alcanza»: el enlace que no abre («No puedo pagar» + «No me
  * deja», Lluvia, 26-oct), quien dice cuándo paga o que espera un dinero («a la
@@ -36,8 +36,6 @@ import type { OpenWorkshop } from "./workshop-interest";
 
 /** Lo más económico que hay ahora, en el orden en que se ofrece. */
 export type CheaperItem =
-  /** El taller abierto: es pagado, pero más económico que el proceso. El valor lo ve en el enlace. */
-  | { kind: "workshop"; title: string; when: string | null; url: string }
   /** La comunidad de WhatsApp de Dayana: gratis. */
   | { kind: "community"; url: string }
   /** La opción económica de Ajustes (el curso en vivo). */
@@ -82,7 +80,7 @@ export const saysCantAfford = (texts: string[], opts: { at: Date; tz: string }):
 /**
  * ¿La respuesta del código toma el lugar de esta escalada? Solo las que no son
  * de Dayana (otra, no sabe, reagendar; lo clínico después de la llamada, donde
- * `serious` sería el paso del pago). Nunca una respuesta del modelo: si escribió
+ * `serious` solo daría una frase de apoyo). Nunca una respuesta del modelo: si escribió
  * líneas de emergencia, eso lo arregla `serious` (24-oct), no esto (revisión 28-oct).
  */
 export const cheaperOverEscalation = (
@@ -91,16 +89,6 @@ export const cheaperOverEscalation = (
 ): boolean =>
   outcome.kind === "escalate" && ["other", "unknown", "reschedule", ...(opts.beforeCall ? [] : ["clinical"])].includes(outcome.category);
 
-/** «domingo 15 de noviembre» en la zona del taller (o lo que diga su fecha escrita). */
-const workshopDay = (w: OpenWorkshop): string | null => {
-  if (w.startsAt) {
-    return new Intl.DateTimeFormat("es-CO", { timeZone: w.timezone, weekday: "long", day: "numeric", month: "long" })
-      .format(w.startsAt)
-      .replace(",", "");
-  }
-  return w.dateLabel?.trim() || null;
-};
-
 /** «Curso en vivo con Dayana: clases en grupo…» → «curso en vivo con Dayana». */
 const shortName = (label: string): string => {
   const name = label.split(/[:(]/)[0].trim() || label.trim();
@@ -108,19 +96,11 @@ const shortName = (label: string): string => {
 };
 
 /**
- * Lo más económico que hay ahora, en orden: el taller abierto (solo con su
- * enlace de pago y si no lo pagó: `workshop` ya llega así), la comunidad, la
- * primera opción económica de Ajustes. Como mucho dos.
+ * Lo más económico que hay ahora, en orden: la comunidad, la primera opción
+ * económica de Ajustes. Como mucho dos.
  */
-export const cheaperOptions = (input: {
-  workshop: OpenWorkshop | null;
-  community: string | null;
-  options: AffordableOption[];
-}): CheaperItem[] => {
+export const cheaperOptions = (input: { community: string | null; options: AffordableOption[] }): CheaperItem[] => {
   const items: CheaperItem[] = [];
-  if (input.workshop?.payUrl) {
-    items.push({ kind: "workshop", title: input.workshop.title, when: workshopDay(input.workshop), url: input.workshop.payUrl });
-  }
   if (input.community) items.push({ kind: "community", url: input.community });
   const course = input.options[0];
   if (course) items.push({ kind: "course", key: course.key, name: shortName(course.label), url: absoluteUrl(course.url) });
@@ -128,8 +108,7 @@ export const cheaperOptions = (input: {
 };
 
 /** La herramienta que manda el enlace de cada opción (para el prompt y el rastro). */
-export const cheaperTool = (item: CheaperItem): string =>
-  item.kind === "workshop" ? "send_workshop_link" : item.kind === "community" ? "send_community_link" : "send_affordable_option";
+export const cheaperTool = (item: CheaperItem): string => (item.kind === "community" ? "send_community_link" : "send_affordable_option");
 
 /**
  * La línea del prompt (solo cuando lo dice ahora: el prompt fijo no cambia).
@@ -138,11 +117,9 @@ export const cheaperTool = (item: CheaperItem): string =>
 export const cheaperLine = (items: CheaperItem[], opts: { beforeCall: boolean }): string => {
   const list = items
     .map((i) =>
-      i.kind === "workshop"
-        ? `el taller «${i.title}»${i.when ? `, el ${i.when}` : ""}: es pagado, pero más económico que el proceso; usa send_workshop_link (con el enlace separa su cupo; no digas el precio)`
-        : i.kind === "community"
-          ? "entrar gratis a la comunidad de Dayana en WhatsApp (send_community_link)"
-          : `el ${i.name}, más económico que la terapia (send_affordable_option, option=${i.key})`
+      i.kind === "community"
+        ? "entrar gratis a la comunidad de Dayana en WhatsApp (send_community_link)"
+        : `el ${i.name}, más económico que la terapia (send_affordable_option, option=${i.key})`
     )
     .join("; y ");
   return [
@@ -154,15 +131,9 @@ export const cheaperLine = (items: CheaperItem[], opts: { beforeCall: boolean })
   ].join(" ");
 };
 
-const WORKSHOP_NOTE = "(con el enlace separas tu cupo)";
-
-/** Una opción dentro de la frase («el taller «…», el domingo 15 de noviembre (…)»). */
+/** Una opción dentro de la frase («la comunidad…», «el curso en vivo…»). */
 const phrase = (i: CheaperItem): string =>
-  i.kind === "workshop"
-    ? `el taller «${i.title}»${i.when ? `, el ${i.when}` : ""} ${WORKSHOP_NOTE}`
-    : i.kind === "community"
-      ? "la comunidad de Dayana en WhatsApp, que es gratis"
-      : `el ${i.name}, en grupo y más económico que la terapia`;
+  i.kind === "community" ? "la comunidad de Dayana en WhatsApp, que es gratis" : `el ${i.name}, en grupo y más económico que la terapia`;
 
 /**
  * La frase con lo más económico («Mientras tanto, hay dos opciones más
@@ -171,15 +142,14 @@ const phrase = (i: CheaperItem): string =>
  */
 export const cheaperSentence = (items: CheaperItem[], opts: { freeCall?: boolean } = {}): string => {
   const [a, b] = items;
+  // La comunidad va siempre primero: con dos, la segunda es el curso.
   const offer = !a
     ? ""
-    : b
-      ? a.kind === "community"
+    : a.kind === "community"
+      ? b
         ? `Mientras tanto, puedes unirte gratis a la comunidad de Dayana en WhatsApp y, si quieres algo más económico, está ${phrase(b)}.`
-        : `Mientras tanto, hay dos opciones más económicas: ${phrase(a)}, y ${phrase(b)}.`
-      : a.kind === "community"
-        ? "Mientras tanto, puedes unirte gratis a la comunidad de Dayana en WhatsApp."
-        : `Mientras tanto, hay algo más económico: ${phrase(a)}.`;
+        : "Mientras tanto, puedes unirte gratis a la comunidad de Dayana en WhatsApp."
+      : `Mientras tanto, hay algo más económico: ${phrase(a)}.`;
   const call = opts.freeCall ? " Y la llamada con Dayana no tiene costo, por si quieres hablar con ella." : "";
   const links = items.length > 1 ? " Te dejo los enlaces aquí abajo." : items.length ? " Te dejo el enlace aquí abajo." : "";
   return `${offer}${call}${links}`.trim();
@@ -233,9 +203,6 @@ export const invitesFreeCall = (text: string): boolean => {
 export const wantsToTalk = (texts: string[]): boolean =>
   /\b(hablar|conversar|llamada|llamar|llamen|guia\w*|guie\w*|orient\w*|ayuda\w*|ayude\w*|asesor\w*|escuch\w*)\b/.test(foldForSearch(texts.join(" ")));
 
-/** ¿La respuesta nombra el taller? (si lo ofreció sin la herramienta, el código pega el enlace). */
-export const mentionsWorkshop = (text: string): boolean => /\b(taller|talleres)\b/.test(foldForSearch(text));
-
 const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 /** El tope de la evaluación es 90 palabras: con lo que agrega el código, que quede debajo. */
 const MAX_WORDS = 85;
@@ -249,7 +216,7 @@ const MAX_WORDS = 85;
  *   respuesta le ofrece la llamada gratis (Divianys, 24-oct: «la llamada con
  *   Dayana es completamente gratis»): tal cual; esa es la opción.
  * - Si no ofrece nada: su texto y debajo la frase con lo más económico; si ya
- *   ofreció otra cosa (la comunidad), solo lo que falta de primero (el taller).
+ *   ofreció otra cosa (el curso), solo lo que falta de primero (la comunidad).
  *   Antes de la llamada, también que la llamada no tiene costo (si no lo dice).
  *   Antes de la pregunta del final, si termina en una. Si queda larga, la del código.
  * `attached`: los enlaces que ya van debajo. Devuelve los que hay que pegar.
@@ -263,10 +230,8 @@ export const withCheaper = (
   const whole = () => ({ text: cheaperReply(items, opts), links: items.map((i) => i.url), replaced: true });
   if (opts.replace || !text.trim()) return whole();
   text = withoutReadyGender(text);
-  // Nombró el taller sin la herramienta: el enlace lo pega el código.
-  const typed = items.filter((i) => i.kind === "workshop" && mentionsWorkshop(text) && !opts.attached.includes(i.url)).map((i) => i.url);
-  const offered = items.filter((i) => opts.attached.includes(i.url) || typed.includes(i.url));
-  if (offered.includes(items[0])) return { text, links: typed, replaced: false };
+  const offered = items.filter((i) => opts.attached.includes(i.url));
+  if (offered.includes(items[0])) return { text, links: [], replaced: false };
   if (opts.beforeCall && opts.talk && offered.length === 0 && invitesFreeCall(text)) return { text, links: [], replaced: false };
   const missing = offered.length ? [items[0]] : items;
   const freeCall = opts.beforeCall && !invitesFreeCall(text);
@@ -281,7 +246,7 @@ export const withCheaper = (
   const q = body.lastIndexOf("¿");
   const tailQ = q > 0 && body.endsWith("?") && !body.slice(q).includes("\n");
   const out = tailQ ? `${body.slice(0, q).trimEnd()}\n\n${sentence}\n\n${body.slice(q)}` : `${body}\n\n${sentence}`;
-  return { text: out, links: [...typed, ...missing.map((i) => i.url)], replaced: false };
+  return { text: out, links: missing.map((i) => i.url), replaced: false };
 };
 
 // --- El seguimiento del cierre a quien dijo que no le alcanza ---------------
@@ -307,18 +272,14 @@ export const cheaperFollowUpText = (name: string | null, items: CheaperItem[]): 
  * {{nombre}}, te bendigo 💛 Te escribo para retomar nuestra conversación.
  * {{mensaje}} Quedo atenta a tu respuesta por aquí.»): una sola línea de hasta
  * 300 caracteres, con los enlaces dentro (sin saltos: WhatsApp no los acepta en
- * una variable). Si no cabe: sin la fecha, con el comienzo corto, luego solo lo
- * primero, luego el título más corto. Un enlace nunca se corta.
+ * una variable). Si no cabe: con el comienzo corto, luego solo lo primero. Un
+ * enlace nunca se corta.
  */
 export const cheaperTemplateMessage = (items: CheaperItem[]): string => {
-  const one = (i: CheaperItem, withDay: boolean, title = i.kind === "workshop" ? i.title : "") =>
-    i.kind === "workshop"
-      ? `el taller «${title}»${withDay && i.when ? ` del ${i.when}` : ""}, para separar tu cupo: ${i.url}`
-      : i.kind === "community"
-        ? `la comunidad gratis de Dayana: ${i.url}`
-        : `el ${i.name}, más económico que la terapia: ${i.url}`;
-  const build = (list: CheaperItem[], withDay: boolean, short = false, title?: string) => {
-    const parts = list.map((i) => one(i, withDay, title));
+  const one = (i: CheaperItem) =>
+    i.kind === "community" ? `la comunidad gratis de Dayana: ${i.url}` : `el ${i.name}, más económico que la terapia: ${i.url}`;
+  const build = (list: CheaperItem[], short = false) => {
+    const parts = list.map(one);
     const offer = parts.length > 1 ? `hay opciones más económicas: ${parts[0]} y ${parts[1]}` : `hay algo más económico: ${parts[0]}`;
     return short
       ? `Mientras llega el momento de iniciar tu proceso, ${offer}`
@@ -326,20 +287,6 @@ export const cheaperTemplateMessage = (items: CheaperItem[]): string => {
   };
   if (items.length === 0) return "Dayana queda atenta para cuando puedas iniciar tu proceso.";
   const first = items.slice(0, 1);
-  const options = [
-    build(items, true),
-    build(items, false),
-    build(items, true, true),
-    build(items, false, true),
-    build(first, true),
-    build(first, false),
-    build(first, false, true),
-  ];
-  const fits = options.find((m) => m.length <= TEMPLATE_MAX);
-  if (fits) return fits;
-  // Un título larguísimo: se acorta el título, nunca el enlace.
-  const top = items[0];
-  if (top.kind !== "workshop") return build(first, false, true);
-  const room = Math.max(TEMPLATE_MAX - build(first, false, true, "").length - 1, 0);
-  return build(first, false, true, `${top.title.slice(0, room).trimEnd()}…`);
+  const options = [build(items), build(items, true), build(first)];
+  return options.find((m) => m.length <= TEMPLATE_MAX) ?? build(first, true);
 };

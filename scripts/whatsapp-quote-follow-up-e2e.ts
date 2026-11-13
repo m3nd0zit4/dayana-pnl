@@ -17,8 +17,8 @@
  * 8. El 1º no le llegó y Dayana lo borró o lo reenvió: no sale otra vez.
  * 9. El 1º no le llegó y sigue en el chat: no se reintenta en cada pasada.
  * 10. Al 1º contestó «no he tenido el dinero» (Andrea, 23-oct): el 2º, 7 días
- *     después, con lo más económico que hay (el taller abierto, la comunidad) y
- *     sus enlaces; fuera de las 24 h, `retomar_conversacion` con eso en `{{mensaje}}`.
+ *     después, con lo más económico que hay (la comunidad, el curso; nunca el
+ *     taller: dueña, 12-nov) y sus enlaces; fuera de las 24 h, `retomar_conversacion` con eso en `{{mensaje}}`.
  * 11. Lo dijo antes del 1º (que ya llevó lo más económico) y no contestó: el 2º
  *     es el de siempre, no le repite la oferta.
  */
@@ -195,12 +195,12 @@ const main = async () => {
     const r10 = await sweep(c10);
     check("fallido en el chat: no sale otra vez", sent.length === 0 && "blocked" in r10, { r10, sent });
 
-    // Lo que hay hoy en la base de desarrollo (el taller abierto con su enlace, la comunidad de Ajustes).
-    const { openWorkshopForAi } = await import("@/lib/crm/workshop-interests");
-    const { communityLink } = await import("@/lib/crm/whatsapp-agent/community");
-    const workshopUrl = (await openWorkshopForAi(now))?.payUrl ?? null;
+    // Lo que hay hoy en Ajustes (la comunidad, el curso). El taller nunca (dueña, 12-nov).
+    const { absoluteUrl, affordableOptions, communityLink } = await import("@/lib/crm/whatsapp-agent/community");
     const communityUrl = communityLink(config);
-    console.log(`\n10. Andrea (23/24-oct): al 1º contestó «no he tenido el dinero»: el 2º, con lo más económico (taller: ${workshopUrl ?? "no hay"}, comunidad: ${communityUrl ?? "no hay"})`);
+    const courseOption = affordableOptions(config)[0];
+    const courseUrl = courseOption ? absoluteUrl(courseOption.url) : null;
+    console.log(`\n10. Andrea (23/24-oct): al 1º contestó «no he tenido el dinero»: el 2º, con lo más económico (comunidad: ${communityUrl ?? "no hay"}, curso: ${courseUrl ?? "no hay"})`);
     const quoteAt11 = ago(13);
     const c11 = await chat("11", [
       { dir: "OUT", body: QUOTE, at: quoteAt11 },
@@ -212,14 +212,14 @@ const main = async () => {
     const r11 = await sweep(c11);
     const s11 = sent[0];
     check("salió el 2º", sent.length === 1 && Boolean(s11?.source.endsWith(":2")), { r11, sent });
-    if (workshopUrl || communityUrl) {
+    if (communityUrl || courseUrl) {
       check("no pregunta «¿Cuándo te gustaría empezar?»", !/cu[aá]ndo te gustar[ií]a empezar/i.test(s11?.text ?? ""), s11?.text);
       check("ofrece lo más económico", /más económic|gratis/.test(s11?.text ?? ""), s11?.text);
-      if (workshopUrl) check("el taller primero, con su enlace", (s11?.text ?? "").includes(workshopUrl) && /taller/.test(s11?.text ?? ""), s11?.text);
+      check("nunca el taller ni su enlace", !/taller|\/pagar\/p\/taller-/i.test(s11?.text ?? ""), s11?.text);
       if (communityUrl) check("la comunidad, con su enlace", (s11?.text ?? "").includes(communityUrl), s11?.text);
       check("fuera de las 24 h: retomar_conversacion", s11?.templateKey === "retomar_conversacion", s11?.templateKey);
       const mensaje = s11?.vars?.mensaje ?? "";
-      check("{{mensaje}}: una línea de hasta 300, con el primer enlace entero", mensaje.length <= 300 && !/\n/.test(mensaje) && mensaje.includes(workshopUrl ?? communityUrl ?? "#"), mensaje);
+      check("{{mensaje}}: una línea de hasta 300, con el primer enlace entero", mensaje.length <= 300 && !/\n/.test(mensaje) && mensaje.includes(communityUrl ?? courseUrl ?? "#"), mensaje);
     } else {
       check("sin nada más económico: el de siempre", s11?.templateKey === "seguimiento_proceso", s11);
     }

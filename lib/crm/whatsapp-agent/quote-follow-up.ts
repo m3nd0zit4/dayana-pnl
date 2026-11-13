@@ -7,7 +7,6 @@ import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbound";
 import { fillVars } from "../whatsapp-outbound-plan";
 import { approvedTemplateFor, ensureTemplatesSubmitted } from "../whatsapp-templates";
-import { enrolledInWorkshop, openWorkshopForAi } from "../workshop-interests";
 import { cheaperFollowUpText, cheaperOptions, cheaperTemplateMessage, saysCantAfford, type CheaperItem } from "./cant-afford";
 import { chatNameInfo } from "./chat-name";
 import { affordableOptions, communityLink } from "./community";
@@ -32,8 +31,8 @@ import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
  * A quien dijo que no le alcanza (dueña, 28-oct: «que el modelo le ofrezca
  * cosas más gratuitas o más económicas, como por ejemplo el taller si hay un
  * taller activo»): en vez de «¿Cuándo te gustaría empezar?», lo más económico
- * que hay ahora (`cant-afford.ts`: el taller abierto, la comunidad, el curso),
- * con los enlaces; fuera de las 24 h, en la plantilla ya aprobada
+ * que hay ahora (`cant-afford.ts`: la comunidad, el curso; el taller ya no:
+ * dueña, 12-nov, ningún enlace del taller), con los enlaces; fuera de las 24 h, en la plantilla ya aprobada
  * `retomar_conversacion` («Te escribo para retomar nuestra conversación.
  * {{mensaje}}»), porque `seguimiento_proceso` tiene fijo «¿Cuándo te gustaría
  * empezar?». Joselyn y Andrea (23/24-oct) contestaron al 1º «no tengo dinero»:
@@ -45,12 +44,9 @@ export const QUOTE_TEMPLATE_KEY = "seguimiento_proceso";
 /** La plantilla del seguimiento a quien no le alcanza (cuerpo fijo + `{{mensaje}}`). */
 export const CHEAPER_TEMPLATE_KEY = "retomar_conversacion";
 
-/** Lo más económico que hay ahora para esta persona (el taller, si no lo pagó ya). */
-const cheaperFor = async (contactId: string | null, config: WhatsAppAiConfig, now: Date): Promise<CheaperItem[]> => {
-  const open = await openWorkshopForAi(now).catch(() => null);
-  const paid = open && contactId ? await enrolledInWorkshop(contactId, open.id).catch(() => false) : false;
-  return cheaperOptions({ workshop: open && !paid ? open : null, community: communityLink(config), options: affordableOptions(config) });
-};
+/** Lo más económico que hay ahora (la comunidad, el curso). */
+const cheaperFor = (config: WhatsAppAiConfig): CheaperItem[] =>
+  cheaperOptions({ community: communityLink(config), options: affordableOptions(config) });
 
 /**
  * Pistas de un mensaje de Dayana con cómo pagar, para buscar los chats (el
@@ -128,7 +124,7 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
   // mismas excepciones que la respuesta (pidió otro paquete, la cuenta, cuotas: no).
   const cheaper =
     s.state === "sin_dinero" && s.said && saysCantAfford([s.said], { at: s.saidAt, tz }) && (!s.lastSentAt || s.saidAt > s.lastSentAt)
-      ? await cheaperFor(conv.contactId, config, now)
+      ? cheaperFor(config)
       : [];
   const text = cheaper.length ? cheaperFollowUpText(name, cheaper) : followUpText(due.kind, s.state, name);
   const templateKey = cheaper.length ? CHEAPER_TEMPLATE_KEY : QUOTE_TEMPLATE_KEY;
@@ -178,7 +174,7 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
     title: `Seguimiento a ${name ?? conv.participantName ?? `+${conv.externalThreadId}`} (${n}º)`,
     body: `${QUOTE_STATE_LABEL[s.state]} · ${quoteHowText(s.how)}. ${
       cheaper.length
-        ? `Le ofrecí lo más económico: ${cheaper.map((i) => (i.kind === "workshop" ? `el taller «${i.title}»` : i.kind === "community" ? "la comunidad" : `el ${i.name}`)).join(" y ")}.`
+        ? `Le ofrecí lo más económico: ${cheaper.map((i) => (i.kind === "community" ? "la comunidad" : `el ${i.name}`)).join(" y ")}.`
         : "Le escribí para iniciar su proceso."
     }`,
     href: `/admin/whatsapp?conversation=${conversationId}`,

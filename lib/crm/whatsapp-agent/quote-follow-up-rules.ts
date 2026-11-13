@@ -593,83 +593,6 @@ export const quoteStateText = (s: QuoteSituation, tz: string): string =>
   `${QUOTE_STATE_LABEL[s.state]}${s.payBy ? ` (≈ ${dayLabel(s.payBy, tz)})` : ""}`;
 
 /**
- * La línea del prompt (solo a quien Dayana ya le mandó cómo pagar): en qué va
- * y qué hacer si dice cuándo paga, que lo piensa o que no le alcanza. Antes,
- * a «estoy decidida, pago la otra semana» (Raquel, 22-oct) el modelo no supo
- * qué decir y salió «Déjame consultarlo con Dayana».
- */
-/**
- * `pack`: el paquete que le corresponde según las notas de Dayana (Joselyn:
- * le mandó 3 y 6 sesiones y la nota dice que primero el de 3); si no, el de la
- * cotización.
- */
-export const quotePromptLine = (s: QuoteSituation, tz: string, pack: string | null = s.how.pack): string =>
-  [
-    `SEGUIMIENTO DEL CIERRE: ${s.quoteBy === "dayana" ? "Dayana le mandó" : "Ya le mandaste"} cómo pagar el ${dayLabel(s.quoteAt, tz)}. Ahora: ${quoteStateText(s, tz)}${s.said ? `; dijo: «${s.said.slice(0, 160)}»` : ""}.`,
-    "- Si dice cuándo va a pagar, que está decidida o que espera un dinero: no escales. Dile con calidez que Dayana queda muy atenta y que, cuando haga el pago, te mande el comprobante por aquí para que Dayana le agende el inicio.",
-    // ENNY (23-oct): «pon la fecha y el día y me envías la forma de pago» al seguimiento.
-    `- Si pide el enlace, los datos o la forma de pago, o no recuerda qué le mandó Dayana: empieza recordándole en qué quedó${pack ? ` («Recuerda que con Dayana quedaron en ${packPhrase(pack)}»)` : ""} y vuelve a mandárselo con send_payment_link o send_payment_info, sin escribir a mano una cuenta ni un enlace. El día y la hora de inicio los agenda Dayana cuando reciba el comprobante: no escales por eso.`,
-    "- Si dice que lo está pensando: respétalo y ofrécele resolver dudas, sin presionar.",
-    // Cuando lo dice ahora, la línea «NO LE ALCANZA PARA INICIAR» (`cant-afford.ts`, 28-oct) dice qué ofrecer.
-    "- Si dice que no le alcanza: mira COMUNIDAD Y OPCIONES MÁS ECONÓMICAS. Si dice que ya pagó o manda el comprobante: register_payment_receipt.",
-  ].join("\n");
-
-/** «1 sesión» → «una sesión»; «paquete de 6 sesiones» → «el paquete de 6 sesiones». */
-const packPhrase = (pack: string) => (pack === "1 sesión" ? "una sesión" : `el ${pack}`);
-
-const COMPROBANTE = "Cuando hagas el pago, me mandas el comprobante por aquí y Dayana te agenda el día y la hora para iniciar.";
-
-/** Abreviaturas que terminan en punto sin terminar la frase («10:00 a. m.», «Dra. Dayana»). */
-const ABBREVIATION = /(?:^|[\s(])(?:a|p|m|dra|dr|sra|sr|srta|ud|uds|n°|no|pág|aprox|etc)\.$/i;
-
-/**
- * Dónde termina la primera frase (índice justo después, con el espacio o el
- * salto de línea), o null si es una sola: un salto de línea termina la frase;
- * un punto, solo si no es de una abreviatura y sigue más texto.
- */
-const firstSentenceEnd = (text: string): number | null => {
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (c === "\n") return text.slice(i + 1).trim() ? i + 1 : null;
-    if (".!?".includes(c) && /[ \t]/.test(text[i + 1] ?? "") && text.slice(i + 1).trim()) {
-      const before = text.slice(0, i + 1);
-      // «…a las 10:00 a. m. Aquí tienes…»: la «m.» de la hora sí cierra la frase si sigue una mayúscula.
-      const endsTime = /[ap]\.\s?m\.$/i.test(before) && /^[\p{Lu}¿¡]/u.test(text.slice(i + 1).trimStart());
-      if (c === "." && ABBREVIATION.test(before) && !endsTime) continue;
-      return i + 1;
-    }
-  }
-  return null;
-};
-
-/**
- * Pidió cómo pagar después de la cotización y la respuesta lleva el enlace o
- * los datos, pero no le recuerda en qué quedó con Dayana ni le pide el
- * comprobante (dueña, 23-oct: «Recuerda que habían quedado en este paquete»;
- * en la evaluación el modelo no lo dijo ninguna de 3 veces): se agrega después
- * de la primera frase («Claro, Enny.») o, si solo hay una, al principio.
- */
-export const withQuoteReminder = (text: string, pack: string | null): string => {
-  let out = text.trim();
-  const t = foldForSearch(out);
-  if (pack && !t.includes("quedaron en") && !t.includes(foldForSearch(packPhrase(pack)))) {
-    const reminder = `Recuerda que con Dayana quedaron en ${packPhrase(pack)}.`;
-    const at = firstSentenceEnd(out);
-    out =
-      at === null
-        ? `${reminder} ${out}`
-        : out[at - 1] === "\n"
-          ? `${out.slice(0, at)}${reminder}${out[at] === "\n" ? "" : " "}${out.slice(at)}`
-          : `${out.slice(0, at)} ${reminder} ${out.slice(at).trimStart()}`;
-  }
-  if (!/\bcomprobante\b/.test(t)) {
-    const body = out.replace(/[\s:]+$/, "");
-    out = `${body}${/[.!?]$/.test(body) ? "" : "."} ${COMPROBANTE}`;
-  }
-  return out;
-};
-
-/**
  * Pide cómo pagar: el enlace, los datos, la forma de pago, «¿cómo te pago?»
  * («me emvias la forma de pago», ENNY). No el enlace de otra cosa (el Meet, la
  * clase, el grupo), ni lo que tiene que ver Dayana: un enlace que no abre, una
@@ -684,18 +607,4 @@ export const asksHowToPay = (texts: string[]): boolean => {
   const t = foldForSearch(texts.join(" "));
   if (!ASKS_HOW_TO_PAY.test(t) || NOT_JUST_PAY.test(t)) return false;
   return !OTHER_LINK.test(t) || /\b(de pago|para pagar)\b/.test(t);
-};
-
-/**
- * Lo que recibe quien pide cómo pagar después de la cotización si el modelo
- * escaló igual (ENNY, 23-oct: «Déjame confirmarlo con Dayana»): en qué quedó
- * con Dayana y, debajo, su enlace o los datos (los pega el código).
- */
-export const quotePayReply = (opts: { name: string | null; pack: string | null; what: "link" | "data" | "dayana_data" }): string => {
-  return [
-    `Claro${opts.name ? `, ${opts.name}` : ""}.`,
-    opts.pack ? `Recuerda que con Dayana quedaron en ${packPhrase(opts.pack)}.` : "Recuerda que Dayana ya te envió cómo hacer el pago.",
-    COMPROBANTE,
-    opts.what === "link" ? "Aquí tienes el enlace de pago" : opts.what === "data" ? "Aquí tienes los datos para el pago" : "Puedes hacer el pago con los datos que te envió Dayana.",
-  ].join(" ");
 };

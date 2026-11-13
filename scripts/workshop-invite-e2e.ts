@@ -385,8 +385,8 @@ const main = async () => {
     const ws = { ...edition, cardSummary: null, payUrl: `https://www.dayanabeltran.com/pagar/p/${productId}` };
     const later = Date.now() + 5000;
     check(
-      "6. su «Quiero separar mi cupo» sigue lo del taller y va el enlace",
-      workshopLeadActive(thread, ws, later) && workshopFlowActive(thread, ws, later) && workshopFollowLine(thread, ws, later).includes("send_workshop_link"),
+      "6. su «Quiero separar mi cupo» sigue lo del taller y va la llamada, sin enlace (12-nov)",
+      workshopLeadActive(thread, ws, later) && workshopFlowActive(thread, ws, later) && workshopFollowLine(thread, ws, later).includes("offer_free_call_slots") && !workshopFollowLine(thread, ws, later).includes("send_workshop_link"),
       { line: workshopFollowLine(thread, ws, later) }
     );
     const synced = await syncInviteReplies(edition);

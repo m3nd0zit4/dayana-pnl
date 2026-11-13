@@ -9,7 +9,6 @@ import {
   PSEUDO_HOLDING,
   promisesHandoff,
   pseudoEscalation,
-  sharesAccount,
   typedPaymentData,
   urlKeys,
   withoutInventedUrls,
@@ -189,14 +188,6 @@ describe("withoutInventedUrls (Ruth, 23-oct)", () => {
     const pay = urlKeys("https://www.dayanabeltran.com/pagar/AbC123");
     expect(withoutInventedUrls("https://www.dayanabeltran.com/pagar/abc123", pay).removed).toEqual(["https://www.dayanabeltran.com/pagar/abc123"]);
     expect(withoutInventedUrls("HTTPS://WWW.DAYANABELTRAN.COM/pagar/AbC123", pay).removed).toEqual([]);
-  });
-});
-
-describe("sharesAccount", () => {
-  test("los mismos números, aunque con otro formato", () => {
-    expect(sharesAccount("Nequi 3105833188", "mi Nequi es 310 583 3188 a nombre de Dayana")).toBe(true);
-    expect(sharesAccount("Bancolombia\nN° Cuenta: 00000000001", "Western Union\nNúmero de cuenta: 00000000002")).toBe(false);
-    expect(sharesAccount("Bancolombia (sin número)", "Bancolombia 00000000001")).toBe(false);
   });
 });
 

@@ -13,12 +13,9 @@ import { foldForSearch } from "../search-normalize";
  * para quien ya tuvo su llamada gratis o solo se inscribió al webinar. Y Dayana
  * ve la lista de interesadas en el taller (`workshop-interests.ts`).
  *
- * Desde el 25-oct (dueña: «que el modelo envíe el enlace de pago pero que
- * pregunte si para separar su cupo o agendar, ya que algunos pueden querer
- * separar su cupo ya»), si el taller tiene su enlace de pago (`payUrl`), la
- * pregunta es esa: ¿separa su cupo de una vez (el enlace, que pega el código)
- * o agenda primero la llamada? Quien ya dice que quiere pagar o pide el
- * enlace lo recibe sin la pregunta. El valor lo ve en el enlace.
+ * Desde el 12-nov (dueña) la asistente nunca manda el enlace del taller ni de
+ * eventos: a quien pide pagar, el valor o el enlace, la oferta se la da Dayana
+ * uno a uno en una llamada (`workshopPayReply`) y Dayana recibe un aviso.
  *
  * Puro: lo usan `brain.ts`, `run.ts`, el CRM y las pruebas.
  */
@@ -250,12 +247,6 @@ export const withoutWorkshopPayUrls = (text: string): { text: string; had: boole
   };
 };
 
-/** Ya le mandamos el enlace de pago del taller (24 h). */
-export const workshopLinkSent = (lines: Line[], now = Date.now()): boolean =>
-  lines.some(
-    (l) => l.direction === "OUTBOUND" && /\/pagar\/p\/taller-/i.test(l.body ?? "") && (!l.sentAt || l.sentAt.getTime() >= now - DAY_MS)
-  );
-
 /**
  * Quien habla de pagar el taller, pide el enlace o el valor (dueña, 12-nov: «no puede
  * enviar links… preferiblemente que se lo pase a Dayana… el taller se le da la oferta
@@ -268,17 +259,6 @@ export const workshopPayReply = (w: OpenWorkshop, opts: { promo?: boolean; upcom
     : opts.promo
       ? `La promoción y la oferta del taller «${w.title}» te las da Dayana directamente, uno a uno, en una llamada personalizada para inscribirte. ¿Quieres que te la agende?`
       : `Claro 🙏 Para inscribirte al taller «${w.title}», Dayana te da la oferta directamente, uno a uno, en una llamada personalizada donde te cuenta todo. ¿Quieres que te la agende?`;
-
-/** Lo que recibe quien elige separar su cupo (el enlace va debajo). */
-export const workshopLinkReply = (w: OpenWorkshop, opts: { handoff?: boolean; promo?: boolean } = {}): string =>
-  opts.promo
-    ? // La promoción que Dayana dio en el webinar (Sergio, 25-oct: «las 4 clases gratis»): la IA no la
-      // conoce, nunca la confirma; Dayana sí. El enlace va ya: a veces la promoción dura un día.
-      `La promoción te la confirma Dayana por aquí 🙏 Para que no la pierdas, aquí tienes el enlace para separar tu cupo en el taller «${w.title}»: ahí ves el valor y puedes pagar en línea.`
-    : opts.handoff
-      ? // Preguntó algo que solo Dayana sabe (cuotas, un descuento): el enlace y Dayana le contesta.
-        `Tu pregunta se la paso a Dayana y te confirma por aquí 🙏 Mientras, aquí tienes el enlace para separar tu cupo en el taller «${w.title}»: ahí ves el valor y puedes pagar en línea.`
-      : `Claro 🙏 Aquí tienes el enlace para separar tu cupo en el taller «${w.title}». Ahí ves el valor y puedes pagar en línea; con el pago tu cupo queda separado.`;
 
 /**
  * ¿Habla de una promoción? En los webinars Dayana regala promociones (dueña,
@@ -410,15 +390,6 @@ export const workshopFollowLine = (lines: Line[], w: OpenWorkshop, now = Date.no
   return `SIGUE LO DEL TALLER: le ofrecimos una llamada con Dayana para inscribirse al taller «${w.title}» (la oferta se la da Dayana directamente, uno a uno, en esa llamada). Si dice que sí, o elige el cupo, pagar o el enlace, ${hours}. Nunca mandes enlaces del taller ni digas el valor: eso se lo da Dayana en la llamada.`;
 };
 
-
-/**
- * La línea del prompt cuando habla de pagar el taller y la conversación ya no lo
- * nombra (preguntó por él en las últimas 24 h; Sergio, 25-oct: «Es que es
- * respecto al pago»). Lo que no sabe (la promoción de la clase, cuotas) lo
- * contesta Dayana; el enlace va igual.
- */
-export const workshopPayLine = (w: OpenWorkshop): string =>
-  `PAGO DEL TALLER: habla de pagar el taller «${w.title}» (o de la promoción que Dayana dio en el webinar). No mandes enlaces ni digas el valor: dile en un mensaje corto que la oferta del taller se la da Dayana directamente, uno a uno, en una llamada, y ofrécele agendarla. Nunca confirmes tú una promoción.`;
 
 /** La respuesta del código si el modelo dice que no hay taller o se lo pasa a Dayana. */
 export const workshopReply = (w: OpenWorkshop, opts: { upcomingLabel: string | null }): string => {

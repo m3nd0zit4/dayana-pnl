@@ -33,7 +33,6 @@ import {
   askedPackage,
   asksForBankDetails,
   CHAT_LINK_REPLY,
-  isPaymentData,
   dayanaPaymentDataBodies,
   dayanaPaymentInfo,
   dayanaPaymentLinks,
@@ -41,10 +40,10 @@ import {
   withoutPayUrls,
 } from "./chat-payment-link";
 import { saysSelfHarm } from "./pause-rules";
-import { asksForCall, asksForMoreHelp, seriousReply } from "./serious-reply";
+import { asksForCall, seriousReply } from "./serious-reply";
 import { familyPaidReply, paidForFamily } from "./family-paid";
 import { insults, RUDE_REPLY, rudeReplied } from "./rude-reply";
-import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, asksAboutSchedule, withoutInventedUrls, writesOwnHours } from "./reply-guards";
+import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, typedPaymentData, urlKeys, asksAboutSchedule, withoutInventedUrls, writesOwnHours } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -78,12 +77,10 @@ import {
   workshopLine,
   mentionsPromo,
   workshopPayReply,
-  workshopPayLine,
   workshopReply,
   type OpenWorkshop,
 } from "./workshop-interest";
 import { enrolledInWorkshop, openWorkshopForAi } from "../workshop-interests";
-import { asksHowToPay, quotePayReply, quotePromptLine, quoteSituation, withQuoteReminder } from "./quote-follow-up-rules";
 import { chatInstructionsLine } from "./chat-instructions";
 import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
@@ -169,11 +166,11 @@ export type BrainResult = {
   bookingNotice: { kind: "booked" | "moved"; label: string; text: string } | null;
   /**
    * Algo delicado que Dayana tiene que saber sin que la persona lo sepa: la
-   * persona recibió una respuesta (apoyo o el paso del pago) y run.ts le avisa
+   * persona recibió una respuesta de apoyo y run.ts le avisa
    * a Dayana sin mensaje de espera (`serious-reply.ts`).
    */
   silentEscalation: { category: EscalationCategory; severity: "normal" | "urgent"; reason: string } | null;
-  /** La respuesta es de lo delicado (apoyo o el paso del pago tras la llamada): sale siempre. */
+  /** La respuesta es de lo delicado (una frase de apoyo): sale siempre. */
   serious: boolean;
   /** En un pago ya hecho: lo que Dayana puede responder cuando lo verifique. */
   suggestedReply: string | null;
@@ -1040,7 +1037,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   }
   // Pregunta por el taller en lo que escribió ahora («Mi pregunta es, para el 15 de noviembre» + «El taller»: juntos).
   const workshopAskNow = Boolean(workshop) && workshopLead && isWorkshopAsk(lastInbound.join("\n"), workshop!);
-  // El enlace de pago del taller (dueña, 25-oct: «que pregunte si para separar su cupo o agendar»).
+  // El taller tiene su enlace de pago (la asistente nunca lo manda: 12-nov); con él se detecta quien pide pagarlo.
   const workshopPay = workshop?.payUrl ?? null;
   // Su llamada ya agendada (también sin agenda automática), para decirle que ahí la inscribe Dayana.
   const workshopCall =
@@ -1077,39 +1074,33 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const chatLink = chatLinks[0] ?? null;
   // Y si no fue un enlace: la cuenta, el Nequi o el valor que Dayana le escribió (Carmen, Raquel, 21-oct).
   const chatPayInfo = chatLink ? null : dayanaPaymentInfo(input.transcript, now);
-  // En qué va su cierre después de la cotización (`quote-follow-up-rules.ts`): solo en «tuvo la llamada».
-  // 30 días y no los del envío (14): la línea no promete seguimientos, le dice
-  // a la IA qué contestar a «pago la otra semana» aunque la cotización sea vieja.
-  const quoteSit =
-    input.stage === "tuvo_llamada" && config.quoteFollowUp.enabled
-      ? quoteSituation(
-          input.transcript.map((l) => ({ ...l, sentAt: l.sentAt ?? now, media: Boolean(l.attachment) })),
-          { now, tz: input.freeCall?.personTimezone ?? timezone, lookbackDays: 30 }
-        )
-      : null;
-  // Elige separar su cupo o habla de pagar el taller («quiero separar mi cupo», «el enlace»,
-  // «la primera» tras la pregunta): va el enlace. También si preguntó por el taller en las
-  // últimas 24 h y la conversación ya no lo nombra (Sergio, 25-oct: «Es que es respecto al
-  // pago» y la IA le dijo que Dayana le explicaba en la llamada), salvo que tenga un pago de
-  // su proceso pendiente (el enlace o los datos de Dayana, una cotización) o hable de él.
+  // Lo de pagar su proceso con lo que le mandó Dayana: solo antes de su llamada (una persona
+  // que agendó la llamada después de recibir el enlace). Después de la llamada la IA no manda
+  // enlaces ni datos de pago (dueña, 13-nov) y a una clienta solo se le recibe el comprobante.
+  const processPayHelp = !afterCall && !input.clientMode;
+  // Habla de pagar el taller, pide el enlace o el valor («quiero separar mi cupo», «¿cómo
+  // pago?», «la primera» tras la pregunta vieja del cupo). Nunca el enlace (dueña, 12-nov):
+  // la oferta se la da Dayana en una llamada (`workshopPayReply`) y Dayana se entera aparte.
+  // También si preguntó por el taller en las últimas 24 h y la conversación ya no lo nombra
+  // (Sergio, 25-oct: «Es que es respecto al pago»), salvo que tenga un pago de su proceso
+  // pendiente (el enlace o los datos de Dayana) o hable de él.
   const lastOutbound = [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND");
-  const processPay = Boolean(chatLink || chatPayInfo || quoteSit || dayanaPaymentInfo(input.transcript, now));
+  const processPay = Boolean(chatLink || dayanaPaymentInfo(input.transcript, now));
   const saidNow = lastInbound.join("\n");
   // Estuvo en el webinar (los últimos 3 días) y habla de pagar con la promoción que Dayana
   // dio ahí (dueña, 25-oct): con el taller abierto, es la del taller.
   const webinarAt = input.freeEvent?.startsAt?.getTime() ?? null;
   const afterWebinar = webinarAt !== null && webinarAt <= now.getTime() && now.getTime() - webinarAt < 3 * 24 * 3600_000;
-  const promoAsk = mentionsPromo(saidNow);
-  const workshopSpot =
+  const workshopPayAsk =
     Boolean(workshopPay) &&
     !input.clientMode &&
     (workshopAskNow ||
       workshopFlow ||
-      ((workshopLead || (afterWebinar && promoAsk)) && !processPay && !aboutOwnProcess(saidNow))) &&
+      ((workshopLead || (afterWebinar && mentionsPromo(saidNow))) && !processPay && !aboutOwnProcess(saidNow))) &&
     !lastInboundMedia &&
     wantsWorkshopSpot(saidNow, { afterChoice: isWorkshopChoice(lastOutbound?.body) });
-  // Pregunta por una promoción que la IA no conoce: la confirma Dayana, el enlace va ya.
-  const workshopPromo = workshopSpot && promoAsk;
+  // Una promoción la confirma Dayana: la respuesta lo dice.
+  const workshopPayPromo = workshopPayAsk && mentionsPromo(saidNow);
   const paymentTools = {
     ...(methods.length > 0
       ? {
@@ -1257,7 +1248,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   const options = affordableOptions(config);
   // Dice ahora que no le alcanza para iniciar (dueña, 28-oct; Joselyn y Andrea, 23/24-oct:
   // al seguimiento del cierre «no tengo dinero» y la IA solo dijo «cuando puedas, me avisas»):
-  // lo más económico que hay ahora (`cant-afford.ts`): el taller abierto, la comunidad, el curso.
+  // lo más económico que hay ahora (`cant-afford.ts`): la comunidad, el curso.
   // No mientras habla del taller (ahí «no puedo pagar» es el taller), ni con su llamada gratis
   // agendada, ni si Dayana le acaba de escribir (esa conversación es de ella).
   const dayanaJustWrote = toDayana && Boolean(lastOutbound?.sentAt && now.getTime() - lastOutbound.sentAt.getTime() < 30 * 60_000);
@@ -1266,13 +1257,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !guestEvent &&
     !workshopAskNow &&
     !workshopFlow &&
-    !workshopSpot &&
+    !workshopPayAsk &&
     !lastInboundMedia &&
     !upcomingCall &&
     !dayanaJustWrote &&
     !(input.stage && ["clienta_activa", "clienta_pasada", "por_revisar", "personal"].includes(input.stage)) &&
     saysCantAfford(lastInbound, { at: now, tz: input.freeCall?.personTimezone ?? timezone })
-      ? cheaperOptions({ workshop: null, community, options })
+      ? cheaperOptions({ community, options })
       : [];
   const urgentPath = input.clientMode ? null : urgentSessionPath(config);
   const addLink = (url: string) => {
@@ -1968,11 +1959,6 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     : null;
   const examplesPart = examplesBlock(examples);
   const transcriptPart = `${transcriptHeader(input.transcript, timezone)}. Léela entera antes de contestar: no preguntes lo que ya se habló, no repitas lo que ya se dijo y sigue el hilo donde quedó:\n${transcriptText(input.transcript, timezone)}`;
-  // El paquete que le toca: el enlace de Dayana que nombran sus notas (Joselyn:
-  // 3 y 6, primero el de 3) o el último; si no hay enlace, el de la cotización.
-  const quoteLink = quoteSit && chatLinks.length ? pickPaymentLink(chatLinks, input.memory) : null;
-  const quotePack = quoteLink && /\/therapy-\d+/i.test(quoteLink.url) ? quoteLink.label : (quoteSit?.how.pack ?? null);
-
   const promptText = [
       // Primero la hora (como cuando iba en las reglas): fuera de las reglas
       // para que la caché de Gemini cubra reglas y herramientas.
@@ -1980,7 +1966,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       `DATOS (lo único que puedes afirmar):\n${await businessFacts(config, { noFreeCall, guest: Boolean(guestEvent), afterCall })}`,
       await playbooksBlock().catch(() => null),
       input.client ? `CLIENTA EN EL CRM:\n${input.client}` : null,
-      chatLink
+      !processPayHelp
+        ? null
+        : chatLink
         ? `ENLACE DE PAGO QUE DAYANA YA LE MANDÓ${chatLink.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatLink.sentAt)})` : ""}. Dayana ya le dijo cómo pagar: si te confirma que habló con Dayana (un «sí» a «¿pudiste hablar con Dayana?» no confirma ninguna cita), quiere pagar o empezar, o pregunta cómo pagar, tu respuesta es que puede hacer el pago por el enlace que le envió Dayana (usa send_payment_link: lo vuelve a poner debajo) y que te mande el comprobante por aquí cuando lo haga. No le mandes las cuentas salvo que las pida.${chatLinks.length > 1 ? ` Le mandó varios: ${chatLinks.map((l) => `«${l.label}»`).join(", ")}. Si las notas de Dayana o el chat dicen cuál le corresponde, pásalo en send_payment_link (cual); si no, el último.` : ""}`
         : chatPayInfo
           ? `DAYANA YA LE MANDÓ CÓMO PAGAR${chatPayInfo.sentAt ? ` (${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long" }).format(chatPayInfo.sentAt)})` : ""}: ya hablaron de la sesión y los valores. Si quiere pagar o empezar, dile que puede hacer el pago con los datos que le envió Dayana y que te mande el comprobante por aquí para que Dayana lo verifique; pregúntale si tiene alguna dificultad para pagar. No le mandes otras cuentas salvo que las pida.`
@@ -2010,16 +1998,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             .filter(Boolean)
             .join("\n")
         : null,
-      quoteSit ? quotePromptLine(quoteSit, input.freeCall?.personTimezone ?? timezone, quotePack) : null,
       // Preguntó por el taller ahora: la información y la llamada para inscribirse.
       // Después (el país, la hora, el «sí»): seguir con el agendamiento.
       workshop && workshopAskNow
         ? workshopLine(workshop, { upcomingLabel: upcomingLabelText })
         : workshop && workshopFlow && !workshopCall
           ? workshopFollowLine(input.transcript, workshop, now.getTime())
-          : workshop && workshopSpot
-            ? workshopPayLine(workshop)
-            : null,
+          : null,
       // No le alcanza (28-oct): lo más económico que hay ahora (solo entonces: el prompt fijo no cambia).
       cheaperItems.length > 0 ? cheaperLine(cheaperItems, { beforeCall: funnelOn }) : null,
       guestEvent
@@ -2139,6 +2124,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Volvió a poner el enlace de pago de Dayana y aun así escaló sin motivo
   // claro («Déjame consultarlo con Dayana»): la persona recibe el enlace.
   const chatLinkOnly =
+    processPayHelp &&
     !agendaOnly &&
     modelOutcome.kind === "escalate" &&
     Boolean(chatLink) &&
@@ -2178,77 +2164,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     asksForBankDetails(lastInbound) &&
     ["payment", "other", "unknown"].includes(modelOutcome.category) &&
     modelOutcome.severity !== "urgent";
-  // Después de la cotización pide cómo pagar («me envías la forma de pago»,
-  // ENNY, 23-oct) y el modelo escaló igual: en qué quedó con Dayana y, debajo,
-  // solo lo seguro (nunca escrito por el modelo): el enlace de Dayana (el del
-  // paquete que pide o el de sus notas) o el del CRM; los datos de Ajustes si
-  // son, cifra por cifra, los que mandó Dayana; si no, «con los datos que te
-  // envió Dayana». Lo demás (otro paquete, cuotas, «ya pagué», el Meet) sigue
-  // escalando. Dayana recibe el aviso del modelo sin que la persona lo vea.
-  const quotePayCandidate =
-    !agendaOnly &&
-    !chatLinkOnly &&
-    !communityOnly &&
-    !paymentDataOnly &&
-    modelOutcome.kind === "escalate" &&
-    modelOutcome.severity !== "urgent" &&
-    ["payment", "other", "unknown"].includes(modelOutcome.category) &&
-    Boolean(quoteSit) &&
-    quoteSit?.state !== "pago_enviado" &&
-    quoteSit?.state !== "no_quiere" &&
-    !input.clientMode &&
-    !state.receipt &&
-    !lastInboundMedia &&
-    asksHowToPay(lastInbound) &&
-    !saysSelfHarm(lastInbound);
-  const quotePay = quotePayCandidate
-    ? await (async () => {
-        const asked = askedPackage(lastInbound.join(" "));
-        const byPack = asked ? (chatLinks.find((l) => new RegExp(`/therapy-${asked}\\b`, "i").test(l.url)) ?? null) : quoteLink;
-        if (asked && !byPack) return null;
-        const wantsBank = asksForBankDetails(lastInbound);
-        // Datos de verdad (no solo un enlace) que Dayana le mandó ella misma.
-        const withoutLinks = (b: string) => b.replace(/https?:\/\/\S+\/pagar\/\S+/gi, "");
-        const dayanaData = dayanaPaymentDataBodies(input.transcript, now).filter((b) => isPaymentData(withoutLinks(b)));
-        // Los últimos datos que le llegaron (de Dayana, o el bloque que pegó el código):
-        // si son una cuenta de Ajustes, esa. Unos de Dayana más nuevos ganan a un
-        // bloque viejo de la asistente (Raquel: Western Union de Dayana después).
-        const lastData =
-          [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND" && l.body && isPaymentData(withoutLinks(l.body)))?.body ?? null;
-        const sameMethod = lastData ? (methods.find((m) => sharesAccount(m.details, lastData)) ?? null) : null;
-        if (!wantsBank) {
-          // Un enlace del CRM: el paquete no se sabe por el enlace del chat.
-          const crm = asked ? null : await activePaymentLinkFor(input.contactId).catch(() => null);
-          if (crm) return { what: "link" as const, url: crm.url, pack: null, method: null };
-          // Si pide otro paquete no es «en lo que quedaron».
-          if (byPack) return { what: "link" as const, url: byPack.url, pack: asked ? null : /\/therapy-\d+/i.test(byPack.url) ? byPack.label : quotePack, method: null };
-        }
-        if (sameMethod) return { what: "data" as const, url: null, pack: quotePack, method: sameMethod };
-        if (dayanaData.length) return { what: "dayana_data" as const, url: null, pack: quotePack, method: null };
-        return null;
-      })()
-    : null;
-  if (quotePay && modelOutcome.kind === "escalate") {
-    if (quotePay.url) {
-      state.paymentLink = quotePay.url;
-      log("send_payment_link", { auto: true }, { ok: true, note: "Lo pegó el código: pidió cómo pagar lo que le cotizó Dayana." });
-    }
-    if (quotePay.method && !state.paymentDetails.includes(quotePay.method.details)) {
-      state.paymentDetails.push(quotePay.method.details);
-      log("send_payment_info", { auto: true, method: quotePay.method.key }, { ok: true, label: quotePay.method.label, note: "Lo pegó el código: son los mismos datos que le mandó Dayana." });
-    }
-    state.silentEscalation = {
-      category: modelOutcome.category,
-      severity: "normal",
-      reason: `${modelOutcome.reason} (La asistente le volvió a mandar cómo pagar lo que le cotizaste.)`.slice(0, 300),
-    };
-  }
   // Preguntó por el taller abierto y el modelo dijo que no hay ninguno (Noralma,
   // 24-oct), le mandó cómo pagar su proceso (Naty) o se lo pasó a Dayana: sale
   // la respuesta del código (abierto, cuándo es y la llamada para inscribirse).
   // Nunca encima de algo grave (sigue `serious`) ni de un pago («ya pagué el taller»: escala).
-  // Si eligió separar su cupo (25-oct) y el modelo le mandó lo de su proceso o
-  // lo escaló, también como pago: el enlace del taller.
+  // Si habla de pagar el taller y el modelo le mandó lo de su proceso o lo escaló
+  // (otra, no sabe, pago): `workshopPayReply`, sin enlace. Cuando el modelo contesta
+  // bien, la misma respuesta la pone `replyText` (y ahí también el aviso a Dayana).
   const workshopGuard =
     Boolean(workshop) &&
     !input.clientMode &&
@@ -2257,19 +2179,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !agendaOnly &&
     !chatLinkOnly &&
     !communityOnly &&
-    !paymentDataOnly &&
-    !quotePay;
+    !paymentDataOnly;
   const wrongWorkshopReply =
     modelOutcome.kind === "reply" && (saysNoWorkshop(modelOutcome.message) || Boolean(state.paymentLink) || state.paymentDetails.length > 0);
-  // Una promoción que la IA no conoce (dueña, 25-oct: «el modelo deja de responder y la
-  // persona no tiene respuesta… a veces las promociones tienen tiempo limitado»): siempre el
-  // enlace + «la promoción te la confirma Dayana», conteste o escale el modelo (nunca la confirma).
-  const promoFix = workshopPromo && !(modelOutcome.kind === "escalate" && modelOutcome.category === "clinical");
-  const workshopFix: "link" | "info" | null = !workshopGuard
+  const workshopFix: "pay" | "info" | null = !workshopGuard
     ? null
-    : workshopSpot &&
-        (promoFix || wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown", "payment"].includes(modelOutcome.category)))
-      ? "link"
+    : workshopPayAsk &&
+        (wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown", "payment"].includes(modelOutcome.category)))
+      ? "pay"
       : workshopAskNow && (wrongWorkshopReply || (modelOutcome.kind === "escalate" && ["other", "unknown"].includes(modelOutcome.category)))
         ? "info"
         : null;
@@ -2277,41 +2194,26 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   if (workshopOnly) {
     state.paymentLink = null;
     state.paymentDetails = [];
-    if (workshopFix === "link") {
-      // 12-nov: sin enlace; la oferta se la da Dayana en la llamada y ella se entera.
+    if (workshopFix === "pay") {
+      // 12-nov: sin enlace; la oferta se la da Dayana en la llamada (el aviso a Dayana, en `replyText`).
       log("workshop_handoff", { auto: true }, { ok: true, note: "Habla de pagar el taller: la llamada con Dayana, sin enlace." });
-      state.silentEscalation ??= {
-        category: "payment",
-        severity: "normal",
-        reason: `Quiere pagar o pregunta el valor del taller («${saidNow.slice(0, 160)}»). La asistente le ofreció la llamada contigo (sin enlace).`,
-      };
     } else {
       log("workshop_reply", { auto: true }, { ok: true, note: "Lo puso el código: preguntó por el taller abierto." });
-    }
-    if (modelOutcome.kind === "escalate") {
-      state.silentEscalation ??= {
-        category: modelOutcome.category,
-        severity: "normal",
-        reason: `${modelOutcome.reason} (${
-          workshopFix === "link"
-            ? "La asistente le ofreció la llamada contigo para el taller (sin enlace)."
-            : workshopPay
+      if (modelOutcome.kind === "escalate") {
+        state.silentEscalation ??= {
+          category: modelOutcome.category,
+          severity: "normal",
+          reason: `${modelOutcome.reason} (${
+            workshopPay
               ? "La asistente le contó del taller y le ofreció la llamada contigo."
               : "La asistente le contó del taller y le ofreció la llamada para inscribirse."
-        })`.slice(0, 300),
-      };
-    }
-    // Contestó el modelo, pero la promoción la confirma Dayana: se entera igual (la persona lo sabe).
-    if (promoFix) {
-      state.silentEscalation ??= {
-        category: "payment",
-        severity: "normal",
-        reason: `Pregunta por una promoción («${saidNow.slice(0, 160)}»). La asistente le dijo que tú le das la oferta en la llamada (sin enlace).`,
-      };
+          })`.slice(0, 300),
+        };
+      }
     }
   }
   // No le alcanza y el modelo se lo pasó a Dayana («Déjame consultarlo», o algo clínico
-  // después de la llamada, que ahí sería el paso del pago): la respuesta del código con
+  // después de la llamada): la respuesta del código con
   // lo más económico (`replyText`), y Dayana un aviso que la persona no ve. Antes de la
   // llamada, lo clínico sigue con la llamada gratis (`serious`); querer morir o hacerse
   // daño, también; las líneas de emergencia del modelo las arregla `serious` (24-oct),
@@ -2323,7 +2225,6 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !chatLinkOnly &&
     !communityOnly &&
     !paymentDataOnly &&
-    !quotePay &&
     !workshopOnly &&
     !state.receipt &&
     !state.noReply &&
@@ -2345,17 +2246,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     };
   }
   // Nunca deja de responder (dueño, 21-oct; `serious-reply.ts`): lo delicado
-  // recibe una frase de apoyo y el siguiente paso (la llamada gratis o el pago),
-  // y Dayana un aviso normal que la persona no ve. Nunca líneas de emergencia
-  // ni «urgente» (dueña, 24-oct: «es para ventas y cierres»).
+  // recibe una frase de apoyo y, antes de la llamada, la llamada gratis; Dayana
+  // un aviso normal que la persona no ve. Nunca líneas de emergencia ni
+  // «urgente» (dueña, 24-oct: «es para ventas y cierres»). Después de su llamada,
+  // solo la frase de apoyo: ni otra llamada ni pagos (dueña, 13-nov).
   // - Dice que quiere morir o hacerse daño (`saysSelfHarm`, ahora o en lo que
-  //   escaló), o algo clínico (angustia, miedos): ya tuvo la llamada → el paso
-  //   del pago, cada vez más directo; antes de la llamada → la llamada gratis.
+  //   escaló), o algo clínico (angustia, miedos).
   // - El modelo escribió por su cuenta una línea de emergencias o «urgencias»
   //   (`givesEmergencyAdvice`; Francy dijo que la llamada «se cortó»): lo mismo,
   //   sin aviso.
-  // - Ya tuvo la llamada y escala porque pide otra llamada, una consulta o una
-  //   sesión: el paso del pago (sin aviso: no es delicado).
   // Un enlace que no abre, una factura, un precio, una queja: siguen escalando.
   const escalated =
     modelOutcome.kind === "escalate" &&
@@ -2363,7 +2262,6 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !chatLinkOnly &&
     !communityOnly &&
     !paymentDataOnly &&
-    !quotePay &&
     !workshopOnly &&
     !input.clientMode &&
     !state.receipt;
@@ -2419,15 +2317,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   }
   const risk = riskNow || (escalated && saysSelfHarm([modelOutcome.reason, ...recentInbound]));
   const clinical = escalated && modelOutcome.category === "clinical";
-  const afterCallAsk =
-    escalated &&
-    input.stage === "tuvo_llamada" &&
-    ["other", "unknown", "reschedule"].includes(modelOutcome.category) &&
-    asksForMoreHelp(lastInbound) &&
-    // Pedir otra llamada o reagendar ya se puede (12-nov): eso no va a la escalera del pago.
-    !asksForCall(lastInbound);
-  // Lo que ya decidió otra respuesta (la sesión urgente, el enlace, la comunidad, los datos, la cotización) va primero.
-  const otherFallback = agendaOnly || chatLinkOnly || communityOnly || paymentDataOnly || Boolean(quotePay) || workshopOnly || cheaperOnly;
+  // Lo que ya decidió otra respuesta (la sesión urgente, el enlace, la comunidad, los datos, el taller) va primero.
+  const otherFallback = agendaOnly || chatLinkOnly || communityOnly || paymentDataOnly || workshopOnly || cheaperOnly;
   // Solo lo que de verdad le llegaría: su respuesta, o el aviso de una escalada (no un comprobante recibido).
   const emergencyTalk =
     !input.clientMode &&
@@ -2436,23 +2327,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     givesEmergencyAdvice(modelOutcome.kind === "reply" ? modelOutcome.message : escalated ? state.holdingReply : null);
   if (emergencyTalk) log("emergency_advice", { auto: true }, { ok: true, note: "El modelo escribió una línea de emergencias o «urgencias»: no sale." });
   const serious =
-    (risk || clinical || afterCallAsk || emergencyTalk) && !otherFallback && !rudeNow && !familyPaid
-      ? (() => {
-          const link = pickPaymentLink(chatLinks, input.memory);
-          const reply = seriousReply({
-            stage: input.stage ?? null,
-            link,
-            hasPaymentData: Boolean(chatPayInfo),
-            priorAi: input.transcript.filter((l) => l.direction === "OUTBOUND" && l.isAutoReply && l.body).slice(-20).map((l) => l.body as string),
-            canOfferFreeCall: salesOn && !upcomingCall,
-            upcomingLabel: upcomingCall ? dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone) : null,
-          });
-          if (reply.attachLink && link) {
-            state.paymentLink = link.url;
-            log("send_payment_link", { auto: true, cual: link.label }, { ok: true, note: "Lo pegó el código: ya tuvo su llamada; lo siguiente con Dayana es después del pago." });
-          }
-          return reply.text;
-        })()
+    (risk || clinical || emergencyTalk) && !otherFallback && !rudeNow && !familyPaid
+      ? seriousReply({
+          // Después de su llamada, nunca otra (`funnelOn` es el embudo de quien aún no la tuvo).
+          canOfferFreeCall: funnelOn && !upcomingCall,
+          upcomingLabel: upcomingCall ? dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone) : null,
+        })
       : null;
   // Dayana se entera de lo delicado, y de lo que el modelo le quería pasar cuando
   // su aviso traía emergencias; la persona no recibe «le aviso a Dayana».
@@ -2493,15 +2373,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         ? { kind: "reply", message: COMMUNITY_REPLY }
         : paymentDataOnly
           ? { kind: "reply", message: "Claro, te comparto los datos para el pago. Cuando lo hagas, me mandas el comprobante por aquí para que Dayana lo revise" }
-          : quotePay
-            ? { kind: "reply", message: quotePayReply({ name: sureFirstName(nameInfo), pack: quotePay.pack, what: quotePay.what }) }
             : workshopOnly && workshop
               ? {
                   kind: "reply",
                   message:
-                    workshopFix === "link"
-                      ? // Escaló una pregunta que solo Dayana sabe (la promoción, cuotas): el enlace y Dayana le contesta.
-                        workshopPayReply(workshop, { promo: promoFix, upcomingLabel: upcomingLabelText })
+                    workshopFix === "pay"
+                      ? workshopPayReply(workshop, { promo: workshopPayPromo, upcomingLabel: upcomingLabelText })
                       : workshopReply(workshop, { upcomingLabel: upcomingLabelText }),
                 }
               : serious
@@ -2558,9 +2435,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         reason: `Pidió entrar a la comunidad («${lastInbound.join(" ").slice(0, 120)}»); la asistente le mandó el enlace.`,
       };
     }
-    // El enlace del taller (dueña, 25-oct): escrito a mano por el modelo, o eligió
-    // separar su cupo (o el modelo dice «aquí tienes el enlace») sin la herramienta.
-    // Lo pega el código; sin la palabra «enlace» en el texto, va la respuesta del cupo.
+    // Un enlace del taller o de inscripción a un evento escrito a mano por el modelo
+    // nunca sale (dueña, 12-nov: ningún enlace del taller ni de eventos).
     const typedWorkshop = withoutWorkshopPayUrls(text);
     // Solo un enlace escrito a mano y nada más: sin él no queda mensaje (revisión 12-nov).
     if (typedWorkshop.had) text = typedWorkshop.text || (workshop ? workshopPayReply(workshop, { upcomingLabel: upcomingLabelText }) : "");
@@ -2568,12 +2444,12 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     // taller) el modelo lo escribió o lo prometió, va la oferta de la llamada con Dayana.
     // Nunca encima de horas, una cita, ni el enlace o los datos de su proceso (revisión 12-nov:
     // «aquí tienes el enlace» del pago de su terapia o del Meet no es el taller).
-    const aboutWorkshop = workshopSpot || workshopAskNow || workshopFlow;
+    const aboutWorkshop = workshopPayAsk || workshopAskNow || workshopFlow;
     if (
       workshop &&
       workshopPay &&
       aboutWorkshop &&
-      (workshopSpot || typedWorkshop.had || promisesWorkshopLink(text)) &&
+      (workshopPayAsk || typedWorkshop.had || promisesWorkshopLink(text)) &&
       !state.slotOffer &&
       !state.booking &&
       !state.pendingBooking &&
@@ -2582,13 +2458,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       state.paymentDetails.length === 0
     ) {
       text =
-        workshopAskNow && !workshopSpot
+        workshopAskNow && !workshopPayAsk
           ? workshopReply(workshop, { upcomingLabel: upcomingLabelText })
-          : workshopPayReply(workshop, { promo: workshopPromo, upcomingLabel: upcomingLabelText });
+          : workshopPayReply(workshop, { promo: workshopPayPromo, upcomingLabel: upcomingLabelText });
       log("workshop_handoff", { auto: true }, { ok: true, note: "Sin enlace del taller: la oferta se la da Dayana en la llamada." });
     }
     // Quiere pagar el taller o pregunta el valor: Dayana se entera siempre (también si va con horas).
-    if (workshop && workshopPay && workshopSpot) {
+    if (workshopPayAsk) {
       state.silentEscalation ??= {
         category: "payment",
         severity: "normal",
@@ -2720,16 +2596,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     if (!chatLink || state.urgentSession) return text;
     const copied = withoutPayUrls(text);
     // «Puedes pagar por el enlace que te envió Dayana» sin la herramienta: se le vuelve a poner.
-    // Después de la cotización también «el pago del paquete de tres sesiones que te
-    // envió» (Joselyn, eval 23-oct). Con otro enlace ya pegado (el curso, la
-    // comunidad) no se agrega el de Dayana.
+    // Con otro enlace ya pegado (el curso, la comunidad) no se agrega el de Dayana.
     // Nunca debajo del aviso de un comprobante («Dayana revisa el pago de tus 3 sesiones»): pagaría dos veces.
     const folded = foldForSearch(text);
     const talksOfDayanaLink =
       !state.receipt &&
       !lastInboundMedia &&
       /\bpag/.test(folded) &&
-      (/\b(enlace|link)\b/.test(folded) || (Boolean(quoteSit) && (/\bque te (envio|mando|compartio|paso)\b/.test(folded) || askedPackage(text) !== null)));
+      /\b(enlace|link)\b/.test(folded);
     // Hablando del taller, «el enlace de pago» es el del taller (eval 25-oct: a la pregunta
     // del cupo o la llamada se le pegaba el enlace del paquete de Naty).
     const workshopTalk = Boolean(workshop) && (workshopAskNow || workshopFlow);
@@ -2747,16 +2621,6 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   };
   // Ningún nombre que no sea seguro, aunque el modelo lo escriba (lo que recibe la persona).
   const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
-  // Pidió cómo pagar lo cotizado y va el enlace o los datos: con «Recuerda que con
-  // Dayana quedaron en…» y el comprobante (dueña, 23-oct). No si pide otro paquete.
-  // El paquete del enlace que de verdad va debajo (si es de Dayana), si no el de las notas.
-  const reminded = (text: string) => {
-    if (!quoteSit || !asksHowToPay(lastInbound) || askedPackage(lastInbound.join(" ")) !== null) return text;
-    if (!state.paymentLink && state.paymentDetails.length === 0) return text;
-    const attached = state.paymentLink ? chatLinks.find((l) => l.url === state.paymentLink) : null;
-    const pack = attached ? (/\/therapy-\d+/i.test(attached.url) ? attached.label : null) : state.paymentLink ? null : quotePack;
-    return withQuoteReminder(text, pack);
-  };
   // Dijo que sí a la llamada gratis y el modelo le preguntó qué día prefiere, o el país
   // otra vez, sin buscar horas (Moi, Belén, Ana, 21–26 oct: nunca les llegaron). Las
   // busca el código, como la herramienta (con los días o la franja que dijo ahora), y
@@ -2786,7 +2650,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !guestEvent &&
     (!upcomingCall || cantMakeIt) &&
     !serious &&
-    !workshopSpot &&
+    !workshopPayAsk &&
     !state.slotOffer &&
     !state.booking &&
     !state.pendingBooking &&
@@ -2871,7 +2735,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     (!workshopPay || (!state.slotOffer && !state.booking && !state.pendingBooking))
       ? withWorkshopStep(text, workshop, { upcomingLabel: upcomingLabelText, linkSent: false })
       : text;
-  // Lo delicado sale tal cual (apoyo o el paso del pago), sin la lista de horas.
+  // Lo delicado sale tal cual (la frase de apoyo), sin la lista de horas.
   // Bloqueado y con horas del código: sale la lista (con la frase de siempre), no «Déjame consultarlo».
   // No le alcanza y el modelo escaló: sale lo más económico (lo escribe `replyText`), no «Déjame consultarlo».
   const answered: BrainOutcome = (autoOffered || cheaperOnly) && outcome.kind === "escalate" ? { kind: "reply", message: "" } : outcome;
@@ -2894,7 +2758,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           ...answered,
           // Ya saludó en las últimas 12 h: sin otro «Hola… te bendigo» al empezar (Malka, 28-oct).
           message: withoutRepeatedGreeting(
-            serious || rudeNow || familyPaid ? answered.message : withAgenda(withWorkshop(reminded(named(replyText(answered.message))!))),
+            serious || rudeNow || familyPaid ? answered.message : withAgenda(withWorkshop(named(replyText(answered.message))!)),
             input.transcript,
             now.getTime()
           ),

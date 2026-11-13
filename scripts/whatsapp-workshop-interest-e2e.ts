@@ -174,7 +174,7 @@ const main = async () => {
     const flow = workshopFlowActive([...thread].reverse(), ws, Date.now());
     const spot = wantsWorkshopSpot("Quiero separar mi cupo", { afterChoice: true });
     const line = workshopFollowLine([...thread].reverse(), ws, Date.now());
-    check("   «Quiero separar mi cupo»: sigue lo del taller y va el enlace", flow && spot && line.includes("send_workshop_link"), { flow, spot, line });
+    check("   «Quiero separar mi cupo»: sigue lo del taller y va la llamada, sin enlace (12-nov)", flow && spot && line.includes("offer_free_call_slots") && !line.includes("send_workshop_link"), { flow, spot, line });
 
     const twice = await offerWorkshopCall({ editionId: edition.id, interestId: rowA!.id }, { send: fakeSend });
     check("7. otra vez el mismo día: no sale otra vez", twice.status === "skipped" && twice.reason === "already", twice);

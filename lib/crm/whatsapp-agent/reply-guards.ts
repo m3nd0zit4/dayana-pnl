@@ -239,13 +239,6 @@ const longNumbers = (text: string): string[] =>
     .map((n) => n.replace(/\D/g, ""))
     .filter((d) => d.length >= 7);
 
-/** ¿Son la misma cuenta? Cada número largo de `details` está en `other` (y hay alguno). */
-export const sharesAccount = (details: string, other: string): boolean => {
-  const mine = longNumbers(details);
-  const theirs = new Set(longNumbers(other));
-  return mine.length > 0 && mine.every((d) => theirs.has(d));
-};
-
 /** Una línea de un bloque de datos: el banco solo, o «Titular: …», «N° Cuenta: …». */
 const DATA_LABEL =
   /^(banco\w*( [a-z]+)?|bancolombia|nequi|daviplata|davivienda|bbva|western union)$|^(banco|nombre( del titular| del beneficiario)?|titular|beneficiario|a nombre de|tipo de cuenta|n[°º.o]* ?(de )?cuenta|numero de cuenta|cuenta( de ahorros| corriente| bancaria)?|documento|c\.?c\.?|cedula|nit|clabe|iban|swift|codigo swift|alias|ciudad|pais|telefono|celular|correo|e-?mail)\s*:|^(a nombre de|titular|beneficiario)\s/;
