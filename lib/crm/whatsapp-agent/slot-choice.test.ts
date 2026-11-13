@@ -165,6 +165,42 @@ describe("offerMessage, bookedMessage", () => {
     );
     expect(offerMessage("¿Cuál te sirve? 12:15 p. m.", natalia.slice(0, 1), false).startsWith("En lo que me dijiste no hay espacio")).toBe(true);
   });
+  test("agrupadas (12-nov): lo antes posible / un poco más adelante, numeración seguida, invita a coordinar", () => {
+    const now = new Date("2026-11-12T15:00:00.000Z"); // jueves 12, 10:00 a. m. en Bogotá
+    const at = (iso: string) => ({ startIso: iso, label: dualZoneLabel(iso, BOG, BOG) });
+    const options = [at("2026-11-12T20:15:00.000Z"), at("2026-11-13T14:00:00.000Z"), at("2026-11-16T14:00:00.000Z"), at("2026-11-17T19:00:00.000Z")];
+    const text = offerMessage("Con gusto, te cuento los espacios que tiene Dayana.", options, null, { now, personTz: BOG });
+    expect(text).toBe(
+      [
+        "Con gusto, te cuento los espacios que tiene Dayana.",
+        "",
+        "Si quieres hablar con Dayana lo antes posible (hoy o mañana):",
+        `1. ${options[0].label}`,
+        `2. ${options[1].label}`,
+        "",
+        "Si te queda mejor un poco más adelante:",
+        `3. ${options[2].label}`,
+        `4. ${options[3].label}`,
+        "",
+        "¿Cuál te queda mejor? Puedes responderme con el número, o dime qué día y a qué hora te sirve y lo coordinamos.",
+      ].join("\n")
+    );
+    // Sigue siendo «la lista»: su «3» se agenda por código.
+    const offer = { at: now, options };
+    const lines = [
+      { direction: "INBOUND", body: "3", sentAt: new Date(now.getTime() + 120_000) },
+      { direction: "OUTBOUND", body: text, sentAt: new Date(now.getTime() + 1_000) },
+    ];
+    const reply = replyToOffer(lines, offer);
+    expect(reply).toBe("3");
+    expect(one(resolveChoice(reply!, options, { personTz: BOG, dayanaTz: BOG, now }))).toBe(options[2].startIso);
+    // Un solo grupo: la lista de siempre, con el cierre para coordinar.
+    const soonOnly = offerMessage("Con gusto.", options.slice(0, 2), null, { now, personTz: BOG });
+    expect(soonOnly).not.toContain("lo antes posible");
+    expect(soonOnly.endsWith("lo coordinamos.")).toBe(true);
+    // Solo hoy: «(hoy)».
+    expect(offerMessage("", [options[0], options[2]], null, { now, personTz: BOG })).toContain("lo antes posible (hoy):");
+  });
   test("la confirmación", () => {
     expect(bookedMessage("booked", "miércoles, 21 de octubre, 12:45 p. m.", "Natalia")).toBe(
       "Listo, Natalia. Tu llamada gratis con Dayana quedó para el miércoles, 21 de octubre, 12:45 p. m. Dayana te llama por WhatsApp a este número."

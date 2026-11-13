@@ -1407,7 +1407,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         note:
           matchedWish === false
             ? `En lo que la persona dijo que puede no hay espacio en la agenda de Dayana. Estas horas (${CLOSEST_NOTE[closest ?? "any"]}) las pega el código debajo de tu mensaje, numeradas, con la pregunta: tú escribe solo una frase corta y cálida diciéndole que en lo que pidió no hay espacio, SIN horas, días ni pregunta. Si después ninguna le sirve, dile que Dayana le escribe para buscar un espacio y escala con category=other.`
-            : "Estas horas las pega el código debajo de tu mensaje, numeradas, con la pregunta. Tú escribe solo una frase corta antes (p. ej. «Con gusto, estas son las horas libres de Dayana:»), SIN horas, días ni pregunta. Cuando elija, usa book_free_call con el startIso de esa hora (o option = su número en la lista).",
+            : "Estas horas las pega el código debajo de tu mensaje, numeradas, con la pregunta. Tú escribe solo una frase corta antes (p. ej. «Con gusto, te cuento los espacios que tiene Dayana:»), SIN horas, días ni pregunta: el código las agrupa (lo antes posible / un poco más adelante) e invita a coordinar. Cuando elija, usa book_free_call con el startIso de esa hora (o option = su número en la lista).",
       });
     } catch (e) {
       return log("offer_free_call_slots", args, {
@@ -2765,7 +2765,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     state.bookingNotice
       ? state.bookingNotice.text
       : state.slotOffer && !state.booking && !state.pendingBooking && !state.keepsCall
-        ? offerMessage(autoOffered ? leadBeforeHours(text) : text, state.slotOffer.options, state.slotOffer.matchedWish)
+        ? offerMessage(autoOffered ? leadBeforeHours(text) : text, state.slotOffer.options, state.slotOffer.matchedWish, {
+            now,
+            personTz: personTz() ?? timezone,
+          })
         : text;
   // Preguntó por el taller y contesta el modelo: siempre «abierto» y la llamada
   // para inscribirse (dueña, 24-oct; el modelo daba la información y se las saltaba);

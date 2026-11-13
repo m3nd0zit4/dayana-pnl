@@ -251,17 +251,58 @@ export const replyToOffer = (messagesNewestFirst: ChatLine[], offer: { at: Date;
 };
 
 export const CHOICE_QUESTION = "¿Cuál te queda mejor? Puedes responderme con el número.";
+/**
+ * Cierre de la lista de horas (dueña, 12-nov: «que trate de coordinar con la
+ * persona para un mejor horario»): el número, o que diga qué día y hora le sirven.
+ * Lleva la pregunta de siempre: los detectores de «la lista» la buscan.
+ */
+export const COORDINATE_QUESTION = "¿Cuál te queda mejor? Puedes responderme con el número, o dime qué día y a qué hora te sirve y lo coordinamos.";
 
 const OFFER_LEAD = "Estas son las horas libres de Dayana para tu llamada gratis de 15 minutos:";
 const OFFER_LEAD_CLOSEST = "En lo que me dijiste no hay espacio en la agenda de Dayana, pero estas horas sí están libres:";
 
+export type OfferContext = { now: Date; personTz: string };
+
+/** Hoy o mañana en su hora: las «lo antes posible». */
+const isSoon = (o: OfferedSlot, ctx: OfferContext): boolean => {
+  const key = getDateKeyInTz(new Date(o.startIso), ctx.personTz);
+  return key === getDateKeyInTz(ctx.now, ctx.personTz) || key === getDateKeyInTz(new Date(ctx.now.getTime() + 86_400_000), ctx.personTz);
+};
+
+/**
+ * Las horas agrupadas (dueña, 12-nov: «si quieres una cita ya, o lo más pronto
+ * posible, tenemos estos horarios; si no, tenemos unos un poquito más adelante…
+ * dime cómo te queda mejor»): primero las de hoy/mañana, luego las de más
+ * adelante, con la numeración seguida (el «2» se agenda igual). Con un solo
+ * grupo, la lista de siempre. Siempre cierra invitando a coordinar.
+ */
+export const groupedOfferList = (options: OfferedSlot[], ctx: OfferContext): string => {
+  const soon = options.filter((o) => isSoon(o, ctx));
+  const later = options.filter((o) => !isSoon(o, ctx));
+  const line = (o: OfferedSlot) => `${options.indexOf(o) + 1}. ${o.label}`;
+  if (soon.length === 0 || later.length === 0) return `${options.map(line).join("\n")}\n\n${COORDINATE_QUESTION}`;
+  const today = getDateKeyInTz(ctx.now, ctx.personTz);
+  const soonKeys = new Set(soon.map((o) => getDateKeyInTz(new Date(o.startIso), ctx.personTz)));
+  const when = soonKeys.size > 1 ? "hoy o mañana" : soonKeys.has(today) ? "hoy" : "mañana";
+  return [
+    `Si quieres hablar con Dayana lo antes posible (${when}):`,
+    ...soon.map(line),
+    "",
+    "Si te queda mejor un poco más adelante:",
+    ...later.map(line),
+    "",
+    COORDINATE_QUESTION,
+  ].join("\n");
+};
+
 /**
  * El mensaje con horas: la frase del modelo (sin horas ni pregunta) y debajo
- * la lista del código. Sin frase, una fija.
+ * la lista del código. Sin frase, una fija. Con `ctx`, agrupadas (lo antes
+ * posible / más adelante) e invitando a coordinar.
  */
-export const offerMessage = (modelText: string, options: OfferedSlot[], matchedWish: boolean | null): string => {
+export const offerMessage = (modelText: string, options: OfferedSlot[], matchedWish: boolean | null, ctx?: OfferContext): string => {
   const lead = withoutSlotLines(modelText) || (matchedWish === false ? OFFER_LEAD_CLOSEST : OFFER_LEAD);
-  return `${lead}\n\n${offerList(options)}`;
+  return `${lead}\n\n${ctx ? groupedOfferList(options, ctx) : offerList(options)}`;
 };
 
 /**

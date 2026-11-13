@@ -221,6 +221,10 @@ const spreadVaried = (slots: Slot[], count: number): Slot[] => {
   return picked;
 };
 
+/** Lo antes posible / un poco más adelante, cuando hay de los dos (12-nov). */
+const SOON_COUNT = 2;
+const LATER_COUNT = 2;
+
 const weekdayOfKey = (dateKey: string) => new Date(`${dateKey}T12:00:00Z`).getUTCDay();
 
 /**
@@ -252,6 +256,15 @@ export const pickFreeCallSlots = (
   const liked = open.filter((s) => !soonKeys.has(s.dateKey) && preferred.has(weekdayOfKey(s.dateKey)));
   const rest = open.filter((s) => !soonKeys.has(s.dateKey) && !preferred.has(weekdayOfKey(s.dateKey)));
   const picked: Slot[] = [];
+  // Con hoy/mañana Y días de más adelante (dueña, 12-nov: «si quieres una cita ya…
+  // si no, unos un poquito más adelante»): dos de lo antes posible y dos de más
+  // adelante (preferidos primero), para que elija; si falta un lado, como siempre.
+  const later = [...liked, ...rest];
+  if (p.soonFirst && soon.length > 0 && later.length > 0) {
+    const likedPick = spreadVaried(liked, LATER_COUNT);
+    picked.push(...spreadVaried(soon, SOON_COUNT), ...likedPick, ...spreadVaried(rest, LATER_COUNT - likedPick.length));
+    return picked.sort((a, b) => a.startIso.localeCompare(b.startIso));
+  }
   for (const group of [soon, liked, rest]) picked.push(...spreadVaried(group, p.count - picked.length));
   return picked.sort((a, b) => a.startIso.localeCompare(b.startIso));
 };

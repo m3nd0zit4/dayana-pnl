@@ -17,11 +17,17 @@ const days = (slots: { dateKey: string }[]) => slots.map((s) => s.dateKey);
 const base = { count: 3, timezone: TZ, now: monday9, soonFirst: true, preferredWeekdays: [] as number[] };
 
 describe("pickFreeCallSlots (17-oct: hoy o mañana primero, luego los días preferidos)", () => {
-  test("con espacio hoy y mañana, las tres opciones salen de ahí y varían la franja", () => {
+  test("con espacio hoy/mañana y más adelante: dos de lo antes posible y dos de más adelante (12-nov)", () => {
     const picked = pickFreeCallSlots(all(), base);
-    expect(days(picked).every((d) => d === "2026-10-19" || d === "2026-10-20")).toBe(true);
-    // Hoy la primera es a las 12:00 (antelación de 3 h), mañana a las 8:00 y otra de hoy en otra franja.
-    expect(picked.map((s) => `${s.dateKey} ${s.time}`)).toEqual(["2026-10-19 12:00", "2026-10-20 08:00", "2026-10-20 12:00"]);
+    // Hoy la primera es a las 12:00 (antelación de 3 h), mañana a las 8:00; luego dos días distintos.
+    expect(picked.map((s) => `${s.dateKey} ${s.time}`)).toEqual(["2026-10-19 12:00", "2026-10-20 08:00", "2026-10-21 08:00", "2026-10-22 08:00"]);
+    // Los de más adelante, primero los días preferidos.
+    expect(days(pickFreeCallSlots(all(), { ...base, preferredWeekdays: [5] }))).toEqual(["2026-10-19", "2026-10-20", "2026-10-23", "2026-10-30"]);
+  });
+
+  test("solo hay espacio hoy y mañana: las de siempre, de ahí", () => {
+    const soonOnly = all().filter((s) => s.dateKey === "2026-10-19" || s.dateKey === "2026-10-20");
+    expect(pickFreeCallSlots(soonOnly, base).map((s) => `${s.dateKey} ${s.time}`)).toEqual(["2026-10-19 12:00", "2026-10-20 08:00", "2026-10-20 12:00"]);
   });
 
   test("sin hoy/mañana primero, van los días preferidos", () => {
