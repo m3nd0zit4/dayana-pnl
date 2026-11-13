@@ -95,7 +95,30 @@ const main = async () => {
   };
   const results: { id: string; origin: string; runs: Run[]; passes: number }[] = [];
 
+  const { openWorkshopForAi } = await import("@/lib/crm/workshop-interests");
+  const { workshopFlowActive } = await import("@/lib/crm/whatsapp-agent/workshop-interest");
+  const { sendsReceipt } = await import("@/lib/crm/whatsapp-agent/payment-intent");
+  const openWs = await openWorkshopForAi(now).catch(() => null);
+
   const runOnce = async (s: (typeof scenarios)[number]): Promise<Run> => {
+    // El silencio después de la llamada, como run.ts (dueña, 13-nov, Merylin): en «tuvo la
+    // llamada» la IA no contesta (Dayana lo ve en «Te toca»), salvo hablando del taller; y a
+    // un comprobante solo le acusa recibo (como a una clienta).
+    let clientMode = s.clientMode;
+    if (config.afterCall.quiet && !process.argv.includes("--after-call-on") && s.stage === "tuvo_llamada" && !s.clientMode && !(openWs && workshopFlowActive(s.transcript, openWs, now.getTime()))) {
+      const burst = s.transcript.slice(-12).map((l) => ({
+        direction: l.direction,
+        body: l.body,
+        attachments: l.attachment === "imagen" ? [{ kind: "image" }] : l.attachment === "pdf" ? [{ kind: "document", mimeType: "application/pdf" }] : null,
+      }));
+      if (sendsReceipt(burst)) clientMode = true;
+      else {
+        // Lo que el caso pide es para cuando Dayana apaga ese silencio (Ajustes → IA); con él
+        // encendido, callar es lo correcto. `--after-call-on` los corre sin el silencio.
+        return { outcome: "after_call", reply: "(no le escribe: ya tuvo su llamada, se lo pasa a Dayana)", tools: [], failed: [], pass: true };
+      }
+    }
+    s = { ...s, clientMode };
     // Como `chatNameInfo` en run.ts: el perfil, el contacto (si lo escribió ella) y la conversación.
     const nameInfo = resolvePersonName({
       profile: s.name,

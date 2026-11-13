@@ -1187,7 +1187,7 @@ export const SCENARIOS: Scenario[] = [
     transcript: [person("Buenas  tardes el costo  del taller  15 noviembre  xf me puede información")],
     expect: {
       outcome: "reply",
-      mustMatch: [/abiert[oa]s?/i, /llamada/i, /sesi[oó]n personalizada|cuenta todo/i],
+      mustMatch: [/abiert[oa]s?/i, /llamada/i, /personalizada|cuenta todo|uno a uno/i],
       mustNotMatch: [/separar (tu|su) cupo (ya|de una vez)|enlace de pago|pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190|dólares/i, /https?:\/\//i],
     },
     goal: "Le dice que el taller sí está abierto, cuándo es (domingo 15 de noviembre) y le ofrece agendarle una llamada con Dayana, una sesión personalizada donde ella le cuenta todo (dueña, 12-nov). No le ofrece ni manda el enlace de pago. Sin el valor.",
@@ -1207,7 +1207,7 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/abiert[oa]s?/i, /llamada/i, /sesi[oó]n personalizada|cuenta todo/i],
+      mustMatch: [/abiert[oa]s?/i, /llamada/i, /personalizada|cuenta todo|uno a uno/i],
       mustNotMatch: [/pagar\/p\/therapy/i, /separar (tu|su) cupo (ya|de una vez)|enlace de pago|pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
     },
     goal: "El taller es otra cosa distinta a su proceso: le dice que sí está abierto, cuándo es y le ofrece agendarle una llamada con Dayana, una sesión personalizada donde le cuenta todo (aunque ya tuvo su llamada gratis). No le ofrece el enlace de pago del taller ni le manda el de su paquete, ni el valor.",
@@ -1292,7 +1292,7 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      mustMatch: [/llamada/i, /sesi[oó]n personalizada|cuenta todo/i],
+      mustMatch: [/llamada/i, /personalizada|cuenta todo|uno a uno/i],
       mustNotMatch: [/separar (tu|su) cupo (ya|de una vez)|enlace de pago|pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i],
     },
     goal: "Preguntar por el taller es pedir algo: le dice que el taller está abierto, cuándo es y el horario, y le ofrece agendarle una llamada con Dayana, una sesión personalizada donde le cuenta todo; no le ofrece el enlace de pago. Puede saludarle por el webinar. Sin el valor.",
@@ -1306,7 +1306,7 @@ export const SCENARIOS: Scenario[] = [
     transcript: [person('Hola Dayana, me interesa inscribirme al taller "Tu Sanacion con el Dinero".')],
     expect: {
       outcome: "reply",
-      mustMatch: [/llamada/i, /sesi[oó]n personalizada|cuenta todo/i],
+      mustMatch: [/llamada/i, /personalizada|cuenta todo|uno a uno/i],
       mustNotMatch: [/separar (tu|su) cupo (ya|de una vez)|enlace de pago|pagar\/p\/taller/i, /no (hay|tenemos)[^.]{0,20}taller/i, /\$|\bcop\b|\busd\b|190/i, /https?:\/\//i],
     },
     goal: "Le da la bienvenida, le confirma el taller (cuándo es) y le ofrece agendarle una llamada con Dayana, una sesión personalizada donde le cuenta todo. No le ofrece ni manda el enlace de pago.",

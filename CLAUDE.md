@@ -256,7 +256,15 @@ Two surfaces, one shared account store.
 
 ### WhatsApp assistant (`lib/crm/whatsapp-agent/`)
 
-The AI answers Dayana's WhatsApp (360dialog coexistence) as her **personal assistant**. Entry point `run.ts` (`runWhatsAppAi`), prompt and tools in `brain.ts`, all settings in the `whatsapp.ai` SiteSetting (`lib/crm/whatsapp-ai-config.ts`, every key top-level with full defaults: a bad nested field would reset its whole block). Every new behaviour ships behind a switch that defaults off:
+The AI answers Dayana's WhatsApp (360dialog coexistence) as her **personal assistant**. Entry point `run.ts` (`runWhatsAppAi`), prompt and tools in `brain.ts`, all settings in the `whatsapp.ai` SiteSetting (`lib/crm/whatsapp-ai-config.ts`, every key top-level with full defaults: a bad nested field would reset its whole block). Every new behaviour ships behind a switch that defaults off.
+
+> **Read this first (restructure, 12–13 nov 2026).** Much of the history below describes behaviour that no longer exists. Current rules from the owner:
+> - **No workshop or event links ever.** A workshop question (price, pay, link, promotion) gets the info + «Dayana te da la oferta del taller directamente, uno a uno, en una llamada personalizada» (`WORKSHOP_CALL_OFFER`, `workshopPayReply`); Dayana gets a silent alert. `send_workshop_link`, `workshopLinkReply`, `workshopPayLine` and the «¿separar cupo o agendar?» choice were removed; the only event link is the Meet link to registered attendees.
+> - **After the call the AI is quiet** (`afterCall.quiet`, on): in stage `tuvo_llamada` run.ts skips the turn (`after_call`, «Te toca») except workshop talk and receipts (acknowledged only, like a client). The «pay first» ladder (`payLadder`), `quotePayReply`, `search_past_chats` and the workshop option in «no me alcanza» were removed. The closing follow-up still sends its own messages. A second free call only comes from workshop talk and is always a request Dayana approves.
+> - **Clients** (also the classifier's «cliente» ≥ 0.7, marked for review) get no reply except a receipt acknowledgement.
+> - **Free-call booking is code-owned**: hours are offered by code (2 soon + 2 later, `groupedOfferList`), the choice is booked or moved by code (`booking-turn.ts`, `honorOffer`), hours the model writes itself are replaced by the agenda's, and a reschedule of the free call is moved, not escalated.
+> - **Timing**: the AI waits 20 s (35 s after a bare greeting or an unfinished sentence: `reply-timing.ts`), sends one holding reply per pending hand-off, and leads have no daily cap (only a 60/day loop guard).
+> - The eval (`scripts/whatsapp-agent-eval.ts`) mirrors the after-call silence; `--after-call-on` runs those cases without it.
 
 - `context.v2` — reads the last N messages whatever their age, decides "new person" over the whole chat (`situation.ts`), adds older matching messages of the same chat (`context.ts`). Each run stores what it read in `whatsapp_ai_runs.context`.
 - `dossier.enabled` — a file per chat (`whatsapp_dossiers`, `dossier.ts`) built from the WHOLE chat in resumable ~150-message steps; reset when older history is imported or chats are merged; the cron refreshes stale ones.
