@@ -2,7 +2,6 @@ import { geminiProvider } from "@/lib/ai/gemini";
 import { appointmentsFor, confirmAppointment } from "./appointments";
 import { contactStage } from "../contact-stage";
 import { getOperationalTimezone } from "../operational-timezone";
-import { Prisma } from "@prisma/client";
 import { generateText, hasToolCall, isStepCount, tool } from "ai";
 import { z } from "zod";
 
@@ -11,7 +10,7 @@ import { BRAND } from "@/lib/contact";
 import { getSiteUrl } from "@/lib/site-url";
 import { getDateKeyInTz, getTimeHmInTz, getTimeLabelInTz, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
-import { findSimilarExamples, humanReplySql, notLearnableChatSql, type SimilarExample } from "../whatsapp-learning";
+import { findSimilarExamples, type SimilarExample } from "../whatsapp-learning";
 import { lastInboundSeen } from "../whatsapp-pending-rules";
 import { availableSlots, SlotUnavailableError } from "./calendar";
 import { diagnosticContextFor } from "../diagnostic-context";
@@ -729,9 +728,8 @@ Cómo conversas (así trabaja Dayana):
 ${leadRules}- Primero se agenda la llamada gratis; en esa llamada Dayana habla de procesos y valores. Tú nunca das precios (REGLA Nº 1).
 - Cuando te agradezcan, di «Con gusto» (nunca «De nada»).
 ${config.booking.aiSchedules ? aiBookingRule(config) : ""}- Con clientas que ya conocen a Dayana, usa la CONVERSACIÓN, la MEMORIA y CLIENTA EN EL CRM para dar continuidad (su próxima sesión, su paquete) sin preguntar lo que ya se habló.
-- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo y cómo es. Nunca mandes enlaces de talleres ni de eventos (ni de inscripción ni de pago). De un taller: la oferta se la da Dayana directamente, uno a uno, en una llamada: ofrécele agendarla. De un evento gratuito, si quiere inscribirse o pide el enlace: dile que Dayana se lo comparte por aquí y escala con category=other. Si la persona YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM) y pide el enlace de la reunión, dale el de Google Meet que está ahí, tal cual. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
+- Talleres, webinars, masterclass y eventos gratuitos: tú SÍ sabes cuáles hay, están en los DATOS (TALLERES y EVENTOS GRATUITOS). Si preguntan, di cuál hay, cuándo y cómo es. No mandes enlaces de inscripción ni de pago de talleres o eventos. De un taller: la oferta se la da Dayana directamente, uno a uno, en una llamada: ofrécele agendarla. De un evento gratuito, si quiere inscribirse: dile que Dayana le comparte el enlace por aquí y escala con category=other. El único enlace que sí das: el de Google Meet de un evento a quien YA SE INSCRIBIÓ (lo dice CLIENTA EN EL CRM), tal cual. Si no hay ninguno próximo, dilo con naturalidad, cuéntale que Dayana los anuncia por aquí y ofrécele la consulta gratis de 15 minutos. Nunca le preguntes a la persona qué eventos hay ni le digas que no sabes.
 - Grabaciones y grupos: los eventos gratuitos (webinars, masterclasses) NO se graban: si preguntan por la grabación de uno, dile con calidez que no queda grabado: «te esperamos en vivo» (o en el próximo). Nunca digas que hay o habrá una grabación, que se la mandas, que algo está «en el grupo» ni que la persona está en un grupo: quien no ha pagado no tiene grabaciones ni grupo de clases. Si pregunta por grabaciones de clases de un curso o taller, escala con category=unknown (Dayana sabe si pagó y dónde están). Si agradece «por aceptarme» o «en su grupo», contesta solo algo corto como «Con gusto 🙏», sin hablar de grupos (ni que está ni que no está, ni que no hay) y sin ofrecerle nada más en ese mensaje.
-- Si dudas cómo lo diría Dayana, usa search_past_chats.
 
 ${paymentRules(config)}
 ${communityRules(config)}${opts.clientMode ? "" : urgentSessionRules(config)}
@@ -739,7 +737,7 @@ Llama a escalate cuando (la persona nunca se queda sin respuesta: en holdingRepl
 - category=payment: insiste en saber el precio, pide un descuento, un reembolso o una factura, o reclama un cobro que no reconoce.
 - category=unknown: pregunta algo que no está en los DATOS ni en la conversación, o no entiendes el mensaje (una imagen que no sabes interpretar, un audio marcado «(inaudible)»).
 - Las fotos y stickers que mandó la persona van adjuntos como imágenes: míralos y responde a lo que muestran (una captura de un horario, una foto de algo que le pasa, un sticker de cariño…). Nunca digas que no puedes ver imágenes. Las notas de voz llegan transcritas con 🎤 delante: léelas como si te las hubiera escrito.
-- category=reschedule: quiere cambiar o cancelar una cita ya agendada.
+- category=reschedule: quiere cancelar una cita, o cambiar una sesión con Dayana o una llamada que puso Dayana (la llamada gratis que agendaste tú la mueves con offer_free_call_slots y book_free_call).
 - category=complaint: se queja o está molesta.
 ${clinicalRule}
 - category=other: Dayana prometió algo en la conversación que tú no puedes cumplir con los DATOS.
@@ -830,22 +828,6 @@ const formatSlot = (iso: string, timezone: string): string => {
     month: "long",
   }).format(d);
   return `${day}, ${getTimeLabelInTz(d, timezone)}`;
-};
-
-/** Búsqueda literal en lo que Dayana ha escrito (complementa los vectores). */
-const searchDayanaReplies = async (query: string): Promise<string[]> => {
-  // Solo lo que Dayana escribió contestando en chats de trabajo: ni la IA, ni
-  // masivos, ni la familia.
-  const rows = await prisma.$queryRaw<{ body: string }[]>(Prisma.sql`
-    SELECT m.body FROM conversation_messages m
-    JOIN conversations c ON c.id = m.conversation_id
-    LEFT JOIN whatsapp_dossiers d ON d.conversation_id = c.id
-    WHERE ${humanReplySql} AND m.body IS NOT NULL AND c.channel = 'WHATSAPP'
-      AND NOT ${notLearnableChatSql}
-      AND to_tsvector('spanish', m.body) @@ plainto_tsquery('spanish', ${query})
-    ORDER BY m.sent_at DESC
-    LIMIT 5`);
-  return rows.map((r) => r.body.slice(0, 500));
 };
 
 export type BrainInput = {
@@ -1459,7 +1441,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     }),
     escalate: tool({
       description:
-        "Le pasa el tema a Dayana (le avisa y le aparece en «Te toca»). Úsalo en reembolsos, descuentos o cobros que no reconoce, preguntas que no están en los DATOS, cambios de cita, quejas o temas clínicos. A la persona le llega tu holdingReply.",
+        "Le pasa el tema a Dayana (le avisa y le aparece en «Te toca»). Úsalo en reembolsos, descuentos o cobros que no reconoce, preguntas que no están en los DATOS, cancelar una cita o cambiar una sesión (la llamada gratis la mueves tú con offer_free_call_slots y book_free_call), y quejas. Lo que cuenta de su vida no se escala. A la persona le llega tu holdingReply.",
       inputSchema: z.object({
         category: z.enum(["payment", "unknown", "complaint", "clinical", "reschedule", "other"]),
         severity: z.enum(["normal", "urgent"]),
@@ -1974,21 +1956,6 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       : {}),
     // Pagos: solo el enlace que Dayana ya creó (send_payment_link) y las
     // cuentas de Ajustes (send_payment_info). La IA no crea enlaces nuevos.
-    search_past_chats: tool({
-      description:
-        "Busca cómo contestó Dayana antes sobre un tema (para imitar su forma, no para sacar precios).",
-      inputSchema: z.object({ query: z.string().min(2).max(200) }),
-      execute: async (args) => {
-        const [similar, literal] = await Promise.all([
-          findSimilarExamples(args.query, 4).catch(() => []),
-          searchDayanaReplies(args.query).catch(() => []),
-        ]);
-        return log("search_past_chats", args, {
-          examples: similar.map((e) => ({ persona: redactPrices(e.clientText), dayana: softenForPrompt(redactPrices(e.replyText)) })),
-          dayanaWrote: literal.map(redactPrices),
-        });
-      },
-    }),
   };
 
   const nowLabel = `${new Intl.DateTimeFormat("es-CO", { timeZone: timezone, weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(now)}, ${getTimeLabelInTz(now, timezone)} (${timezone}, fecha ${getDateKeyInTz(now, timezone)})`;

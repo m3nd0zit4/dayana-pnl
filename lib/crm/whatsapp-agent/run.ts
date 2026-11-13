@@ -707,8 +707,9 @@ export const runWhatsAppAi = async (input: {
       // Con la llamada ya agendada, solo para moverla a otra hora que se le ofreció.
       (route.segment === "new_lead" ||
         route.segment === "returning_lead" ||
-        route.segment === "free_call_booked" ||
-        (workshopCall && route.segment === "after_call"));
+        // Quien ya tuvo su llamada y pregunta por el taller: la llamada queda como pedido que
+        // Dayana aprueba (13-nov: una segunda llamada nunca se agenda sola).
+        route.segment === "free_call_booked");
     // Ya tuvo su llamada y pide otra (dueña, 12-nov: «la gente termina agendando de
     // 15 en 15 sesiones gratuitas y no pagan»): nunca se agenda sola; queda como
     // pedido que Dayana aprueba o rechaza en el CRM.

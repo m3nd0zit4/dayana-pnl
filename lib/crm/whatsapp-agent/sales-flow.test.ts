@@ -78,11 +78,13 @@ describe("salesFlowRules", () => {
     expect(text).toContain("LLAMADA GRATIS de 15 minutos");
     expect(text).toContain("¿Cuánto tiempo más quieres seguir con esa tristeza?");
     expect(text).toContain("nunca digas «botón»");
-    expect(text).toContain("Queda agendada al instante");
+    // Un solo texto para todas (13-nov): la confirmación la manda el sistema o la nota de la herramienta.
+    expect(text).toContain("el sistema manda la confirmación");
+    expect(text).toContain("sin horas, días ni pregunta");
   });
 
-  test("sin agendar sola: queda para que Dayana confirme", () => {
-    expect(salesFlowRules(defaultWhatsAppAiConfig(), { autoBook: false })).toContain("le confirmamos la hora");
+  test("el mismo prompt agende sola o no (caché)", () => {
+    expect(salesFlowRules(defaultWhatsAppAiConfig(), { autoBook: false })).toBe(salesFlowRules(defaultWhatsAppAiConfig(), { autoBook: true }));
   });
 });
 
