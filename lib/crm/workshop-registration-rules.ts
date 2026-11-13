@@ -34,45 +34,6 @@ import { WORKSHOP_CALL_OFFER, workshopWhen, type OpenWorkshop } from "./whatsapp
  * Puro: lo usan `workshop-registration.ts`, la ruta, la página, el CRM y las pruebas.
  */
 
-// ── Dónde ─────────────────────────────────────────────────────────────────
-
-/** La página del registro. */
-export const workshopRegistrationPath = (slug: string): string => `/taller-virtual/${encodeURIComponent(slug)}/registro`;
-
-/**
- * El botón de `/enlaces` (dueña, 13-nov: «quita la lógica de registro… que
- * llegue la persona directamente a WhatsApp preguntando por ello»): abre
- * WhatsApp con la pregunta por el taller ya escrita; la asistente la lee como
- * una pregunta por el taller y le ofrece la llamada con Dayana.
- */
-export const WORKSHOP_LINK_CTA = { title: "Taller", note: "Pregunta por WhatsApp" } as const;
-
-/** El mensaje con el que la persona llega a WhatsApp desde el botón o un enlace viejo del registro. */
-export const workshopWhatsAppMessage = (title: string): string => `Hola Dayana, quiero información del taller «${title}».`;
-
-/** «2026-11-15» en la zona del taller (para comparar días). */
-const dayIn = (d: Date, timeZone: string): string =>
-  new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
-
-/**
- * ¿Se puede registrar? Publicado, sin terminar y sin empezar (revisión 28-oct:
- * con «un día después» como la IA, quien se registraba a las 6 p. m. del día
- * del taller recibía «separa tu cupo» para algo que ya pasó; «Que la IA le
- * escriba» y la invitación ya se negaban desde `startsAt`). Con hora: hasta
- * esa hora. Solo con el día: hasta que termina ese día en la zona del taller.
- * El botón de Enlaces, la página, la ruta y el envío usan esta misma regla.
- */
-export const isRegistrationOpen = (
-  e: { status: string; endedAt: Date | null; startsAt: Date | null; startsAtHasTime?: boolean; timezone?: string | null },
-  now: Date = new Date()
-): boolean => {
-  if (e.status !== "OPEN" || e.endedAt) return false;
-  if (!e.startsAt) return true;
-  if (e.startsAtHasTime !== false) return e.startsAt.getTime() > now.getTime();
-  const tz = e.timezone || "America/Bogota";
-  return dayIn(now, tz) <= dayIn(e.startsAt, tz);
-};
-
 // ── El contacto ───────────────────────────────────────────────────────────
 
 export const WORKSHOP_INTEREST_TAG_SLUG = "taller-interes";
@@ -80,61 +41,6 @@ export const WORKSHOP_INTEREST_TAG_LABEL = "Interés en taller";
 
 /** `first_message` de una fila que nace del registro (no hay mensaje suyo de WhatsApp). */
 export const PAGE_REGISTRATION_MESSAGE = "Se registró en la página del taller.";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const clip = (v: unknown, max: number): string => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().slice(0, max) : "");
-
-export type RegistrationInput = {
-  firstName: string;
-  lastName: string | null;
-  email: string | null;
-  phone: string;
-  phoneCountry: string | null;
-  /** La casilla aparte, sin marcar, de talleres y eventos grupales (`consentMarketingAt`). */
-  consentMarketing: boolean;
-  /** De dónde viene («enlaces»): va al detalle de origen. */
-  ref: string | null;
-};
-
-export type RegistrationParse =
-  | { ok: true; value: RegistrationInput }
-  | { ok: false; error: "honeypot" | "missing_fields" | "consent_required" | "invalid_email" };
-
-/**
- * Lo que manda el formulario. La trampa para bots (`hp`, como `/api/leads`)
- * primero: quien la rellena recibe un «listo» y no se guarda nada.
- */
-export const parseRegistrationBody = (body: unknown): RegistrationParse => {
-  const b = (body && typeof body === "object" ? body : {}) as Record<string, unknown>;
-  if (typeof b.hp === "string" && b.hp.trim()) return { ok: false, error: "honeypot" };
-  const firstName = clip(b.firstName, 60);
-  const phone = clip(b.phone, 32);
-  if (!firstName || !phone) return { ok: false, error: "missing_fields" };
-  if (b.consentData !== true) return { ok: false, error: "consent_required" };
-  const email = clip(b.email, 120).toLowerCase();
-  if (email && !EMAIL_RE.test(email)) return { ok: false, error: "invalid_email" };
-  // Entero y luego se mira: cortado a 2, «Colombia» sería «CO» por casualidad.
-  const country = clip(b.phoneCountry, 8).toUpperCase();
-  const ref = clip(b.ref, 40).toLowerCase();
-  return {
-    ok: true,
-    value: {
-      firstName,
-      lastName: clip(b.lastName, 60) || null,
-      email: email || null,
-      phone,
-      phoneCountry: /^[A-Z]{2}$/.test(country) ? country : null,
-      consentMarketing: b.consentMarketing === true,
-      ref: /^[a-z0-9_-]+$/.test(ref) ? ref : null,
-    },
-  };
-};
-
-/** El detalle de origen del contacto: «Interés en taller: <título> (Enlaces)». */
-export const registrationSourceDetail = (title: string, ref: string | null): string => {
-  const from = ref === "enlaces" ? " (Enlaces)" : ref ? ` (${ref})` : "";
-  return `Interés en taller: ${title.replace(/\s+/g, " ").trim()}${from}`.slice(0, 190);
-};
 
 // ── El WhatsApp ───────────────────────────────────────────────────────────
 
@@ -206,23 +112,6 @@ export const TEMPLATE_COUNTRIES: ReadonlySet<string> = new Set([
   "CO", "PE", "MX", "EC", "VE", "US", "AR", "BO", "ES", "GT", "CL", "CR", "CA", "DO", "PA", "SV", "HN", "NI", "PY", "UY", "PR",
 ]);
 export const templateCountryAllowed = (iso: string | null | undefined): boolean => Boolean(iso && TEMPLATE_COUNTRIES.has(iso.toUpperCase()));
-
-/** Lo que dice la página antes del formulario: sin precio no se habla del enlace de pago. */
-export const registrationIntro = (opts: { payable: boolean }): string =>
-  opts.payable
-    ? "Déjanos tus datos y te escribimos por WhatsApp para contarte cómo completar tu inscripción: con el pago en el enlace de inscripción o, si prefieres, con una llamada gratis con Dayana, donde te explica el taller y su valor."
-    : "Déjanos tus datos y te escribimos por WhatsApp para agendar una llamada gratis con Dayana, donde te explica el taller, su valor y cómo inscribirte.";
-
-/**
- * El «Listo», el mismo para todos (revisión 28-oct: decir «ya pagaste» o «ya
- * estabas» le contaba a cualquiera si un número o un correo ya pagó). No
- * promete que el mensaje llegue ya —sin la plantilla aprobada puede tardar—,
- * así que da cómo avanzar sin esperar.
- */
-export const registrationThanks = (opts: { payable: boolean }): string =>
-  opts.payable
-    ? "Recibimos tu registro. Te escribimos por WhatsApp para contarte cómo completar tu inscripción. Si prefieres no esperar, separa tu cupo ahora o escríbele a Dayana."
-    : "Recibimos tu registro. Te escribimos por WhatsApp para agendar tu llamada gratis con Dayana. Si prefieres no esperar, escríbele ahora.";
 
 const oneLine = (s: string | null | undefined): string => (s ?? "").replace(/\s+/g, " ").trim();
 

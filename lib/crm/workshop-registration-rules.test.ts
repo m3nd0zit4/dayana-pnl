@@ -12,10 +12,8 @@ import {
   type OpenWorkshop,
 } from "./whatsapp-agent/workshop-interest";
 import {
-  isRegistrationOpen,
   pageVia,
   parsePageVia,
-  parseRegistrationBody,
   REGISTRATION_STATE_LABEL,
   REGISTRATION_STATES,
   REGISTRATION_TEMPLATE_BODY,
@@ -23,20 +21,14 @@ import {
   REGISTRATION_TEMPLATE_KEY,
   registrationClientKey,
   registrationSkip,
-  registrationSourceDetail,
   registrationTemplateNotice,
   registrationWaStatus,
   registrationWhen,
-  WORKSHOP_LINK_CTA,
-  workshopWhatsAppMessage,
   WORKSHOP_REGISTRATION_TEMPLATE_CAP,
   REGISTRATION_TEMPLATES_PER_IP_PER_DAY,
   RETRYABLE_STATES,
   registrationClaimable,
-  registrationIntro,
-  registrationThanks,
   templateCountryAllowed,
-  workshopRegistrationPath,
   workshopRegistrationTemplateVars,
   workshopRegistrationText,
   type RegistrationFacts,
@@ -78,80 +70,6 @@ const assertVoice = (text: string) => {
   expect(text).not.toMatch(/\b(inscrita|registrada|interesada|lista|bienvenida)\b/i);
   expect(text).not.toMatch(/https?:\/\//);
 };
-
-describe("dónde", () => {
-  test("el botón de Enlaces lleva a WhatsApp con la pregunta por el taller (13-nov: sin registro)", () => {
-    expect(workshopRegistrationPath("a b")).toBe("/taller-virtual/a%20b/registro");
-    expect(WORKSHOP_LINK_CTA).toEqual({ title: "Taller", note: "Pregunta por WhatsApp" });
-    expect(workshopWhatsAppMessage("Sana Tu Relación con el Dinero")).toBe("Hola Dayana, quiero información del taller «Sana Tu Relación con el Dinero».");
-  });
-
-  test("abierto: publicado, sin terminar y sin empezar (con hora: hasta esa hora)", () => {
-    // 28-oct, 10:00 a. m. en Bogotá.
-    const now = new Date("2026-10-28T15:00:00Z");
-    const open = { status: "OPEN", endedAt: null, startsAt: new Date("2026-11-15T13:30:00Z"), startsAtHasTime: true, timezone: "America/Bogota" };
-    expect(isRegistrationOpen(open, now)).toBe(true);
-    expect(isRegistrationOpen({ ...open, startsAt: null }, now)).toBe(true);
-    // Empezó hace una hora (revisión 28-oct: antes seguía abierto 24 h más).
-    expect(isRegistrationOpen({ ...open, startsAt: new Date("2026-10-28T14:00:00Z") }, now)).toBe(false);
-    expect(isRegistrationOpen({ ...open, startsAt: new Date("2026-10-28T15:00:01Z") }, now)).toBe(true);
-    expect(isRegistrationOpen({ ...open, endedAt: now }, now)).toBe(false);
-    expect(isRegistrationOpen({ ...open, status: "CLOSED" }, now)).toBe(false);
-    expect(isRegistrationOpen({ ...open, status: "DRAFT" }, now)).toBe(false);
-    // Sin `startsAtHasTime`: se toma como con hora (lo estricto).
-    expect(isRegistrationOpen({ status: "OPEN", endedAt: null, startsAt: new Date("2026-10-28T14:00:00Z") }, now)).toBe(false);
-  });
-
-  test("abierto, solo con el día: hasta que termina ese día en la zona del taller", () => {
-    // El ancla del día (12:00 en Bogotá); el taller es el 28-oct.
-    const day = { status: "OPEN", endedAt: null, startsAt: new Date("2026-10-28T17:00:00Z"), startsAtHasTime: false, timezone: "America/Bogota" };
-    expect(isRegistrationOpen(day, new Date("2026-10-28T22:00:00Z"))).toBe(true); // 5 p. m. del mismo día, después del ancla
-    expect(isRegistrationOpen(day, new Date("2026-10-29T04:59:00Z"))).toBe(true); // 11:59 p. m. en Bogotá
-    expect(isRegistrationOpen(day, new Date("2026-10-29T05:01:00Z"))).toBe(false); // ya es el 29 en Bogotá
-    expect(isRegistrationOpen(day, new Date("2026-10-27T15:00:00Z"))).toBe(true);
-  });
-});
-
-describe("el formulario", () => {
-  const base = { firstName: " Ana ", phone: "+573001234567", phoneCountry: "co", consentData: true };
-
-  test("la trampa para bots va primero: «listo» sin guardar nada", () => {
-    expect(parseRegistrationBody({ ...base, hp: "http://spam" })).toEqual({ ok: false, error: "honeypot" });
-    expect(parseRegistrationBody({ hp: "x" })).toEqual({ ok: false, error: "honeypot" });
-  });
-
-  test("nombre y WhatsApp obligatorios; el permiso de datos también; el correo, si viene, válido", () => {
-    expect(parseRegistrationBody({ ...base, firstName: "  " })).toEqual({ ok: false, error: "missing_fields" });
-    expect(parseRegistrationBody({ ...base, phone: "" })).toEqual({ ok: false, error: "missing_fields" });
-    expect(parseRegistrationBody({ ...base, consentData: false })).toEqual({ ok: false, error: "consent_required" });
-    expect(parseRegistrationBody({ ...base, consentData: "true" })).toEqual({ ok: false, error: "consent_required" });
-    expect(parseRegistrationBody({ ...base, email: "ana@" })).toEqual({ ok: false, error: "invalid_email" });
-    expect(parseRegistrationBody(null)).toEqual({ ok: false, error: "missing_fields" });
-  });
-
-  test("lo limpia: espacios, correo en minúsculas, país en mayúsculas, el segundo permiso solo si es true", () => {
-    const r = parseRegistrationBody({ ...base, lastName: "  Pérez ", email: " Ana@Correo.COM ", consentMarketing: true, ref: "Enlaces" });
-    expect(r).toEqual({
-      ok: true,
-      value: {
-        firstName: "Ana",
-        lastName: "Pérez",
-        email: "ana@correo.com",
-        phone: "+573001234567",
-        phoneCountry: "CO",
-        consentMarketing: true,
-        ref: "enlaces",
-      },
-    });
-    const plain = parseRegistrationBody({ ...base, consentMarketing: "sí", ref: "<script>", phoneCountry: "Colombia" });
-    expect(plain.ok && plain.value).toMatchObject({ email: null, lastName: null, consentMarketing: false, ref: null, phoneCountry: null });
-  });
-
-  test("el detalle de origen del contacto", () => {
-    expect(registrationSourceDetail("Tu  Sanación con el Dinero", "enlaces")).toBe("Interés en taller: Tu Sanación con el Dinero (Enlaces)");
-    expect(registrationSourceDetail("Taller", null)).toBe("Interés en taller: Taller");
-  });
-});
 
 describe("el WhatsApp", () => {
   test("la plantilla: de Utilidad (dueña: «que no sea de marketing ya que la persona aceptó»), sin palabras de venta, una línea, con la pregunta del cupo o la llamada", () => {
@@ -240,16 +158,6 @@ describe("el WhatsApp", () => {
     for (const iso of ["BR", "CH", "RU", "GB", "IN", "NG", "", null, undefined]) expect(templateCountryAllowed(iso)).toBe(false);
   });
 
-  test("la página: sin precio no habla del enlace de pago; el «Listo» es el mismo para todos y no promete que ya llegó", () => {
-    expect(registrationIntro({ payable: true })).toContain("enlace de inscripción");
-    expect(registrationIntro({ payable: false })).not.toMatch(/enlace|pago/);
-    expect(registrationThanks({ payable: true })).toContain("separa tu cupo ahora o escríbele a Dayana");
-    expect(registrationThanks({ payable: false })).not.toMatch(/enlace|pago|cupo/);
-    for (const t of [registrationThanks({ payable: true }), registrationThanks({ payable: false })]) {
-      expect(t).not.toMatch(/ya (pagaste|estabas|tienes tu cupo)|registrad[ao]|inscrit[ao]/i);
-      expect(t).toContain("Si prefieres no esperar");
-    }
-  });
 });
 
 describe("la marca en «Interesadas» (offered_via)", () => {
