@@ -129,7 +129,9 @@ describe("de dónde llegó", () => {
 describe("paso 2: preguntas", () => {
   test("solo las opciones que existen", () => {
     expect(parseAnswersBody({ topic: "ansiedad", urgency: "ya" }).ok).toBe(true);
-    expect(parseAnswersBody({ topic: "hackear", urgency: "ya" }).ok).toBe(false);
+    // «¿Cómo te sientes hoy?» ya no se pregunta: un tema que no existe queda vacío, no rechaza.
+    expect(parseAnswersBody({ topic: "hackear", urgency: "ya" })).toMatchObject({ ok: true, value: { topic: null } });
+    expect(parseAnswersBody({ urgency: "ya", goal: "negocio" }).ok).toBe(true);
     expect(parseAnswersBody({ topic: "ansiedad" }).ok).toBe(false);
   });
 
@@ -170,6 +172,7 @@ describe("paso 2: preguntas", () => {
       urgency: "explorando",
       goal: null,
       invest: null,
+      interests: [],
       occupation: null,
       social: null,
       committed: false,
@@ -179,6 +182,9 @@ describe("paso 2: preguntas", () => {
       readAnswers({ topic: "agotamiento", goal: "marca", urgency: "ya", invest: "depende", occupation: "Contadora", social: "https://www.instagram.com/ana.pnl/" })
     ).toMatchObject({ goal: "marca", invest: "depende", occupation: "Contadora", social: "@ana.pnl (Instagram)" });
     expect(readAnswers(null)).toBeNull();
+    // Lo que le interesa: solo opciones que existen, sin repetir el orden de la lista.
+    expect(readAnswers({ urgency: "ya", interests: ["talleres", "sesiones", "hackear"] })?.interests).toEqual(["sesiones", "talleres"]);
+    expect(readAnswers({ urgency: "ya", interests: "talleres" })?.interests).toEqual([]);
     expect(readAnswers({ topic: "x" })).toBeNull();
   });
 });

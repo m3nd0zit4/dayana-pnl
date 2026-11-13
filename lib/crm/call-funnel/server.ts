@@ -45,6 +45,7 @@ import {
   STAGE_LABEL,
   stageOf,
   topicLabel,
+  interestLabels,
   goalLabel,
   investLabel,
   urgencyLabel,
@@ -591,6 +592,8 @@ export type FunnelLeadRow = {
   campaign: string | null;
   topic: string | null;
   urgency: string | null;
+  /** Lo que le interesa (sesiones, cursos, talleres, eventos…). */
+  interests: string[];
   /** A dónde quiere llegar. */
   goal: string | null;
   /** Si puede invertir en su proceso. */
@@ -711,6 +714,7 @@ export const listFunnelLeads = async (opts: { sinceDays?: number; limit?: number
         campaign: attribution.utmCampaign,
         topic: topicLabel(answers?.topic),
         urgency: urgencyLabel(answers?.urgency),
+        interests: interestLabels(answers?.interests),
         goal: goalLabel(answers?.goal),
         invest: investLabel(answers?.invest),
         occupation: answers?.occupation ?? null,

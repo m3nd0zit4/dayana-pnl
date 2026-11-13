@@ -9,7 +9,7 @@ import CheckoutCountrySelect from "@/app/components/payments/CheckoutCountrySele
 import { useCookieConsent } from "@/app/context/CookieConsentContext";
 import { pushDataLayerEvent } from "@/lib/analytics/dataLayer";
 import { buildWhatsAppUrl } from "@/lib/contact";
-import { attributionFromUrl, GOALS, helpMessage, INVESTS, TOPICS, URGENCIES, type GoalId, type InvestId, type TopicId, type UrgencyId } from "@/lib/crm/call-funnel/rules";
+import { attributionFromUrl, GOALS, helpMessage, INTERESTS, INVESTS, URGENCIES, type GoalId, type InterestId, type InvestId, type UrgencyId } from "@/lib/crm/call-funnel/rules";
 import { getLocalPhonePlaceholder, sanitizeLocalPhoneInput, validateLocalPhone } from "@/lib/phone";
 
 import { captureAttribution, storedAttribution } from "./attribution";
@@ -47,7 +47,7 @@ export type CallFunnelProps = {
 type Step = 1 | 2 | 3;
 
 type DetailErrors = { firstName?: string; phone?: string; consent?: string };
-type AnswerErrors = { topic?: string; goal?: string; urgency?: string; invest?: string; commit?: string; email?: string };
+type AnswerErrors = { interests?: string; goal?: string; urgency?: string; invest?: string; commit?: string; email?: string };
 
 const STEP_TITLE: Record<Step, string> = { 1: "Tus datos", 2: "Cuéntanos un poco", 3: "Elige tu hora" };
 
@@ -147,7 +147,8 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
   const [savedDetails, setSavedDetails] = useState<string | null>(null);
 
   // Paso 2
-  const [topic, setTopic] = useState<TopicId | null>(null);
+  /** «¿En qué estás interesado?»: puede marcar varias. */
+  const [interests, setInterests] = useState<InterestId[]>([]);
   const [urgency, setUrgency] = useState<UrgencyId | null>(null);
   const [goal, setGoal] = useState<GoalId | null>(null);
   const [invest, setInvest] = useState<InvestId | null>(null);
@@ -308,25 +309,25 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
 
     const mail = email.trim();
     const errors: AnswerErrors = {};
-    if (!topic) errors.topic = "Elige la opción que más se parezca a lo tuyo.";
     if (!goal) errors.goal = "Elige a dónde te gustaría llegar.";
     if (!urgency) errors.urgency = "Elige una opción.";
+    if (!interests.length) errors.interests = "Marca al menos una opción.";
     if (!invest) errors.invest = "Elige una opción. Ninguna te deja sin llamada.";
     if (!commit) errors.commit = "Marca esta casilla para seguir: Dayana reserva ese espacio solo para ti.";
     if (mail && !EMAIL_RE.test(mail)) errors.email = "Revisa tu correo, o déjalo vacío.";
-    const first = (["topic", "goal", "urgency", "invest", "commit", "email"] as const).find((k) => errors[k]);
+    const first = (["goal", "urgency", "interests", "invest", "commit", "email"] as const).find((k) => errors[k]);
     if (first) {
       setAnswerErrors(errors);
-      focusField({ topic: "tema", goal: "meta", urgency: "urgencia", invest: "invertir", commit: "compromiso", email: "correo" }[first]);
+      focusField({ interests: "interes", goal: "meta", urgency: "urgencia", invest: "invertir", commit: "compromiso", email: "correo" }[first]);
       return;
     }
     setAnswerErrors({});
-    if (!token || !topic || !urgency) {
+    if (!token || !urgency) {
       setStep(token ? 3 : 1);
       return;
     }
 
-    const answers = JSON.stringify([token, topic, goal, urgency, invest, occupation.trim(), social.trim(), note.trim(), mail]);
+    const answers = JSON.stringify([token, goal, urgency, interests, invest, occupation.trim(), social.trim(), note.trim(), mail]);
     if (answers === savedAnswers) {
       setStep(3);
       return;
@@ -339,7 +340,7 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topic,
+          interests,
           goal,
           urgency,
           invest,
@@ -545,19 +546,6 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
 
           <Choice
             id={id}
-            name="tema"
-            legend="¿Cómo te sientes hoy?"
-            options={TOPICS}
-            value={topic}
-            onChange={(v) => {
-              setTopic(v);
-              clearAnswerError("topic");
-            }}
-            error={answerErrors.topic}
-          />
-
-          <Choice
-            id={id}
             name="meta"
             legend="¿A dónde te gustaría llegar en los próximos meses?"
             options={GOALS}
@@ -581,6 +569,31 @@ const CallFunnel = ({ defaultCountry, hours, whatsappUrl }: CallFunnelProps) => 
             }}
             error={answerErrors.urgency}
           />
+
+          <fieldset className="min-w-0" aria-describedby={answerErrors.interests ? `${id}-interes-error` : undefined}>
+            <legend className={labelCls}>¿En qué estás interesado?</legend>
+            <p className="mt-1 font-[font1] text-xs leading-snug text-muted-foreground">Puedes marcar varias.</p>
+            <div className="mt-1.5 divide-y divide-border">
+              {INTERESTS.map((o, i) => (
+                <label key={o.id} className="flex min-h-11 cursor-pointer items-center gap-3 py-2">
+                  <input
+                    id={i === 0 ? `${id}-interes` : undefined}
+                    type="checkbox"
+                    value={o.id}
+                    checked={interests.includes(o.id)}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      setInterests((prev) => (on ? [...prev, o.id] : prev.filter((x) => x !== o.id)));
+                      clearAnswerError("interests");
+                    }}
+                    className="size-[18px] shrink-0 cursor-pointer accent-primary"
+                  />
+                  <span className="font-[font1] text-[0.95rem] leading-snug text-foreground">{o.label}</span>
+                </label>
+              ))}
+            </div>
+            <FieldError id={`${id}-interes-error`} text={answerErrors.interests} />
+          </fieldset>
 
           <Choice
             id={id}

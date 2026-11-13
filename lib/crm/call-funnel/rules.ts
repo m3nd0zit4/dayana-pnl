@@ -252,6 +252,21 @@ export const URGENCIES = [
 ] as const;
 
 /**
+ * «¿En qué estás interesado?» (dueño, 13-nov): lo que Dayana ofrece. Se puede
+ * marcar más de una. Es fijo a propósito: no depende de si hay un taller o un
+ * evento abierto ese día (la llamada es donde se ve qué conviene).
+ */
+export const INTERESTS = [
+  { id: "sesiones", label: "Sesiones de coaching 1 a 1" },
+  { id: "cursos", label: "Cursos" },
+  { id: "talleres", label: "Talleres" },
+  { id: "eventos", label: "Webinars y eventos gratuitos" },
+  { id: "orientacion", label: "Aún no lo sé, quiero que Dayana me oriente" },
+] as const;
+
+export type InterestId = (typeof INTERESTS)[number]["id"];
+
+/**
  * «¿Estás dispuesto a invertir en ti?» Sí o no (dueño, 12-nov). Es para que
  * Dayana sepa qué proponer, no un filtro: ninguna respuesta deja sin llamada.
  */
@@ -271,11 +286,14 @@ export type UrgencyId = (typeof URGENCIES)[number]["id"];
 export type InvestId = (typeof INVESTS)[number]["id"] | (typeof LEGACY_INVESTS)[number]["id"];
 
 export type Answers = {
-  topic: TopicId;
+  /** «¿Cómo te sientes hoy?»: ya no se pregunta (13-nov); las filas de antes lo tienen. */
+  topic: TopicId | null;
   urgency: UrgencyId;
   /** Desde que existe la pregunta; las filas anteriores no lo tienen. */
   goal: GoalId | null;
   invest: InvestId | null;
+  /** En qué está interesada la persona (puede ser más de una). */
+  interests: InterestId[];
   /** A qué se dedica hoy (opcional). */
   occupation: string | null;
   /** Su Instagram o TikTok (opcional). */
@@ -315,9 +333,12 @@ export const cleanSocial = (raw: unknown): string | null => {
 export const parseAnswersBody = (raw: unknown): Parsed<AnswersInput> => {
   if (!raw || typeof raw !== "object") return { ok: false, error: "invalid" };
   const r = raw as Record<string, unknown>;
-  const topic = ALL_TOPICS.find((t) => t.id === r.topic)?.id;
+  const topic = ALL_TOPICS.find((t) => t.id === r.topic)?.id ?? null;
   const urgency = URGENCIES.find((u) => u.id === r.urgency)?.id;
-  if (!topic || !urgency) return { ok: false, error: "invalid" };
+  if (!urgency) return { ok: false, error: "invalid" };
+  const interests = Array.isArray(r.interests)
+    ? INTERESTS.filter((i) => (r.interests as unknown[]).includes(i.id)).map((i) => i.id)
+    : [];
   const email = clip(r.email, 160)?.toLowerCase() ?? null;
   return {
     ok: true,
@@ -326,6 +347,7 @@ export const parseAnswersBody = (raw: unknown): Parsed<AnswersInput> => {
       urgency,
       goal: GOALS.find((g) => g.id === r.goal)?.id ?? null,
       invest: ALL_INVESTS.find((i) => i.id === r.invest)?.id ?? null,
+      interests,
       occupation: clip(r.occupation, 120),
       social: cleanSocial(r.social),
       committed: r.committed === true,
@@ -347,15 +369,18 @@ export const readAnswers = (raw: unknown): Answers | null => {
 export const topicLabel = (id: string | null | undefined): string | null => ALL_TOPICS.find((t) => t.id === id)?.label ?? null;
 export const goalLabel = (id: string | null | undefined): string | null => GOALS.find((g) => g.id === id)?.label ?? null;
 export const urgencyLabel = (id: string | null | undefined): string | null => URGENCIES.find((u) => u.id === id)?.label ?? null;
+export const interestLabels = (ids: readonly string[] | null | undefined): string[] =>
+  INTERESTS.filter((i) => ids?.includes(i.id)).map((i) => i.label);
 export const investLabel = (id: string | null | undefined): string | null => ALL_INVESTS.find((i) => i.id === id)?.label ?? null;
 
 /** La línea para las notas del contacto: Dayana la lee antes de llamar. */
 export const answersNote = (answers: Answers, stamp: string): string =>
   [
     `[${stamp}] Pidió su llamada gratis en la página.`,
-    `Hoy: ${topicLabel(answers.topic)}.`,
+    answers.topic ? `Hoy: ${topicLabel(answers.topic)}.` : null,
     answers.goal ? `Quiere llegar a: ${goalLabel(answers.goal)}.` : null,
     `Para cuándo: ${urgencyLabel(answers.urgency)}.`,
+    answers.interests.length ? `Le interesa: ${interestLabels(answers.interests).join(", ")}.` : null,
     answers.invest ? `¿Invertir en sí?: ${investLabel(answers.invest)}.` : null,
     answers.occupation ? `Se dedica a: ${answers.occupation}.` : null,
     answers.social ? `Redes: ${answers.social}.` : null,

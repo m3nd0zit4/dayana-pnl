@@ -101,15 +101,15 @@ const main = async () => {
 
     // 3 ────────────────────────────────────────────────────────────────────
     const email = `e2e-llamada-${run}@example.com`;
-    const saved = await saveAnswers(a.token, { topic: "ansiedad", urgency: "ya", goal: null, invest: null, occupation: null, social: null, committed: true, note: "Me cuesta dormir.", email });
-    await saveAnswers(a.token, { topic: "agotamiento", urgency: "mes", goal: "marca", invest: "si", occupation: null, social: "@ana.e2e", committed: true, note: null, email: null });
+    const saved = await saveAnswers(a.token, { topic: "ansiedad", urgency: "ya", goal: null, invest: null, interests: [], occupation: null, social: null, committed: true, note: "Me cuesta dormir.", email });
+    await saveAnswers(a.token, { topic: null, urgency: "mes", goal: "marca", invest: "si", interests: ["sesiones", "talleres"], occupation: null, social: "@ana.e2e", committed: true, note: null, email: null });
     const afterAnswers = await prisma.contact.findUniqueOrThrow({ where: { id: a.contactId } });
     const leadAnswered = await prisma.callFunnelLead.findUniqueOrThrow({ where: { token: a.token } });
-    check("3. respuestas guardadas (la última gana)", saved && (leadAnswered.answers as { topic?: string } | null)?.topic === "agotamiento", leadAnswered.answers);
+    check("3. respuestas guardadas (la última gana)", saved && (leadAnswered.answers as { goal?: string } | null)?.goal === "marca", leadAnswered.answers);
     check("3. una sola nota en el contacto", (afterAnswers.notes?.match(/Pidió su llamada gratis/g) ?? []).length === 1, afterAnswers.notes);
     check("3. la nota dice qué quiere trabajar", Boolean(afterAnswers.notes?.includes("Hoy: Ansiedad y miedo")), afterAnswers.notes);
     check("3. el correo completa el que faltaba", afterAnswers.email === email, afterAnswers.email);
-    check("3. un enlace que no existe no guarda nada", !(await saveAnswers("x".repeat(32), { topic: "otro", urgency: "ya", goal: null, invest: null, occupation: null, social: null, committed: false, note: null, email: null })));
+    check("3. un enlace que no existe no guarda nada", !(await saveAnswers("x".repeat(32), { topic: "otro", urgency: "ya", goal: null, invest: null, interests: [], occupation: null, social: null, committed: false, note: null, email: null })));
 
     // 4 ────────────────────────────────────────────────────────────────────
     const slots = await funnelSlots();
@@ -193,7 +193,7 @@ const main = async () => {
     const rowB = rows.find((r) => r.contactId === b.contactId);
     check("11. una fila por persona", rows.length === 2, rows.length);
     check("11. Ana: agendada, confirmó, vino 2 veces", rowA?.stage === "agendada" && rowA.confirmed && rowA.visits === 2, rowA);
-    check("11. Ana: canal y respuestas", rowA?.channel === "instagram" && rowA.campaign === `e2e-${run}` && rowA.topic === "Me siento sin energía, con agotamiento" && rowA.goal === "Vivir de mi marca personal y mi contenido" && rowA.social === "@ana.e2e", rowA);
+    check("11. Ana: canal y respuestas", rowA?.channel === "instagram" && rowA.campaign === `e2e-${run}` && rowA.interests.join(",") === "Sesiones de coaching 1 a 1,Talleres" && rowA.goal === "Vivir de mi marca personal y mi contenido" && rowA.social === "@ana.e2e", rowA);
     check("11. Ana: su hora", rowA?.call?.startIso === third.startIso);
     check("11. Beto: dejó sus datos", rowB?.stage === "datos" && rowB.call === null && !rowB.confirmed, rowB?.stage);
     const stats = funnelStats(rows);
