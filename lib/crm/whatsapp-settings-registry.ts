@@ -235,9 +235,9 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
-    id: "wa-free-max",
-    label: "Llamadas gratis por día",
-    keywords: ["tope", "máximo", "llamadas gratis", "por día", "cupos"],
+    id: "wa-free-max-on",
+    label: "Tope de llamadas gratis por día (apagado = sin límite)",
+    keywords: ["tope", "límite", "limite", "máximo", "llamadas gratis", "por día", "cupos", "sin límite", "día lleno"],
     tab: "ia",
   },
   {

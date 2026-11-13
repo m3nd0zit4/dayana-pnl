@@ -24,6 +24,14 @@ describe("parseWhatsAppAiConfig", () => {
     expect(config.instructions).toBe("No hables de política");
   });
 
+  test("llamadas gratis por día: sin límite por defecto; un tope guardado se respeta (13-nov)", () => {
+    expect(defaultWhatsAppAiConfig().freeCall.maxPerDay).toBeNull();
+    expect(parseWhatsAppAiConfig(null).freeCall.maxPerDay).toBeNull();
+    const base = defaultWhatsAppAiConfig();
+    expect(parseWhatsAppAiConfig(JSON.stringify({ freeCall: { ...base.freeCall, maxPerDay: 6 } })).freeCall.maxPerDay).toBe(6);
+    expect(parseWhatsAppAiConfig(JSON.stringify({ freeCall: { ...base.freeCall, maxPerDay: null } })).freeCall.maxPerDay).toBeNull();
+  });
+
   test("JSON inválido no rompe", () => {
     expect(parseWhatsAppAiConfig("{nope")).toEqual(defaultWhatsAppAiConfig());
   });

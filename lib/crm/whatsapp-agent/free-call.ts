@@ -111,6 +111,9 @@ const freeCallsBetween = async (
 
 /** Los días (zona de Dayana) que ya tienen el tope de llamadas gratis. */
 const fullFreeCallDays = async (config: WhatsAppAiConfig, dayanaTz: string, now: Date): Promise<Set<string>> => {
+  const max = config.freeCall.maxPerDay;
+  // Sin límite (lo normal desde el 13-nov): ningún día se llena por número de llamadas.
+  if (max == null) return new Set();
   // Desde la medianoche de hoy, como cuenta `bookFreeCall`: con «desde ahora»
   // las llamadas de esta mañana no contaban, se ofrecían horas de hoy y al
   // agendar salía «Ese día ya no hay cupos» (Natalia, Barbara, Alexandra, 21-oct).
@@ -120,7 +123,7 @@ const fullFreeCallDays = async (config: WhatsAppAiConfig, dayanaTz: string, now:
     dayBounds(now, dayanaTz).from,
     new Date(now.getTime() + (config.booking.horizonDays + 1) * 86_400_000)
   );
-  return new Set([...freeCallsPerDay(calls, dayanaTz)].filter(([, n]) => n >= config.freeCall.maxPerDay).map(([k]) => k));
+  return new Set([...freeCallsPerDay(calls, dayanaTz)].filter(([, n]) => n >= max).map(([k]) => k));
 };
 
 /**
@@ -332,10 +335,11 @@ export const bookFreeCall = async (input: {
         select: { id: true },
       });
       if (taken) throw new FreeCallError("unavailable", "Esa hora se acaba de ocupar.");
-      const { from, to } = dayBounds(input.start, input.dayanaTz);
-      const sameDay = (await freeCallsBetween(tx, service, from, to)).length;
-      if (!input.honorOffer && sameDay >= input.config.freeCall.maxPerDay) {
-        throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
+      const max = input.config.freeCall.maxPerDay;
+      if (max != null && !input.honorOffer) {
+        const { from, to } = dayBounds(input.start, input.dayanaTz);
+        const sameDay = (await freeCallsBetween(tx, service, from, to)).length;
+        if (sameDay >= max) throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
       }
       return tx.whatsAppBooking.create({
         data: {
@@ -476,10 +480,11 @@ export const moveFreeCall = async (input: {
         select: { id: true },
       });
       if (taken) throw new FreeCallError("unavailable", "Esa hora se acaba de ocupar.");
-      const { from, to } = dayBounds(input.start, input.dayanaTz);
-      const sameDay = (await freeCallsBetween(tx, service, from, to, { bookingId: current.id, eventId: current.calendarEventId })).length;
-      if (!input.honorOffer && sameDay >= input.config.freeCall.maxPerDay) {
-        throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
+      const max = input.config.freeCall.maxPerDay;
+      if (max != null && !input.honorOffer) {
+        const { from, to } = dayBounds(input.start, input.dayanaTz);
+        const sameDay = (await freeCallsBetween(tx, service, from, to, { bookingId: current.id, eventId: current.calendarEventId })).length;
+        if (sameDay >= max) throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
       }
       // La hora nueva queda reservada dentro del candado (como en `bookFreeCall`):
       // nadie más la toma mientras se mueve el evento.

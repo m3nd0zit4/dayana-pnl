@@ -50,15 +50,24 @@ const SalesFlowSection = () => {
         disabled={!flow.enabled}
         onChange={(v) => change("wa-free-autobook", "freeCall.autoBook", v)}
       />
-      <SettingRow
-        id="wa-free-max"
-        label="Llamadas gratis por día"
-        help="Como mucho; al llegar al tope, ofrece otro día."
-        state={states["wa-free-max"]}
-        layout="row"
-      >
-        <NumberField value={free.maxPerDay} min={1} max={20} onChange={(v) => change("wa-free-max", "freeCall.maxPerDay", v, 600)} />
-      </SettingRow>
+      <ToggleRow
+        id="wa-free-max-on"
+        label="Poner un tope de llamadas gratis por día"
+        help={
+          free.maxPerDay == null
+            ? "Apagado: la asistente agenda llamadas gratis mientras haya espacio libre en tu agenda, sin importar cuántas lleves ese día."
+            : `Encendido: cuando un día ya tiene ${free.maxPerDay} llamadas gratis, la asistente no ofrece ni agenda más ese día (ofrece otro), aunque tu agenda tenga espacio.`
+        }
+        info="Las sesiones pagadas, las clases y lo que pongas tú en el calendario no cuentan para el tope: solo ocupan su hora."
+        state={states["wa-free-max-on"]}
+        checked={free.maxPerDay != null}
+        onChange={(v) => change("wa-free-max-on", "freeCall.maxPerDay", v ? 6 : null)}
+      />
+      {free.maxPerDay != null && (
+        <SettingRow id="wa-free-max" label="Llamadas gratis por día, como mucho" state={states["wa-free-max"]} layout="row">
+          <NumberField value={free.maxPerDay} min={1} max={40} onChange={(v) => change("wa-free-max", "freeCall.maxPerDay", v, 600)} />
+        </SettingRow>
+      )}
       <ToggleRow
         id="wa-waiting-room"
         label="Sala de espera de la llamada gratis"

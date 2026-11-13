@@ -348,8 +348,12 @@ export const whatsAppAiConfigSchema = z.object({
      */
     autoBook: z.boolean().default(false),
     serviceName: z.string().trim().min(2).max(80).default("Consulta gratis 15 min"),
-    /** Llamadas gratis por día como mucho. */
-    maxPerDay: z.number().int().min(1).max(20).default(6),
+    /**
+     * Llamadas gratis por día como mucho; `null` = sin límite: solo cuenta el espacio
+     * libre de la agenda (dueña, 13-nov: «no hay límite de llamadas gratis por día»;
+     * con el tope de 6 a Sandy no se le ofreció hoy aunque Dayana tenía espacio).
+     */
+    maxPerDay: z.number().int().min(1).max(40).nullable().default(null),
     /** Cuántas horas se ofrecen a la vez. */
     offer: z.number().int().min(2).max(4).default(3),
     /**
@@ -535,7 +539,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   community: { enabled: true, name: "Dayana Beltrán - PNL", url: WHATSAPP_COMMUNITY_URL },
   affordable: { enabled: true, options: DEFAULT_AFFORDABLE_OPTIONS },
   salesFlow: { enabled: false, buyButtons: DEFAULT_BUY_BUTTONS },
-  freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3, soonFirst: true, preferredWeekdays: [], controller: true },
+  freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: null, offer: 3, soonFirst: true, preferredWeekdays: [], controller: true },
   waitingRoom: { enabled: false, proactive: false },
   callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
   afterCall: { quiet: true },
