@@ -50,4 +50,12 @@ describe("sendsReceipt (13-nov: después de su llamada solo se recibe el comprob
     expect(sendsReceipt(burst("Ok si sra"))).toBe(false);
     expect(sendsReceipt([])).toBe(false);
   });
+  test("prometer el comprobante no es mandarlo (Raquel, eval 13-nov)", () => {
+    expect(sendsReceipt(burst("Estoy esperando ese ingreso y apenas me lo hagan te enviaré el comprobante y empezamos"))).toBe(false);
+    expect(sendsReceipt(burst("Te mando el comprobante mañana"))).toBe(false);
+    expect(sendsReceipt(burst("Cuando pague te mando el comprobante"))).toBe(false);
+    expect(sendsReceipt(burst("Aquí está el comprobante"))).toBe(true);
+    expect(sendsReceipt(burst("Te mando el comprobante"))).toBe(true);
+    expect(sendsReceipt(burst("Ya pagué. Mañana te mando el comprobante"))).toBe(true);
+  });
 });

@@ -105,13 +105,14 @@ const main = async () => {
     // llamada» la IA no contesta (Dayana lo ve en «Te toca»), salvo hablando del taller; y a
     // un comprobante solo le acusa recibo (como a una clienta).
     let clientMode = s.clientMode;
+    let afterCallReceipt = false;
     if (config.afterCall.quiet && !process.argv.includes("--after-call-on") && s.stage === "tuvo_llamada" && !s.clientMode && !(openWs && workshopFlowActive(s.transcript, openWs, now.getTime()))) {
       const burst = s.transcript.slice(-12).map((l) => ({
         direction: l.direction,
         body: l.body,
         attachments: l.attachment === "imagen" ? [{ kind: "image" }] : l.attachment === "pdf" ? [{ kind: "document", mimeType: "application/pdf" }] : null,
       }));
-      if (sendsReceipt(burst)) clientMode = true;
+      if (sendsReceipt(burst)) clientMode = afterCallReceipt = true;
       else {
         // Lo que el caso pide es para cuando Dayana apaga ese silencio (Ajustes → IA); con él
         // encendido, callar es lo correcto. `--after-call-on` los corre sin el silencio.
@@ -211,7 +212,9 @@ const main = async () => {
       }
     }
     const e = s.expect;
-    const did = quiet ? "silent" : (o?.kind ?? "nada");
+    // Tras la llamada, con el modo de solo comprobantes: si no hay comprobante que acusar, la
+    // persona no recibe nada (como `quiet`), aunque el modelo haya escalado.
+    const did = quiet || (afterCallReceipt && silentClient) ? "silent" : (o?.kind ?? "nada");
     if (e.outcome && did !== e.outcome) failed.push(`esperaba ${e.outcome}, hizo ${did}`);
     if (e.silentAlert && result.silentEscalation?.severity !== e.silentAlert) failed.push(`esperaba un aviso ${e.silentAlert} a Dayana que la persona no ve`);
     if (e.escalationCategory && !(o?.kind === "escalate" && o.category === e.escalationCategory)) {

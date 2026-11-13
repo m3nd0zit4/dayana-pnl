@@ -67,5 +67,14 @@ export const sendsReceipt = (messagesOldestFirst: BurstMessage[]): boolean => {
   if (burst.length === 0) return false;
   if (burst.some(hasReceiptFile)) return true;
   const text = foldForSearch(burst.map((m) => m.body ?? "").join(" \n "));
-  return PAID.some((re) => re.test(text));
+  // «Comprobante» en una promesa no es un comprobante (Raquel, 22-oct: «apenas me lo
+  // hagan te enviaré el comprobante y empezamos»): sin el recibo, cada frase por separado.
+  const withoutPromises = text
+    .split(/[.!?\n]+/)
+    .filter((s) => !(/\bcomprobante\b/.test(s) && FUTURE.test(s)))
+    .join(". ");
+  return PAID.some((re) => re.test(withoutPromises));
 };
+
+const FUTURE =
+  /\b(enviare|mandare|pasare|voy a|cuando|apenas|en cuanto|tan pronto|manana|luego|despues|mas tarde|la otra semana|la proxima semana|el lunes|el martes|el miercoles|el jueves|el viernes|el sabado|el domingo|fin de mes)\b/;
