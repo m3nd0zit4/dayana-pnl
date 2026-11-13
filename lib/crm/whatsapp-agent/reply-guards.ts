@@ -450,3 +450,8 @@ export const writesOwnHours = (text: string | null | undefined): boolean => {
   const t = foldForSearch(text ?? "");
   return OWN_TIME.test(t) && AGENDA_WORDS.test(t) && !NOT_A_CALL.test(t);
 };
+
+/** Lo que ella escribió va de agendar (un día, una hora, la llamada, o un «sí» a la invitación). */
+const SCHEDULE_ASK =
+  /\b(hora|horas|horario|horarios|cuando|dia|dias|agenda|agendar|agendame|llamada|cita|disponible|manana|hoy|lunes|martes|miercoles|jueves|viernes|sabado|domingo|tarde|noche|semana|si|ok|dale|claro|listo|bueno|perfecto|puedo)\b/;
+export const asksAboutSchedule = (texts: (string | null | undefined)[]): boolean => texts.some((t) => SCHEDULE_ASK.test(foldForSearch(t ?? "")));

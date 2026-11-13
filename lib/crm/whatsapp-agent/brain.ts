@@ -45,7 +45,7 @@ import { saysSelfHarm } from "./pause-rules";
 import { asksForCall, asksForMoreHelp, seriousReply } from "./serious-reply";
 import { familyPaidReply, paidForFamily } from "./family-paid";
 import { insults, RUDE_REPLY, rudeReplied } from "./rude-reply";
-import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls, writesOwnHours } from "./reply-guards";
+import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, asksAboutSchedule, withoutInventedUrls, writesOwnHours } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -2797,6 +2797,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // ciudad), queda la respuesta del modelo.
   // También si Google bloqueó el pedido dos veces (Adrienne, 26-oct: dijo «solo de noche a
   // las 20:00» y cada mensaje suyo terminaba en «Déjame consultarlo con Dayana»).
+  // El modelo escribió horas de la llamada por su cuenta (revisión 13-nov): solo sin una
+  // llamada ya agendada (eso es confirmarla) y si lo que ella escribió va de agendar.
+  const modelWroteHours =
+    outcome.kind === "reply" &&
+    !workshopAskNow &&
+    !workshopFlow &&
+    !upcomingForLead &&
+    asksAboutSchedule(lastInbound) &&
+    writesOwnHours(outcome.message);
   let autoOffered = false;
   // Tiene la llamada agendada y dice que a esa hora no puede (Carito, 12-nov: el modelo
   // le dijo «la dejamos para el viernes a las 7:00 p. m.» sin mover nada): horas que le
@@ -2823,7 +2832,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     (cantMakeIt ||
       acceptedCallWithoutHours(input.transcript) ||
       // Escribió horas por su cuenta: van las de la agenda de verdad, no «Déjame revisar la agenda» (13-nov).
-      (outcome.kind === "reply" && !workshopAskNow && !workshopFlow && writesOwnHours(outcome.message)))
+      modelWroteHours)
   ) {
     // Cuándo dijo que puede en sus últimos mensajes (lo último manda; no lo de las sesiones).
     await offerSlots(availabilityArgs(input.transcript.filter((l) => l.direction === "INBOUND").slice(-6).map((l) => l.body ?? "")));
@@ -2865,6 +2874,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     if (upcomingLabelNow) {
       return `${matchedWish === false ? "A esa hora no hay espacio en la agenda de Dayana. " : ""}Tu llamada con Dayana sigue el ${upcomingLabelNow}. Si prefieres cambiarla, estas horas están libres:`;
     }
+    // Sus horas inventadas no salen junto a las de verdad: la frase de entrada de siempre.
+    if (autoOffered && modelWroteHours) return "";
     return autoOffered ? leadBeforeHours(text) : text;
   };
   const askWhen = upcomingLabelNow

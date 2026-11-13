@@ -250,7 +250,7 @@ export const askedSomething = (m: (TrivialInput & { source?: string | null; clie
   if (/[?¿]/.test(text) || /https?:\/\//i.test(text)) return true;
   // Una invitación sin signo de pregunta («Si quieres, te agendo una llamada…», «Dime qué
   // día…»): su «ok» es el «sí» (Sandy, 13-nov) y se contesta.
-  if (/\b(si quieres|te agendo|quieres que|dime (que|cual|si)|me cuentas|me confirmas|avisame|puedes responderme)\b/.test(foldForSearch(text))) return true;
+  if (/\b(si quieres|te agendo|quieres que|dime (que|cual|si|el|la|los|las)|elige|cuando elijas|me cuentas|me confirmas|avisame|puedes responderme)\b/.test(foldForSearch(text))) return true;
   return isAutoSend(m);
 };
 

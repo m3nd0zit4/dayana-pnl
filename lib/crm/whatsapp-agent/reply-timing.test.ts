@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { writesOwnHours } from "./reply-guards";
+import { asksAboutSchedule, writesOwnHours } from "./reply-guards";
 import { isHoldingLine, waitBeforeReplyMs } from "./reply-timing";
 
 describe("waitBeforeReplyMs (13-nov: contestaba mientras la persona seguía escribiendo)", () => {
@@ -42,5 +42,14 @@ describe("writesOwnHours (13-nov: horas inventadas → las de la agenda)", () =>
     expect(writesOwnHours("El webinar es el sábado a las 7 pm")).toBe(false);
     expect(writesOwnHours("Con gusto, te bendigo")).toBe(false);
     expect(writesOwnHours("¿Desde qué país me escribes?")).toBe(false);
+  });
+});
+
+describe("asksAboutSchedule (revisión 13-nov)", () => {
+  test("va de agendar: sí; una pregunta de otra cosa: no", () => {
+    expect(asksAboutSchedule(["¿Qué horarios tienes?"])).toBe(true);
+    expect(asksAboutSchedule(["Sí"])).toBe(true);
+    expect(asksAboutSchedule(["¿Cuánto cuesta la terapia?"])).toBe(false);
+    expect(asksAboutSchedule(["Gracias por la información"])).toBe(false);
   });
 });

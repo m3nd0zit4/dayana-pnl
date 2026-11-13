@@ -429,9 +429,13 @@ export const runWhatsAppAi = async (input: {
     // termine y se contesta todo junto, como haría una persona (más si lo último
     // es un saludo solo o una frase cortada).
     const trigger = await prisma.conversationMessage
-      .findFirst({ where: { conversationId, externalMessageId: input.triggerMessageId }, select: { body: true } })
+      .findFirst({ where: { conversationId, externalMessageId: input.triggerMessageId }, select: { body: true, sentAt: true } })
       .catch(() => null);
-    await sleep(waitBeforeReplyMs(trigger?.body, DEBOUNCE_MS));
+    const wait = waitBeforeReplyMs(trigger?.body, DEBOUNCE_MS);
+    // Un mensaje que ya esperó (pendientes, el reloj) no espera otra vez: el tiempo de la
+    // función es corto y la persona ya dejó de escribir (revisión 13-nov).
+    const waited = trigger?.sentAt ? Date.now() - trigger.sentAt.getTime() : 0;
+    if (waited < wait) await sleep(wait - waited);
     const latest = await latestInbound(conversationId);
     if (newerThan(latest, input.triggerMessageId)) {
       // Llegó otro mensaje después: esa ejecución contesta los dos.
@@ -1770,9 +1774,13 @@ const escalate = async (
         take: 20,
       })
     : [];
+  // Solo si ese aviso sigue pendiente (nadie le escribió después) y «Te toca» ya está
+  // abierto por lo mismo: una pregunta nueva después de que Dayana contestó sí lo recibe.
+  const lastHolding = recentOut.findIndex((m) => m.isAutoReply && isHoldingLine(m.body));
+  const humanSince = lastHolding > 0 && recentOut.slice(0, lastHolding).some((m) => !m.isAutoReply);
   const repeated =
     Boolean(holding) &&
-    (alreadySaid(holding!, [recentOut[0]?.body]) || (isHoldingLine(holding) && recentOut.some((m) => m.isAutoReply && isHoldingLine(m.body))));
+    (alreadySaid(holding!, [recentOut[0]?.body]) || (isHoldingLine(holding) && lastHolding >= 0 && !humanSince && alreadyOpen));
   if (holding && !repeated && status === "ESCALATED" && !(await answeredSince(conversationId, from))) {
     await sendAuto(conversationId, holding).catch((e) =>
       console.error("[whatsapp-agent] mensaje de espera", e)
