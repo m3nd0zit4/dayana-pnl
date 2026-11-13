@@ -132,7 +132,7 @@ export const bookingTurn = async (input: BookingTurnInput): Promise<BrainResult 
     // La puso Dayana a mano: no se mueve sola (el modelo le dice que se lo pasa a Dayana).
     if (upcoming?.source === "calendar") return null;
     if (upcoming) {
-      const moved = await moveFreeCall({ config: input.config, dayanaTz: input.dayanaTz, personTz, bookingId: upcoming.id, start });
+      const moved = await moveFreeCall({ config: input.config, dayanaTz: input.dayanaTz, personTz, bookingId: upcoming.id, start, honorOffer: true });
       afterFreeCallMoved({ conversationId: input.conversationId, booking: moved, dayanaTz: input.dayanaTz });
       return booked("moved", moved);
     }
@@ -145,6 +145,8 @@ export const bookingTurn = async (input: BookingTurnInput): Promise<BrainResult 
       contactId: input.contactId,
       phone: input.phone,
       name: input.name,
+      // Eligió de la lista que recibió: el tope del día no la deja sin su hora (13-nov).
+      honorOffer: true,
     });
     await afterFreeCallBooked({ conversationId: input.conversationId, contactId: input.contactId, phone: input.phone, booking });
     return booked("booked", booking);

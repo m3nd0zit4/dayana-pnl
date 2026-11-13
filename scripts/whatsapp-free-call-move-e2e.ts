@@ -141,6 +141,37 @@ const main = async () => {
         refused = e instanceof FreeCallError ? e.code : String(e);
       }
       check("y agendar hoy dice lo mismo (sin cupos)", refused === "daily_cap", refused);
+      // Sandy (13-nov): la hora salió de la lista que recibió y el día se llenó mientras
+      // elegía: se respeta (honorOffer), si la hora sigue libre.
+      setFreeCallCalendarForTests({
+        available: async () => [slot(later), slot(fri)],
+        book: async (input) => ({
+          accountId: "e2e-account",
+          eventId: `e2e-move-${run}-honor`,
+          meetUrl: null,
+          eventUrl: null,
+          title: "0/0 Prueba Tope +573000008899",
+          end: new Date(input.start.getTime() + input.durationMin * 60_000),
+        }),
+      });
+      let honored: { bookingId: string } | null = null;
+      try {
+        honored = await bookFreeCall({
+          config: capped,
+          dayanaTz: TZ,
+          personTz: TZ,
+          start: later,
+          conversationId: other.id,
+          contactId: null,
+          phone: other.externalThreadId,
+          name: null,
+          honorOffer: true,
+        });
+      } catch (e) {
+        console.log("  honorOffer falló:", e instanceof FreeCallError ? e.code : e);
+      }
+      check("con la hora de su lista, el tope del día no se la quita", Boolean(honored));
+      if (honored) await prisma.whatsAppBooking.delete({ where: { id: honored.bookingId } });
       await prisma.whatsAppBooking.delete({ where: { id: morning.id } });
       await prisma.conversation.delete({ where: { id: other.id } });
     }

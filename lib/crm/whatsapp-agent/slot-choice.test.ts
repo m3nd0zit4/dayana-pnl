@@ -304,3 +304,16 @@ describe("Laura, 26-oct: la cortesía alrededor de la elección", () => {
     expect(claimMatches("Listo, quedó agendada 🙏", laura[2], lauraCtx)).toBe(false);
   });
 });
+
+describe("Sandy (13-nov): «Viernes 13 7:30 pn» y la entrada que quedó suelta", () => {
+  const now = new Date("2026-11-13T21:04:00.000Z");
+  const at = (iso: string) => ({ startIso: iso, label: dualZoneLabel(iso, BOG, BOG) });
+  const options = [at("2026-11-13T22:00:00.000Z"), at("2026-11-14T00:30:00.000Z"), at("2026-11-14T19:00:00.000Z")];
+  test("«pn» es «pm»: elige la 2", () => {
+    expect(one(resolveChoice("Viernes 13 7:30 pn", options, { personTz: BOG, dayanaTz: BOG, now }))).toBe(options[1].startIso);
+  });
+  test("un resto de la pregunta de la lista no queda como frase de entrada", () => {
+    expect(withoutSlotLines("Puedes responderme con el número.")).toBe("");
+    expect(withoutSlotLines("Con gusto. ¿Cuál te queda mejor? Puedes responderme con el número.")).toBe("Con gusto.");
+  });
+});

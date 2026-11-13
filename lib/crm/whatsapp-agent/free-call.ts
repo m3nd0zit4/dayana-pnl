@@ -292,6 +292,13 @@ export const bookFreeCall = async (input: {
   contactId: string | null;
   phone: string;
   name: string | null;
+  /**
+   * La hora salió de la lista que ella recibió: se respeta aunque el día haya
+   * llegado al tope mientras elegía (Sandy, 13-nov: le ofrecimos el viernes,
+   * otra persona llenó el día y al elegir le salió «ya no hay cupos»). Si la hora
+   * está ocupada, no.
+   */
+  honorOffer?: boolean;
 }): Promise<FreeCallBooking> => {
   const service = freeCallService(input.config);
   const end = new Date(input.start.getTime() + service.minutes * 60_000);
@@ -327,7 +334,7 @@ export const bookFreeCall = async (input: {
       if (taken) throw new FreeCallError("unavailable", "Esa hora se acaba de ocupar.");
       const { from, to } = dayBounds(input.start, input.dayanaTz);
       const sameDay = (await freeCallsBetween(tx, service, from, to)).length;
-      if (sameDay >= input.config.freeCall.maxPerDay) {
+      if (!input.honorOffer && sameDay >= input.config.freeCall.maxPerDay) {
         throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
       }
       return tx.whatsAppBooking.create({
@@ -440,6 +447,8 @@ export const moveFreeCall = async (input: {
   personTz: string;
   bookingId: string;
   start: Date;
+  /** Como en `bookFreeCall`: una hora de la lista que recibió no se rechaza por el tope del día. */
+  honorOffer?: boolean;
 }): Promise<FreeCallBooking & { from: Date }> => {
   const service = freeCallService(input.config);
   const end = new Date(input.start.getTime() + service.minutes * 60_000);
@@ -469,7 +478,7 @@ export const moveFreeCall = async (input: {
       if (taken) throw new FreeCallError("unavailable", "Esa hora se acaba de ocupar.");
       const { from, to } = dayBounds(input.start, input.dayanaTz);
       const sameDay = (await freeCallsBetween(tx, service, from, to, { bookingId: current.id, eventId: current.calendarEventId })).length;
-      if (sameDay >= input.config.freeCall.maxPerDay) {
+      if (!input.honorOffer && sameDay >= input.config.freeCall.maxPerDay) {
         throw new FreeCallError("daily_cap", "Ese día ya no hay cupos para la llamada gratis.");
       }
       // La hora nueva queda reservada dentro del candado (como en `bookFreeCall`):

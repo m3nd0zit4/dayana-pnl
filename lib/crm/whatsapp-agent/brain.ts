@@ -967,6 +967,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     bookingNotice: BrainResult["bookingNotice"];
     /** Agendar dijo que ya tiene su llamada o no la pudo mover: no se listan horas. */
     keepsCall: "booked" | "moveFailed" | null;
+    /** La hora que eligió no se pudo agendar en esta vuelta (se ocupó, el día se llenó): se le dice antes de las horas nuevas. */
+    pickRefused: string | null;
     silentEscalation: BrainResult["silentEscalation"];
   } = {
     outcome: null,
@@ -988,6 +990,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     slotOffer: null,
     bookingNotice: null,
     keepsCall: null,
+    pickRefused: null,
     silentEscalation: null,
   };
   // Las horas que devolvió check_availability en esta vuelta (offer_times solo acepta estas).
@@ -1678,6 +1681,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               if (!offeredNow.has(iso) && !offeredBefore.includes(iso) && !inLatest && !dayanaOfferedSlot(dayanaTexts, iso, timezone)) {
                 return log("book_free_call", args, { error: "Esa hora no se la ofreciste. Usa offer_free_call_slots primero." });
               }
+              // Salió de la última lista que recibió (la IA o Dayana): el tope del día no se
+              // la quita si se llenó mientras elegía (Sandy, 13-nov).
+              const fromHerList = inLatest || dayanaOfferedSlot(dayanaTexts, iso, timezone);
               const tz = personTz() ?? timezone;
               const service = freeCallService(config);
               const name = args.name?.trim() || input.name;
@@ -1707,7 +1713,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // (Alexandra, 21-oct: le dejaba el jueves y la IA le confirmó el viernes sin cita).
               if (upcoming && upcoming.startsAt.getTime() !== start.getTime() && autoBook) {
                 try {
-                  const moved = await moveFreeCall({ config, dayanaTz: timezone, personTz: tz, bookingId: upcoming.id, start });
+                  const moved = await moveFreeCall({ config, dayanaTz: timezone, personTz: tz, bookingId: upcoming.id, start, honorOffer: fromHerList });
                   afterFreeCallMoved({ conversationId: input.conversationId, booking: moved, dayanaTz: timezone });
                   state.booking = { id: moved.bookingId, startsAt: moved.startsAt, service: service.name, meetUrl: null };
                   state.bookingNotice = { kind: "moved", label: moved.label, text: bookedMessage("moved", moved.label, sureFirstName(nameInfo)) };
@@ -1747,6 +1753,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                     contactId: input.contactId,
                     phone: input.phone,
                     name: name ?? null,
+                    honorOffer: fromHerList,
                   });
                   await afterFreeCallBooked({ conversationId: input.conversationId, contactId: input.contactId, phone: input.phone, booking });
                   state.booking = { id: booking.bookingId, startsAt: booking.startsAt, service: service.name, meetUrl: null };
@@ -1759,6 +1766,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                   });
                 } catch (e) {
                   if (e instanceof FreeCallError) {
+                    if (e.code === "unavailable" || e.code === "daily_cap") state.pickRefused = label;
                     return log("book_free_call", args, {
                       error: e.message,
                       note:
@@ -2819,14 +2827,37 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // Horas ofrecidas: la frase del modelo y debajo la lista numerada del código.
   // (No se vuelve a listar horas si en esta vuelta agendar dijo que ya tiene
   // su llamada o no la pudo mover: revisión 21-oct.)
+  // Coherencia de la agenda (13-nov, Sandy y Ray): la persona tiene que saber qué
+  // pasó antes de ver horas otra vez. Si la hora que eligió se ocupó, se le dice; si ya
+  // tiene su llamada, se le recuerda que sigue en pie; y nunca la misma lista que acaba
+  // de rechazar («Ninguno, trabajo a esas horas»): se le pregunta cuándo puede.
+  const upcomingLabelNow = upcomingCall ? dualZoneLabel(upcomingCall.startsAt.toISOString(), personTz() ?? timezone, timezone) : null;
+  const sameAsLastList = (options: { startIso: string }[]) => {
+    const last = input.latestOffer ?? [];
+    const key = (iso: string) => new Date(iso).getTime();
+    return last.length > 0 && options.length === last.length && options.every((o) => last.some((l) => key(l.startIso) === key(o.startIso)));
+  };
+  const agendaLead = (text: string, matchedWish: boolean | null): string => {
+    if (state.pickRefused) return `Esa hora (${state.pickRefused}) se acaba de ocupar en la agenda de Dayana 🙏 Estas siguen libres:`;
+    if (upcomingLabelNow) {
+      return `${matchedWish === false ? "A esa hora no hay espacio en la agenda de Dayana. " : ""}Tu llamada con Dayana sigue el ${upcomingLabelNow}. Si prefieres cambiarla, estas horas están libres:`;
+    }
+    if (cantMakeIt && autoOffered) return CANT_MAKE_IT_LEAD;
+    return autoOffered ? leadBeforeHours(text) : text;
+  };
+  const askWhen = upcomingLabelNow
+    ? `Tu llamada con Dayana sigue el ${upcomingLabelNow}. Si quieres cambiarla, dime qué día y a qué hora te queda bien y busco un espacio en su agenda.`
+    : "Dime qué día y a qué hora te queda bien y busco un espacio en la agenda de Dayana.";
   const withAgenda = (text: string) =>
     state.bookingNotice
       ? state.bookingNotice.text
       : state.slotOffer && !state.booking && !state.pendingBooking && !state.keepsCall
-        ? offerMessage(cantMakeIt && autoOffered ? CANT_MAKE_IT_LEAD : autoOffered ? leadBeforeHours(text) : text, state.slotOffer.options, state.slotOffer.matchedWish, {
-            now,
-            personTz: personTz() ?? timezone,
-          })
+        ? !state.pickRefused && sameAsLastList(state.slotOffer.options)
+          ? askWhen
+          : offerMessage(agendaLead(text, state.slotOffer.matchedWish), state.slotOffer.options, state.slotOffer.matchedWish, {
+              now,
+              personTz: personTz() ?? timezone,
+            })
         : text;
   // Preguntó por el taller y contesta el modelo: siempre «abierto» y la llamada
   // para inscribirse (dueña, 24-oct; el modelo daba la información y se las saltaba);

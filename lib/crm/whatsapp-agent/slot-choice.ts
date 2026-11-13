@@ -175,7 +175,11 @@ const pickedNumber = (folded: string, count: number): number | null => {
 const LENIENT_MAX_CHARS = 200;
 
 export const resolveChoice = (text: string, options: OfferedSlot[], ctx: ChoiceContext, opts: { lenient?: boolean } = {}): Choice => {
-  const folded = foldForSearch(text).replace(/\s+/g, " ").trim();
+  const folded = foldForSearch(text)
+    .replace(/\s+/g, " ")
+    // «7:30 pn» (Sandy, 13-nov): la n está al lado de la m en el teclado.
+    .replace(/(\d)\s*p\.?\s?n\b/g, "$1 pm")
+    .trim();
   if (
     !options.length ||
     !folded ||
@@ -368,7 +372,16 @@ export const withoutSlotLines = (text: string): string =>
               const f = foldForSearch(s);
               // Tampoco «hoy mismo hay espacio» sin la hora: la lista la dice, y
               // suelto el freno lo toma por promesa (revisión 21-oct).
-              return !/[?¿]/.test(s) && timesIn(f).length === 0 && !f.match(DAY_OF_MONTH) && !/\b\d{1,2}:[0-5]\d\b/.test(f) && !WHEN.test(f);
+              // Tampoco un resto de la pregunta de la lista («Puedes responderme con el número.»,
+              // Sandy, 13-nov: quedó solo como frase de entrada).
+              return (
+                !/[?¿]/.test(s) &&
+                timesIn(f).length === 0 &&
+                !f.match(DAY_OF_MONTH) &&
+                !/\b\d{1,2}:[0-5]\d\b/.test(f) &&
+                !WHEN.test(f) &&
+                !/responderme con el numero|cual te queda mejor|lo coordinamos/.test(f)
+              );
             })
             .join(" ")
             .trim()
