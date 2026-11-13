@@ -408,11 +408,13 @@ const TIME = String.raw`(\d{1,2})(?::(\d{2}))?(?:\s*(a\.?\s?m|p\.?\s?m)\b\.?|\s+
  * manda eso; sin nada, de 1 a 7 es de la tarde («después de las 5» = 17:00) y de 8 a
  * 11 se queda como está (ambiguo: no limita de más).
  */
-const hmFrom = (h: string, m: string | undefined, ampm: string | undefined, word: string | undefined, plusMin = 0): string | null => {
+const hmFrom = (h: string, m: string | undefined, ampm: string | undefined, word: string | undefined, plusMin = 0, strict = false): string | null => {
   let hour = Number(h);
   const min = Number(m ?? 0);
   if (!Number.isFinite(hour) || hour > 23 || min > 59) return null;
   const suffix = (ampm ?? "").replace(/[^ap]/g, "") || (word === "manana" ? "a" : word ? "p" : "");
+  // «antes de las 9» sin a. m./p. m. es ambiguo: un tope duro de más no se pone.
+  if (strict && !suffix && hour >= 8 && hour <= 11) return null;
   if (suffix === "p" && hour < 12) hour += 12;
   else if (suffix === "a" && hour === 12) hour = 0;
   else if (!suffix && hour >= 1 && hour <= 7) hour += 12;
@@ -420,7 +422,7 @@ const hmFrom = (h: string, m: string | undefined, ampm: string | undefined, word
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 };
 /** Las 4 partes de `TIME` desde el grupo `i` de una coincidencia. */
-const timeAt = (m: RegExpMatchArray, i: number, plusMin = 0) => hmFrom(m[i]!, m[i + 1], m[i + 2], m[i + 3], plusMin);
+const timeAt = (m: RegExpMatchArray, i: number, plusMin = 0, strict = false) => hmFrom(m[i]!, m[i + 1], m[i + 2], m[i + 3], plusMin, strict);
 
 // «mi trabajo va desde 7 am a 4 pm» (la hora del final; media hora para llegar).
 const WORK_RANGE = new RegExp(
@@ -434,6 +436,8 @@ const AFTER = new RegExp(String.raw`\b(?:despues de|a partir de)\s+las?\s+${TIME
 const BEFORE = new RegExp(String.raw`\b(?:antes de|hasta)\s+las?\s+${TIME}`);
 const NO_MIDDAY = /\bno\s+(puedo|podre|alcanzo|me queda|me sirve)\b[^.!?\n]{0,25}\b(medio\s?dia|mediodia|almuerzo|hora del almuerzo)\b/;
 /** Lo de un día en particular («los lunes trabajo de 8 a 12») no vale para todos los días. */
+/** «no puedo después de las 5» es un tope (no una hora desde la que sí): se invierte. */
+const NEGATED = /\bno\s+(?:puedo|podre|salgo|alcanzo|llego|me queda|me sirve|estoy)\b/;
 const A_WEEKDAY = /\b(lunes|martes|miercoles|jueves|viernes|sabado|domingo|fines? de semana)\b/;
 
 export const hourLimitsFrom = (textsNewestFirst: (string | null | undefined)[]): Pick<SlotWish, "fromTime" | "toTime" | "avoidMidday"> => {
@@ -447,20 +451,33 @@ export const hourLimitsFrom = (textsNewestFirst: (string | null | undefined)[]):
     for (const s of t.split(/[.!?\n]+/).map((x) => x.trim()).filter(Boolean).reverse()) {
       if (A_WEEKDAY.test(s)) continue;
       if (!out.avoidMidday && NO_MIDDAY.test(s)) out.avoidMidday = true;
+      const negated = NEGATED.test(s);
       if (!out.fromTime) {
         const w = s.match(WORK_RANGE);
         const l = w ? null : s.match(LEAVE_AT);
         const u = w || l ? null : s.match(WORK_UNTIL);
         const f = w || l || u ? null : s.match(FREE_FROM);
-        const a = w || l || u || f ? null : s.match(AFTER);
+        const a = w || l || u || f || negated ? null : s.match(AFTER);
         // Al salir del trabajo, media hora para llegar.
         const from = w ? timeAt(w, 6, 30) : l ? timeAt(l, 2, 30) : u ? timeAt(u, 2, 30) : f ? timeAt(f, 1) : a ? timeAt(a, 1) : null;
         if (from) out.fromTime = from;
       }
-      if (!out.toTime && !WORK_UNTIL.test(s)) {
-        const b = s.match(BEFORE);
-        const to = b ? timeAt(b, 1) : null;
+      // «no puedo después de las 5» → hasta las 5.
+      if (negated && !out.toTime) {
+        const a = s.match(AFTER);
+        const to = a ? timeAt(a, 1, 0, true) : null;
         if (to) out.toTime = to;
+      }
+      if (!out.toTime && !WORK_UNTIL.test(s) && !negated) {
+        const b = s.match(BEFORE);
+        const to = b ? timeAt(b, 1, 0, true) : null;
+        if (to) out.toTime = to;
+      }
+      // «no puedo antes de las 10» / «no salgo hasta las 6» → desde esa hora.
+      if (negated && !out.fromTime) {
+        const b = s.match(BEFORE);
+        const from = b ? timeAt(b, 1) : null;
+        if (from) out.fromTime = from;
       }
     }
     if (out.fromTime && out.avoidMidday) break;
@@ -523,13 +540,23 @@ const NO_TIME =
   /\bno\s+(?:puedo|podre|voy a poder|alcanzo|llego|me queda|me sirve|me va bien)\b[^.!?\n]{0,30}?\b(?:a las|a la|a esa hora|esa hora|a ese horario|ese horario|a medio\s?dia|medio\s?dia|a esa|ese dia|hoy)\b/;
 const RESCHEDULE =
   /\b(?:cambiar|mover|correr|reagendar|reprogramar)\w{0,3}\b[^.!?\n]{0,25}?\b(?:llamada|cita|hora)\b|\bla\s+(?:puedo|podemos|podria|podriamos|pueden|podrian)\s+(?:cambiar|mover|correr|reagendar|reprogramar)\b|\b(?:otra|otro)\s+(?:hora|dia|horario|fecha)\b|\bse me\s+(?:cruzo|complico)\b|\btengo\s+(?:un\s+)?(?:compromiso|trabajo)\b/;
-const OTHER_HOUR = new RegExp(String.raw`\b(?:recuerd\w*|ojo|era|es)\b[^.!?\n]{0,20}?\b(?:a|para)\s+las?\s+${TIME}`);
+const OTHER_HOUR = new RegExp(
+  String.raw`\b(?:recuerd\w*|ojo)\b[^.!?\n]{0,20}?\b(?:a|para)\s+las?\s+${TIME}|\b(?:es|era)\s+(?:a|para)\s+las?\s+${TIME}`
+);
 export const saysCantMakeIt = (texts: (string | null | undefined)[], booked?: { hm: string }): boolean =>
   texts.some((raw) => {
     const t = fold(raw ?? "").replace(/\b([ap])\.\s?m\b\.?/g, "$1m");
     if (/\bpag(ar|o|ue)\b/.test(t)) return false;
     if (NO_TIME.test(t) || RESCHEDULE.test(t)) return true;
     const o = t.match(OTHER_HOUR);
-    const said = o ? timeAt(o, 1) : null;
-    return Boolean(said) && (!booked || said!.slice(0, 2) !== booked.hm.slice(0, 2));
+    if (!o) return false;
+    // Los dos juegos de grupos: «recuerda… a las N» (1–4) o «es a las N» (5–8).
+    const i = o[1] !== undefined ? 1 : 5;
+    const hasSuffix = Boolean(o[i + 2] || o[i + 3]);
+    const n = Number(o[i]);
+    const said = timeAt(o, i);
+    if (!said) return false;
+    // Sin a. m./p. m., la hora puede ser de la mañana o de la tarde: si cualquiera es la de su cita, la confirma.
+    const candidates = hasSuffix ? [Number(said.slice(0, 2))] : [n % 24, (n + 12) % 24];
+    return !booked || !candidates.includes(Number(booked.hm.slice(0, 2)));
   });

@@ -189,6 +189,12 @@ describe("21-oct: «queda para…» sin cita, o a otra hora de la que tiene (no 
     // Sin hora y sin llamada no es una cita («lo dejamos para mañana, no hay prisa»).
     expect(promiseBreach({ ...none, text: "Lo dejamos para mañana, no hay prisa." })).toBeNull();
     expect(promiseBreach({ ...none, text: "Te lo paso para mañana con la guía." })).toBeNull();
+    expect(promiseBreach({ ...none, text: "Te la paso para mañana, son 3 módulos con ejemplos." })).toBeNull();
+    expect(promiseBreach({ ...none, text: "Te lo paso para el viernes con 2 ejemplos prácticos." })).toBeNull();
+    expect(promiseBreach({ ...none, text: "Lo dejamos para el viernes, tienes 10 minutos antes de pagar." })).toBeNull();
+    // Con una hora sí.
+    expect(promiseBreach({ ...none, text: "Listo, la dejamos para el viernes a las 7:00 p. m." })?.breach).toBe("false_booking");
+    expect(promiseBreach({ ...none, text: "Te la paso para el jueves 3 pm, Dayana te llama." })?.breach).toBe("false_booking");
   });
 
   test("la cita que sí tiene (o la que se acaba de mover) sale", () => {

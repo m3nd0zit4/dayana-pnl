@@ -215,3 +215,21 @@ describe("hourLimitsFrom: casos de revisión (13-nov)", () => {
     expect(hourLimitsFrom(["estoy libre desde las 5"])).toEqual({ fromTime: "17:00" });
   });
 });
+
+describe("hourLimitsFrom: negaciones y ambiguos (revisión 13-nov, 2.ª)", () => {
+  test("«no puedo después de las 5» es un tope; «no puedo antes de las 10», un piso", () => {
+    expect(hourLimitsFrom(["no puedo después de las 5"])).toEqual({ toTime: "17:00" });
+    expect(hourLimitsFrom(["No puedo antes de las 10 am"])).toEqual({ fromTime: "10:00" });
+    expect(hourLimitsFrom(["no salgo hasta las 6"])).toEqual({ fromTime: "18:00" });
+  });
+  test("«antes de las 9» sin a. m./p. m. es ambiguo: no limita", () => {
+    expect(hourLimitsFrom(["antes de las 9"])).toEqual({});
+    expect(hourLimitsFrom(["antes de las 9 am"])).toEqual({ toTime: "09:00" });
+  });
+  test("«recuerda que es a las 8» con la cita a las 20:00 la confirma; a las 5 pm con la cita a las 12:00, no", () => {
+    expect(saysCantMakeIt(["Recuerda que es a las 8 gracias"], { hm: "20:00" })).toBe(false);
+    expect(saysCantMakeIt(["Recuerda que es a las 8 gracias"], { hm: "08:30" })).toBe(false);
+    expect(saysCantMakeIt(["Recuerda que es a las 8 gracias"], { hm: "12:00" })).toBe(true);
+    expect(saysCantMakeIt(["Es importante que hoy a las 5 pm me escribas"], { hm: "12:00" })).toBe(false);
+  });
+});

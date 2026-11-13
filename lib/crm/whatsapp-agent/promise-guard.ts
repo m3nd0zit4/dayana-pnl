@@ -206,7 +206,7 @@ const BOOKING_CLAIM = new RegExp(
     `(queda|quedo)\\s+para\\s+${FOR_DAY}`,
     // «la dejamos para el viernes a las 7:00 p. m.» (Carito, 12-nov: no se movió nada).
     // Con una hora (no «lo dejamos para mañana, no hay prisa») y sin pregunta («¿la dejamos para el viernes?»).
-    `${NOT_DONE}(?<!¿[^.?!]{0,40})\\b(la|lo|te\\s+la|te\\s+lo)\\s+(dejamos|dejo|deje|pasamos|paso|pase|movemos|movi|cambiamos|cambie|agendamos|reagendamos|reagende)\\s+para\\s+${FOR_DAY}[^.?!]{0,40}\\d`,
+    `${NOT_DONE}(?<!¿[^.?!]{0,40})\\b(la|lo|te\\s+la|te\\s+lo)\\s+(dejamos|dejo|deje|pasamos|paso|pase|movemos|movi|cambiamos|cambie|agendamos|reagendamos|reagende)\\s+para\\s+${FOR_DAY}[^.?!]{0,40}(?:a\\s+las?\\s+\\d|\\d{1,2}(?::[0-5]\\d)?\\s*[ap]\\b\\.?\\s?m?\\b)`,
     // «Ya quedó: jueves 22 de octubre, 3:00 p. m.» (auditoría 21-oct).
     "ya\\s+quedo[\\s:,-]+((hoy|manana)[\\s,]+)?(el\\s+|este\\s+)?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\\b",
     `dayana\\s+te\\s+(llama|llamara|va\\s+a\\s+llamar)\\s+(el\\s+${DAY}|este\\s+${DAY}|esta\\s+(tarde|noche)|${DAY}|a\\s+las\\s+\\d)`,

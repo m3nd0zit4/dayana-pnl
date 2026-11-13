@@ -1629,23 +1629,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             execute: async (args) => {
               if (guestEvent) return log("book_free_call", args, { error: GUEST_NO_FREE_CALL });
               // «la 2» es la 2 de la última lista numerada que RECIBIÓ (no una que
-              // el modelo pidió en esta vuelta y ella no vio: revisión 21-oct). Si no
-              // cuadra (la lista fue de Dayana), el startIso.
-              // Una lista que acabas de pedir en esta vuelta todavía no se la mandas: no la eligió.
-              if (args.option && offeredNow.size > 0) {
-                return log("book_free_call", args, {
-                  error: "Esa lista todavía no se la has enviado: espera a que ella elija una hora y entonces agenda.",
-                });
-              }
+              // el modelo pidió en esta vuelta y ella no vio: revisión 21-oct).
               const list = input.latestOffer ?? [];
               const picked = args.option ? list[args.option - 1] : undefined;
-              // ¿La última lista numerada que RECIBIÓ es esa? (Carito, 9-nov: después de la
-              // lista de la IA le llegó otra del CRM con otras horas; eligió «3» de la nueva,
-              // el modelo pasó option 3 + la hora buena, y se agendó la 3 de la vieja.)
-              const lastList = [...input.transcript]
-                .reverse()
-                .find((l) => l.direction === "OUTBOUND" && /^\s*1[.)]\s/m.test(l.body ?? ""));
-              const pickedSeen = Boolean(picked) && (!lastList || foldForSearch(lastList.body ?? "").includes(foldForSearch(picked!.label)));
+              // La última lista numerada que RECIBIÓ (la IA, el controlador o Dayana, a mano o
+              // con «Horas libres»): al menos dos líneas numeradas. Carito, 9-nov: después de la
+              // lista de la IA le llegó otra del CRM; eligió «3» de la nueva, el modelo pasó
+              // option 3 + la hora buena, y se agendó la 3 de la vieja.
+              const numbered = (body: string | null | undefined) => (body ?? "").split("\n").filter((l) => /^\s*\d{1,2}[.)]\s/.test(l));
+              const lastList = [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND" && numbered(l.body).length >= 2);
+              // La línea con ese número, en esa lista: la hora de la opción tiene que estar en ELLA
+              // (no en cualquier línea: con otro orden, «2» no es la misma hora).
+              const lineOf = args.option && lastList ? numbered(lastList.body).find((l) => new RegExp(`^\\s*${args.option}[.)]\\s`).test(l)) ?? "" : "";
+              const pickedSeen = Boolean(picked) && (!lastList || foldForSearch(lineOf).includes(foldForSearch(picked!.label)));
               const typed = args.startIso ? new Date(args.startIso) : null;
               const typedOk = Boolean(typed && !Number.isNaN(typed.getTime()));
               // Si el número es de la lista que vio, manda el número: la hora que escribe el
@@ -1654,14 +1650,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // solo si es la de la línea con ese número en la lista que le llegó.
               const usePicked = pickedSeen;
               if (picked && !usePicked) {
-                const line = (lastList?.body ?? "").split("\n").find((l) => new RegExp(`^\\s*${args.option}[.)]\\s`).test(l)) ?? "";
                 const zones = [...new Set([timezone, personTz() ?? timezone])];
-                const typedInLine = typedOk && Boolean(line) && zones.some((z) => dayanaOfferedSlot([line], typed!.toISOString(), z));
+                const typedInLine = typedOk && Boolean(lineOf) && zones.some((z) => dayanaOfferedSlot([lineOf], typed!.toISOString(), z));
                 if (!typedInLine) {
                   return log("book_free_call", args, {
-                    error: line
-                      ? `La opción ${args.option} de la última lista que le llegó dice «${line.trim()}»: pasa el startIso exacto de esa hora (en la hora de Colombia).`
-                      : "La lista que ella recibió no es la que guardé: pasa el startIso exacto de la hora que eligió (la de la última lista que le llegó).",
+                    error: lineOf
+                      ? `La opción ${args.option} de la última lista que le llegó dice «${lineOf.trim()}»: agenda con el startIso exacto de esa hora (en la hora de Colombia), sin número.`
+                      : "La lista que ella recibió no es la que guardé: agenda con el startIso exacto de la hora que eligió (la de la última lista que le llegó), sin número.",
                   });
                 }
               }
