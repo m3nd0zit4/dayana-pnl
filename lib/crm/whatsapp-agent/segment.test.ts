@@ -37,18 +37,22 @@ describe("resolveSegment", () => {
     expect(v).toMatchObject({ segment: "returning_lead", review: false });
   });
 
-  test("la clasificación dice clienta: la IA sigue atendiendo, Dayana lo revisa", () => {
+  test("la clasificación dice clienta (13-nov, Judith): la IA no le contesta, Dayana lo revisa", () => {
     expect(resolveSegment({ category: "cliente", categorySource: "ai", categoryConfidence: 0.9, hadConversation: true })).toMatchObject({
-      segment: "returning_lead",
+      segment: "client",
       review: true,
+      source: "ai",
     });
-    // Poco segura: ni revisar.
+    expect(resolveSegment({ category: "cliente", categorySource: "ai", categoryConfidence: 0.99, hadConversation: true }).segment).toBe("client");
+    // Poco segura: sigue siendo una conversación normal.
     expect(resolveSegment({ category: "cliente", categorySource: "ai", categoryConfidence: 0.5, hadConversation: true })).toMatchObject({
       segment: "returning_lead",
       review: false,
     });
     // «No es clienta» a mano manda sobre la clasificación.
     expect(resolveSegment({ category: "interesada", categorySource: "manual", hadConversation: true }).segment).toBe("returning_lead");
+    // Personal o de empresa a mano sigue ganando.
+    expect(resolveSegment({ category: "personal", categorySource: "manual", hadConversation: true }).segment).toBe("ignored");
   });
 
   test("Dayana la marcó clienta: clienta", () => {

@@ -115,6 +115,21 @@ export const resolveSegment = (input: SegmentInput): SegmentVerdict => {
     return { segment: "client", confidence: 0.75, reason: "Tiene una inscripción activa sin pago registrado.", review: true, source: "rules" };
   }
 
+  // La clasificación del chat dice «cliente» (dueña, 13-nov, Judith: paga la mensualidad
+  // del curso, la etiqueta decía cliente con 0.99 y la IA le contestó, hasta «Dayana me
+  // pidió que te confirmara…»): «los que están clasificados como clientes, el modelo no
+  // puede responder». Se trata como clienta y Dayana lo revisa. Antes solo se marcaba
+  // «por revisar» y la IA seguía contestando. Un «no es clienta» puesto a mano manda.
+  if (!manual && input.category === "cliente" && (input.categoryConfidence ?? 0) >= 0.7) {
+    return {
+      segment: "client",
+      confidence: input.categoryConfidence ?? 0.7,
+      reason: "El chat está clasificado como clienta: la IA no le contesta (Dayana lo revisa).",
+      review: true,
+      source: "ai",
+    };
+  }
+
   // «No es clienta» puesto a mano: lo que diga el chat no la vuelve clienta.
   const notClientByHand = Boolean(manual);
   const h = input.history ?? {};
