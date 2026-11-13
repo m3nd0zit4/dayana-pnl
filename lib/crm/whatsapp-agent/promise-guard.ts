@@ -204,6 +204,8 @@ const BOOKING_CLAIM = new RegExp(
     // «tu llamada será el jueves», «tu llamada con Dayana es el jueves a las 3» (auditoría 21-oct).
     `(tu|la)\\s+(cita|llamada)(\\s+gratis|\\s+gratuita|\\s+con\\s+dayana|\\s+de\\s+15\\s+minutos)*\\s+(es|sera|va\\s+a\\s+ser)\\s+(el\\s+|este\\s+|esta\\s+)?(proxim[oa]\\s+)?(${DAY}|a\\s+las\\s+\\d)`,
     `(queda|quedo)\\s+para\\s+${FOR_DAY}`,
+    // «la dejamos para el viernes a las 7:00 p. m.» (Carito, 12-nov: no se movió nada).
+    `${NOT_DONE}\\b(la|lo|te\\s+la|te\\s+lo)\\s+(dejamos|dejo|deje|pasamos|paso|pase|movemos|movi|cambiamos|cambie|agendamos|reagendamos|reagende)\\s+para\\s+${FOR_DAY}`,
     // «Ya quedó: jueves 22 de octubre, 3:00 p. m.» (auditoría 21-oct).
     "ya\\s+quedo[\\s:,-]+((hoy|manana)[\\s,]+)?(el\\s+|este\\s+)?(lunes|martes|miercoles|jueves|viernes|sabado|domingo)\\b",
     `dayana\\s+te\\s+(llama|llamara|va\\s+a\\s+llamar)\\s+(el\\s+${DAY}|este\\s+${DAY}|esta\\s+(tarde|noche)|${DAY}|a\\s+las\\s+\\d)`,

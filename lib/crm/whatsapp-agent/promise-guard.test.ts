@@ -175,6 +175,17 @@ describe("21-oct: «queda para…» sin cita, o a otra hora de la que tiene (no 
     expect(promiseBreach({ ...base, text: "Así es, Alexandra. Tu llamada con Dayana queda confirmada para el viernes, 23 de octubre, a las 9:00 a. m." })?.breach).toBe("false_booking");
   });
 
+  test("Carito (12-nov): «la dejamos para el viernes a las 7:00 p. m.» con la cita a las 12:00", () => {
+    const base = { backing: [], hasBooking: true, bookingToday: false, bookedLabels: ["viernes 12:00 p. m."] };
+    const text = "Entiendo, Carito. No te preocupes, la dejamos para el viernes a las 7:00 p. m., tal como lo elegiste. Dayana te llama por WhatsApp a este número.";
+    expect(promiseBreach({ ...base, text })?.breach).toBe("false_booking");
+    expect(promiseBreach({ ...none, text: "Listo, te la pasamos para el jueves a las 3:00 p. m." })?.breach).toBe("false_booking");
+    // La que sí tiene sale.
+    expect(promiseBreach({ ...base, backing: ["viernes 12:00 p. m."], text: "Tranquila, la dejamos para el viernes a las 12:00 p. m. como está." })).toBeNull();
+    // Una pregunta no es una confirmación.
+    expect(promiseBreach({ ...none, text: "¿Quieres que la dejemos para el viernes?" })).toBeNull();
+  });
+
   test("la cita que sí tiene (o la que se acaba de mover) sale", () => {
     const booked = ["viernes 9:00 a. m.", "viernes 10:00 a. m."];
     // Como en run.ts: las horas de sus citas también respaldan.

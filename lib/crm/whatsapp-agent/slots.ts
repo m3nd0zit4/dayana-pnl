@@ -283,12 +283,18 @@ export type SlotWish = {
   partOfDay?: PartOfDay;
   /** Desde esta fecha («YYYY-MM-DD»). */
   fromDate?: string;
+  /** Desde esta hora, en su hora («17:00»: «después de las 5», «salgo a las 4»). */
+  fromTime?: string;
+  /** Hasta esta hora, en su hora («antes de las 10»). */
+  toTime?: string;
+  /** No a mediodía («no puedo a mediodía por mi trabajo»). */
+  avoidMidday?: boolean;
 };
 
 export const hasWish = (w: SlotWish | null | undefined): w is SlotWish =>
   Boolean(
     w &&
-      (w.weekdays?.length || w.dates?.length || w.notWeekdays?.length || w.notDates?.length || w.partOfDay || w.fromDate)
+      (w.weekdays?.length || w.dates?.length || w.notWeekdays?.length || w.notDates?.length || w.partOfDay || w.fromDate || w.fromTime || w.toTime || w.avoidMidday)
   );
 
 const WEEKDAY_WORDS: Record<string, number> = { domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6 };
@@ -382,8 +388,66 @@ export const matchesWish = (slot: Slot, wish: SlotWish, personTz: string): boole
   if (wish.notDates?.includes(key) || wish.notWeekdays?.includes(weekday)) return false;
   const byDay = Boolean(wish.dates?.length || wish.weekdays?.length);
   if (byDay && !(wish.dates?.includes(key) || wish.weekdays?.includes(weekday))) return false;
-  if (wish.partOfDay && partOfDay(getTimeHmInTz(start, personTz)) !== wish.partOfDay) return false;
+  const hm = getTimeHmInTz(start, personTz);
+  if (wish.partOfDay && partOfDay(hm) !== wish.partOfDay) return false;
+  if (wish.fromTime && hm < wish.fromTime) return false;
+  if (wish.toTime && hm >= wish.toTime) return false;
+  if (wish.avoidMidday && hm >= "11:00" && hm < "14:00") return false;
   return true;
+};
+
+/**
+ * Las horas que dijo que puede o no (Carito, 9 y 12-nov: «después de las 5 pm»,
+ * «mi trabajo va desde 7 am a 4 pm», «no puedo a mediodía por mi trabajo» — le
+ * salieron las 12:00 porque «tarde» incluye el mediodía). Lo más nuevo manda.
+ * Sin a. m./p. m., de 1 a 7 es de la tarde («después de las 5» = 17:00).
+ */
+const TIME = String.raw`(\d{1,2})(?::(\d{2}))?\s*(a\.?\s?m\.?|p\.?\s?m\.?)?`;
+const hmFrom = (h: string, m: string | undefined, ampm: string | undefined, plusMin = 0): string | null => {
+  let hour = Number(h);
+  const min = Number(m ?? 0);
+  if (!Number.isFinite(hour) || hour > 23 || min > 59) return null;
+  const suffix = (ampm ?? "").replace(/[^ap]/g, "");
+  if (suffix === "p" && hour < 12) hour += 12;
+  else if (suffix === "a" && hour === 12) hour = 0;
+  else if (!suffix && hour >= 1 && hour <= 7) hour += 12;
+  const total = Math.min(hour * 60 + min + plusMin, 23 * 60 + 59);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+};
+const WORK_RANGE = new RegExp(
+  String.raw`\b(trabajo|trabajar|laboro|jornada|turno|horario)\b[^.!?\n]{0,30}?\b(de|desde)\s+(las\s+)?${TIME}\s*(a|hasta|-)\s*(las\s+)?${TIME}`
+);
+const LEAVE_AT = new RegExp(
+  String.raw`\b(salgo|sale|salimos|termino|desocupo|me desocupo|estoy libre|quedo libre)\b[^.!?\n]{0,25}?\b(a|como a|desde)\s+las?\s+${TIME}`
+);
+const WORK_UNTIL = new RegExp(String.raw`\b(trabajo|trabajar|laboro|estoy trabajando)\b[^.!?\n]{0,20}?\bhasta\s+las?\s+${TIME}`);
+const AFTER = new RegExp(String.raw`\b(despues de|a partir de)\s+las?\s+${TIME}`);
+const BEFORE = new RegExp(String.raw`\b(antes de|hasta)\s+las?\s+${TIME}`);
+const NO_MIDDAY = /\bno\s+(puedo|podre|alcanzo|me queda|me sirve)\b[^.!?\n]{0,25}\b(medio\s?dia|mediodia|almuerzo|hora del almuerzo)\b/;
+export const hourLimitsFrom = (textsNewestFirst: (string | null | undefined)[]): Pick<SlotWish, "fromTime" | "toTime" | "avoidMidday"> => {
+  const out: Pick<SlotWish, "fromTime" | "toTime" | "avoidMidday"> = {};
+  for (const raw of textsNewestFirst) {
+    const t = fold(raw ?? "").replace(/\bbuen[oa]s (tardes|noches|dias)\b/g, " ");
+    if (!t) continue;
+    if (!out.avoidMidday && NO_MIDDAY.test(t)) out.avoidMidday = true;
+    if (!out.fromTime) {
+      const w = t.match(WORK_RANGE);
+      const l = w ? null : t.match(LEAVE_AT);
+      const u = w || l ? null : t.match(WORK_UNTIL);
+      const a = w || l || u ? null : t.match(AFTER);
+      // Al salir del trabajo, media hora para llegar.
+      const from = w ? hmFrom(w[9]!, w[10], w[11], 30) : l ? hmFrom(l[3]!, l[4], l[5], 30) : u ? hmFrom(u[2]!, u[3], u[4], 30) : a ? hmFrom(a[2]!, a[3], a[4]) : null;
+      if (from) out.fromTime = from;
+    }
+    if (!out.toTime && !WORK_UNTIL.test(t)) {
+      const b = t.match(BEFORE);
+      const to = b ? hmFrom(b[2]!, b[3], b[4]) : null;
+      if (to) out.toTime = to;
+    }
+    if (out.fromTime && out.avoidMidday) break;
+  }
+  if (out.fromTime && out.toTime && out.toTime <= out.fromTime) delete out.toTime;
+  return out;
 };
 
 /**
@@ -396,7 +460,15 @@ export const matchesWish = (slot: Slot, wish: SlotWish, personTz: string): boole
 export type WishStep = "exact" | "same_days" | "same_time" | "any";
 
 export const relaxedWishes = (wish: SlotWish): { step: WishStep; wish: SlotWish }[] => {
-  const keep: SlotWish = { notWeekdays: wish.notWeekdays, notDates: wish.notDates, fromDate: wish.fromDate };
+  // Lo que no puede se respeta siempre: días, desde cuándo y sus horas (Carito, 12-nov).
+  const keep: SlotWish = {
+    notWeekdays: wish.notWeekdays,
+    notDates: wish.notDates,
+    fromDate: wish.fromDate,
+    fromTime: wish.fromTime,
+    toTime: wish.toTime,
+    avoidMidday: wish.avoidMidday,
+  };
   const byDay = Boolean(wish.dates?.length || wish.weekdays?.length);
   const steps: { step: WishStep; wish: SlotWish }[] = [{ step: "exact", wish }];
   if (byDay && wish.partOfDay) {
@@ -418,3 +490,17 @@ export const isWithinBookingHours = (
   const startMin = hmToMinutes(getTimeHmInTz(start, timezone));
   return rangesForDate(config, dateKey).some((r) => startMin >= r.from && startMin + durationMin <= r.to);
 };
+
+/**
+ * Con la llamada agendada, dice que a esa hora no puede o que es a otra hora
+ * (Carito, 12 y 13-nov: «no puedo a mediodía por mi trabajo», «Recuerda que es
+ * a la 7 pm»): se le buscan horas que le sirvan y, cuando elija, se mueve.
+ * No «no puedo pagar».
+ */
+const CANT_MAKE_IT =
+  /\b(no (puedo|podre|voy a poder|alcanzo|me queda|me sirve|llego)|cambiar|mover|correr|reagendar|otra hora|otro dia|se me (cruzo|complico)|tengo (un )?(compromiso|trabajo|cita)|(es|era|quedamos|quedo) (a|para) las? \d)/;
+export const saysCantMakeIt = (texts: (string | null | undefined)[]): boolean =>
+  texts.some((raw) => {
+    const t = fold(raw ?? "");
+    return CANT_MAKE_IT.test(t) && !/\bpag(ar|o|ue)\b/.test(t);
+  });

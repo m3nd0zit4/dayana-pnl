@@ -20,7 +20,7 @@ import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsFor
 import { formatMoneyMinor } from "../money";
 import { alreadyPaidReply, alreadyPaidToolNote } from "./receipt-already-paid";
 import { likelySamePayment, providerLabel, webPaymentForReceipt } from "./receipt-web-payment";
-import { dayanaOfferedSlot, saidPartOfDay, spreadSlots, wishFromWords, type WishStep } from "./slots";
+import { dayanaOfferedSlot, hourLimitsFrom, saidPartOfDay, saysCantMakeIt, spreadSlots, wishFromWords, type WishStep } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
@@ -1399,7 +1399,14 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     try {
       // Una franja que la persona nunca dijo no limita las horas.
       const said = saidPartOfDay(input.transcript.filter((l) => l.direction === "INBOUND").map((l) => l.body));
-      const wish = wishFromWords(said ? args : { ...args, franja: undefined }, tz, now);
+      // Sus horas («después de las 5», «salgo a las 4», «no puedo a mediodía»): siempre
+      // se respetan, aunque el modelo no las pase (Carito, 9 y 12-nov: le salió las 12:00).
+      const recentInbound = input.transcript
+        .filter((l) => l.direction === "INBOUND" && (!l.sentAt || now.getTime() - l.sentAt.getTime() < 30 * 86_400_000))
+        .slice(-20)
+        .reverse()
+        .map((l) => l.body);
+      const wish = { ...wishFromWords(said ? args : { ...args, franja: undefined }, tz, now), ...hourLimitsFrom(recentInbound) };
       const { options, matchedWish, closest } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
       if (options.length === 0) {
         return log("offer_free_call_slots", args, {
@@ -1623,7 +1630,24 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // cuadra (la lista fue de Dayana), el startIso.
               const list = input.latestOffer ?? [];
               const picked = args.option ? list[args.option - 1] : undefined;
-              const start = new Date(picked?.startIso ?? args.startIso ?? "");
+              // ¿La última lista numerada que RECIBIÓ es esa? (Carito, 9-nov: después de la
+              // lista de la IA le llegó otra del CRM con otras horas; eligió «3» de la nueva,
+              // el modelo pasó option 3 + la hora buena, y se agendó la 3 de la vieja.)
+              const lastList = [...input.transcript]
+                .reverse()
+                .find((l) => l.direction === "OUTBOUND" && /^\s*1[.)]\s/m.test(l.body ?? ""));
+              const pickedSeen = Boolean(picked) && (!lastList || foldForSearch(lastList.body ?? "").includes(foldForSearch(picked!.label)));
+              const typed = args.startIso ? new Date(args.startIso) : null;
+              const typedOk = Boolean(typed && !Number.isNaN(typed.getTime()));
+              // La hora que escribió el modelo manda si el número no es de la lista que vio
+              // o no cuadra con esa hora; si no, el número (revisión 21-oct).
+              const usePicked = pickedSeen && (!typedOk || typed!.getTime() === new Date(picked!.startIso).getTime());
+              if (picked && !usePicked && !typedOk) {
+                return log("book_free_call", args, {
+                  error: "La lista que ella recibió no es la que guardé: pasa el startIso exacto de la hora que eligió (la de la última lista que le llegó).",
+                });
+              }
+              const start = new Date(usePicked ? picked!.startIso : (args.startIso ?? picked?.startIso ?? ""));
               if (Number.isNaN(start.getTime())) {
                 return log("book_free_call", args, {
                   error: args.option ? `No hay una opción ${args.option} en la lista: pasa el startIso exacto de la hora que eligió.` : "Hora inválida.",
@@ -2742,14 +2766,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // ciudad), queda la respuesta del modelo.
   // También si Google bloqueó el pedido dos veces (Adrienne, 26-oct: dijo «solo de noche a
   // las 20:00» y cada mensaje suyo terminaba en «Déjame consultarlo con Dayana»).
+  const CANT_MAKE_IT_LEAD = "Entiendo, no hay problema. Busquemos otro espacio con Dayana que te quede mejor.";
   let autoOffered = false;
+  // Tiene la llamada agendada y dice que a esa hora no puede (Carito, 12-nov: el modelo
+  // le dijo «la dejamos para el viernes a las 7:00 p. m.» sin mover nada): horas que le
+  // sirvan, y la elegida se mueve (el código, como cualquier lista).
+  const cantMakeIt = Boolean(upcomingCall) && upcomingCall?.source !== "calendar" && saysCantMakeIt(lastInbound);
   if (
     outcome === modelOutcome &&
     (outcome.kind === "reply" || Boolean(blockedBy)) &&
     salesOn &&
     (!afterCall || asksForCall(lastInbound)) &&
     !guestEvent &&
-    !upcomingCall &&
+    (!upcomingCall || cantMakeIt) &&
     !serious &&
     !workshopSpot &&
     !state.slotOffer &&
@@ -2761,7 +2790,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !state.urgentSession &&
     !state.receipt &&
     !toolCalls.some((c) => c.tool === "offer_free_call_slots" || c.tool === "book_free_call") &&
-    acceptedCallWithoutHours(input.transcript)
+    (cantMakeIt || acceptedCallWithoutHours(input.transcript))
   ) {
     // Cuándo dijo que puede en sus últimos mensajes (lo último manda; no lo de las sesiones).
     await offerSlots(availabilityArgs(input.transcript.filter((l) => l.direction === "INBOUND").slice(-6).map((l) => l.body ?? "")));
@@ -2778,7 +2807,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     state.bookingNotice
       ? state.bookingNotice.text
       : state.slotOffer && !state.booking && !state.pendingBooking && !state.keepsCall
-        ? offerMessage(autoOffered ? leadBeforeHours(text) : text, state.slotOffer.options, state.slotOffer.matchedWish, {
+        ? offerMessage(cantMakeIt && autoOffered ? CANT_MAKE_IT_LEAD : autoOffered ? leadBeforeHours(text) : text, state.slotOffer.options, state.slotOffer.matchedWish, {
             now,
             personTz: personTz() ?? timezone,
           })

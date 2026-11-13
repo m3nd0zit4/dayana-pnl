@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { dayanaOfferedSlot, findFreeSlots, matchesWish, pickFreeCallSlots, relaxedWishes, saidPartOfDay, wishFromWords } from "./slots";
+import { dayanaOfferedSlot, findFreeSlots, hourLimitsFrom, matchesWish, saysCantMakeIt, pickFreeCallSlots, relaxedWishes, saidPartOfDay, wishFromWords } from "./slots";
 
 const TZ = "America/Bogota";
 // Lunes 8:00 a 6:00 p. m., todos los días de la semana.
@@ -130,5 +130,46 @@ describe("dayanaOfferedSlot (horas que Dayana escribió: «Horas libres» o a ma
     expect(dayanaOfferedSlot([horasLibres], "2026-10-15T23:00:00Z", "America/Bogota")).toBe(false);
     expect(dayanaOfferedSlot([horasLibres], "2026-10-22T23:45:00Z", "America/Bogota")).toBe(false);
     expect(dayanaOfferedSlot(["el jueves a las 16:45 pm"], "2026-10-15T23:45:00Z", "America/Bogota")).toBe(false);
+  });
+});
+
+describe("hourLimitsFrom (Carito, 9 y 12-nov: le salieron las 12:00)", () => {
+  test("lo que dijo de sus horas, lo más nuevo primero", () => {
+    expect(hourLimitsFrom(["Corazón después de las 5 pm por favor"])).toEqual({ fromTime: "17:00" });
+    expect(hourLimitsFrom(["después de las 5"])).toEqual({ fromTime: "17:00" });
+    expect(hourLimitsFrom(["Mi Dayana mi trabajo va desde 7 am a 4 pm entonces en tu horario no podría"])).toEqual({ fromTime: "16:30" });
+    expect(hourLimitsFrom(["salgo a las 6"])).toEqual({ fromTime: "18:30" });
+    expect(hourLimitsFrom(["trabajo hasta las 5"])).toEqual({ fromTime: "17:30" });
+    expect(hourLimitsFrom(["antes de las 10 am"])).toEqual({ toTime: "10:00" });
+    expect(hourLimitsFrom(["no puedo a mediodía por mi trabajo"])).toEqual({ avoidMidday: true });
+    // Lo más nuevo manda.
+    expect(hourLimitsFrom(["después de las 6 pm", "después de las 5 pm"])).toEqual({ fromTime: "18:00" });
+    // Un saludo o una hora suelta no limita.
+    expect(hourLimitsFrom(["Buenas tardes", "la llamada fue a las 3"])).toEqual({});
+  });
+  test("las horas que le sirven: con «después de las 5», nada de mediodía", () => {
+    const limits = hourLimitsFrom(["no puedo a mediodía por mi trabajo", "Corazón después de las 5 pm por favor"]);
+    const picked = all().filter((s) => matchesWish(s, limits, TZ));
+    expect(picked.length).toBeGreaterThan(0);
+    expect(picked.every((s) => s.time >= "17:00")).toBe(true);
+    // Lo que no puede se respeta al relajar.
+    expect(relaxedWishes({ ...limits, weekdays: [5], partOfDay: "noche" }).every((r) => r.wish.fromTime === "17:00")).toBe(true);
+  });
+});
+
+describe("saysCantMakeIt (Carito, 12 y 13-nov)", () => {
+  test("no puede a esa hora o dice otra hora: se le buscan horas", () => {
+    for (const t of [
+      "🎤 Hola, buenos días, recuerda hoy es que no puedo a mediodía por mi trabajo",
+      "Recuerda que es a la 7 pm gracias",
+      "¿Podemos cambiar la llamada?",
+      "Mejor otro día",
+      "Se me complicó, tengo un compromiso",
+    ]) {
+      expect([t, saysCantMakeIt([t])]).toEqual([t, true]);
+    }
+    for (const t of ["Sí, ahí estaré", "Gracias", "No puedo pagar todavía", "Ok perfecto 👍"]) {
+      expect([t, saysCantMakeIt([t])]).toEqual([t, false]);
+    }
   });
 });
