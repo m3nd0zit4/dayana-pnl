@@ -1091,8 +1091,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // dio ahí (dueña, 25-oct): con el taller abierto, es la del taller.
   const webinarAt = input.freeEvent?.startsAt?.getTime() ?? null;
   const afterWebinar = webinarAt !== null && webinarAt <= now.getTime() && now.getTime() - webinarAt < 3 * 24 * 3600_000;
+  // Ya no depende de `payUrl` (revisión 13-nov): no se manda enlace, y sin precio en el
+  // CRM quien pide pagar el taller también va a la llamada y Dayana se entera.
   const workshopPayAsk =
-    Boolean(workshopPay) &&
+    Boolean(workshop) &&
     !input.clientMode &&
     (workshopAskNow ||
       workshopFlow ||
@@ -1701,7 +1703,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                     booked: true,
                     moved: true,
                     label: moved.label,
-                    note: "Listo: su llamada se movió a esta hora (la anterior ya no está). Confírmale el nuevo día y la hora (en su hora) y que Dayana la llama por WhatsApp a este número. No escribas enlaces.",
+                    note: "Listo: su llamada se movió a esta hora (la anterior ya no está). El sistema le manda la confirmación con el nuevo día y la hora: no la repitas ni escribas enlaces.",
                   });
                 } catch (e) {
                   state.keepsCall = "moveFailed";
@@ -1742,7 +1744,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
                     ok: true,
                     booked: true,
                     label: booking.label,
-                    note: "Agendada. Confírmale el día y la hora (en su hora) y que Dayana la llama por WhatsApp a este número. No escribas enlaces.",
+                    note: "Agendada. El sistema le manda la confirmación con el día y la hora: no la repitas ni escribas enlaces.",
                   });
                 } catch (e) {
                   if (e instanceof FreeCallError) {
@@ -2447,12 +2449,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     const aboutWorkshop = workshopPayAsk || workshopAskNow || workshopFlow;
     if (
       workshop &&
-      workshopPay &&
       aboutWorkshop &&
       (workshopPayAsk || typedWorkshop.had || promisesWorkshopLink(text)) &&
-      !state.slotOffer &&
-      !state.booking &&
-      !state.pendingBooking &&
+      // Una promoción nunca la confirma la IA: también con horas o una cita en el
+      // turno (revisión 13-nov; el texto del modelo iría de entrada a la lista).
+      (workshopPayPromo || (!state.slotOffer && !state.booking && !state.pendingBooking)) &&
       !state.bookingNotice &&
       !state.paymentLink &&
       state.paymentDetails.length === 0

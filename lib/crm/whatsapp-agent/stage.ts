@@ -44,7 +44,7 @@ export const STAGE_HELP: Record<Stage, string> = {
   conversando: "Ya habló antes y no ha agendado. La asistente sigue donde quedó, sin saludarla como nueva.",
   llamada_agendada: "Tiene la llamada gratis agendada. La asistente le confirma y la acompaña hasta la hora.",
   no_contesto: "No contestó la llamada gratis. La asistente le ofrece otra hora.",
-  tuvo_llamada: "Ya tuvo la llamada con Dayana (o Dayana ya le mandó cómo pagar) y no consta que haya pagado. La asistente la acompaña: le ayuda a pagar con lo que le mandó Dayana y recibe su comprobante. Si pide otra llamada o reagendar, le ofrece horas y Dayana aprueba o rechaza el pedido.",
+  tuvo_llamada: "Ya tuvo la llamada con Dayana (o Dayana ya le mandó cómo pagar) y no consta que haya pagado. La asistente ya no le manda enlaces ni datos de pago ni le ofrece otra llamada: solo recibe su comprobante y le avisa a Dayana; si pregunta por el taller, le ofrece la llamada con Dayana. Lo demás lo responde Dayana.",
   clienta_activa: "Pagó y tiene un proceso o una sesión en curso. La atiende Dayana.",
   clienta_pasada: "Pagó antes (un proceso, una sesión o un taller) y no tiene nada en curso. La atiende Dayana.",
   por_revisar: "Puede que ya haya pagado (lo dice el chat o tiene una inscripción sin pago registrado), pero Dayana no lo ha confirmado. No se le ofrece la llamada gratis.",

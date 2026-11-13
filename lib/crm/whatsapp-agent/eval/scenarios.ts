@@ -467,7 +467,7 @@ export const SCENARIOS: Scenario[] = [
     ],
     expect: {
       outcome: "reply",
-      noTool: ["escalate", "send_workshop_link", "offer_free_call_slots"],
+      noTool: ["escalate", "offer_free_call_slots"],
       mustMatch: [/comprobante|atenta/i],
       mustNotMatch: [/pagar\/p\/taller-|taller-virtual|eventos-gratuitos/i, /\btaller\b|m[aá]s econ[oó]mic/i, /d[eé]jame consultarlo/i, /\$|\busd\b|\bcop\b/i],
     },

@@ -705,14 +705,11 @@ export const runWhatsAppAi = async (input: {
       route.routerEnabled &&
       route.mode === "AUTO" &&
       // Con la llamada ya agendada, solo para moverla a otra hora que se le ofreció.
-      (route.segment === "new_lead" ||
-        route.segment === "returning_lead" ||
-        // Quien ya tuvo su llamada y pregunta por el taller: la llamada queda como pedido que
-        // Dayana aprueba (13-nov: una segunda llamada nunca se agenda sola).
-        route.segment === "free_call_booked");
-    // Ya tuvo su llamada y pide otra (dueña, 12-nov: «la gente termina agendando de
-    // 15 en 15 sesiones gratuitas y no pagan»): nunca se agenda sola; queda como
-    // pedido que Dayana aprueba o rechaza en el CRM.
+      (route.segment === "new_lead" || route.segment === "returning_lead" || route.segment === "free_call_booked");
+    // Quien ya tuvo su llamada solo vuelve a tener horas si pregunta por el taller
+    // (el resto lo atiende Dayana: modo silencio tras la llamada, 13-nov), y nunca se
+    // agenda sola (dueña, 12-nov: «la gente termina agendando de 15 en 15 sesiones
+    // gratuitas y no pagan»): queda como pedido que Dayana aprueba o rechaza en el CRM.
     const nameInfo = await chatNameInfo(conversationId);
     const freeCallOn =
       config.salesFlow.enabled && config.booking.enabled && (!(stage && NO_FREE_CALL_STAGES.has(stage)) || workshopCall);
@@ -1164,7 +1161,7 @@ export const runWhatsAppAi = async (input: {
         ...(saysPrice
           ? { reason: "La IA escribió un precio: los precios solo los das tú. Cámbialo o descártalo." }
           : result.pendingBooking && stage === "tuvo_llamada"
-            ? { reason: "Ya tuvo su llamada gratis contigo y pide otra. Apruébala solo si quieres darle otra llamada; si no, recházala." }
+            ? { reason: "Ya tuvo su llamada gratis contigo y pide otra para inscribirse al taller. Apruébala solo si quieres darle otra llamada; si no, recházala." }
             : {}),
       };
       await proposeForApproval({ runId: run.id, conversationId, name, proposal, meta, important: saysPrice });
