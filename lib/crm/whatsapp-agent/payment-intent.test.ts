@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { wantsPaymentHelp } from "./payment-intent";
+import { sendsReceipt, wantsPaymentHelp } from "./payment-intent";
 
 const inb = (body: string | null, attachments?: unknown) => ({ direction: "INBOUND", body, attachments });
 const out = (body: string) => ({ direction: "OUTBOUND", body });
@@ -30,5 +30,21 @@ describe("wantsPaymentHelp (clientas: la IA solo ayuda con pagos)", () => {
 
   test("solo mira lo último que escribió (después de la última respuesta)", () => {
     expect(wantsPaymentHelp([inb("¿A qué cuenta te pago?"), out("Te paso los datos"), inb("Gracias, nos vemos el jueves")])).toBe(false);
+  });
+});
+
+describe("sendsReceipt (13-nov: después de su llamada solo se recibe el comprobante)", () => {
+  const burst = (body: string, attachments?: unknown) => [
+    { direction: "OUTBOUND", body: "Aquí te envío el link de pago", attachments: [] },
+    { direction: "INBOUND", body, attachments },
+  ];
+  test("comprobante o «ya pagué» sí; pedir el enlace o los datos, no; «Ok si sra», no", () => {
+    expect(sendsReceipt(burst("Ya te transferí, te mando el comprobante"))).toBe(true);
+    expect(sendsReceipt(burst("", [{ kind: "image" }]))).toBe(true);
+    expect(sendsReceipt(burst("Ya pagué"))).toBe(true);
+    expect(sendsReceipt(burst("Mándame el link de pago por favor"))).toBe(false);
+    expect(sendsReceipt(burst("¿A qué cuenta consigno?"))).toBe(false);
+    expect(sendsReceipt(burst("Ok si sra"))).toBe(false);
+    expect(sendsReceipt([])).toBe(false);
   });
 });

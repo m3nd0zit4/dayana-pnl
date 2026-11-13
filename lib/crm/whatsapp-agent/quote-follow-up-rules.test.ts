@@ -424,10 +424,16 @@ describe("nextFollowUp / followUpDue", () => {
 describe("followUpText / quotePromptLine", () => {
   test("en la voz de la asistente, sin precios ni apodos", () => {
     const first = followUpText("first", "cotizada", "Fernando");
+    // Dueña, 13-nov: pregunta cómo está, si desea tomar o pensar en su terapia y si quiere hablar con Dayana.
     expect(first).toBe(
-      "Hola Fernando, te bendigo 🙏 Dayana queda muy atenta para iniciar tu proceso personalizado. ¿Cuándo te gustaría empezar? Tan pronto envíes el comprobante de pago por aquí, Dayana te agenda."
+      "Hola Fernando, te bendigo 🙏 ¿Cómo estás? Dayana queda muy atenta para tu proceso personalizado: ¿has pensado en iniciar tu terapia? Si quieres hablar con ella, dímelo por aquí; y tan pronto envíes el comprobante de pago, Dayana te agenda."
     );
-    expect(followUpText("second", "pagara", null)).toStartWith("Hola 🙏 Te escribo de parte de Dayana");
+    expect(followUpText("second", "pagara", null)).toStartWith("Hola 🙏 ¿Cómo estás? Te escribo de parte de Dayana");
+    for (const state of ["cotizada", "pagara", "lo_piensa", "sin_dinero"] as const) {
+      expect(followUpText("first", state, null)).toMatch(/¿Cómo (estás|has estado)\?/);
+      expect(followUpText("first", state, null)).toMatch(/hablar con (Dayana|ella)/);
+    }
+    expect(followUpText("second", "cotizada", null)).toMatch(/hablar con Dayana/);
     for (const state of ["cotizada", "pagara", "lo_piensa", "sin_dinero"] as const) {
       expect(followUpText("first", state, null)).not.toMatch(/\$|\d{2,}|querid|herm|bella|❤|💛/i);
     }

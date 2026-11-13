@@ -108,7 +108,7 @@ const main = async () => {
     ]);
     const r1 = await sweep(c1);
     check("salió uno", sent.length === 1, { r1, sent });
-    check("texto de «cotizada»", /¿Cuándo te gustaría empezar\?/.test(sent[0]?.text ?? ""), sent[0]?.text);
+    check("texto de «cotizada»", /¿has pensado en iniciar tu terapia\?/.test(sent[0]?.text ?? ""), sent[0]?.text);
     check("source del seguimiento", Boolean(sent[0]?.source.startsWith(QUOTE_FOLLOW_UP_SOURCE)) && sent[0].source.endsWith(":1"), sent[0]?.source);
     check("plantilla para fuera de las 24 h", sent[0]?.templateKey === "seguimiento_proceso", sent[0]?.templateKey);
 

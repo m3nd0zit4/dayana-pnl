@@ -49,7 +49,7 @@ import { configWithSpendLevel } from "./spend-store";
 import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
 import { pauseHolds } from "./pause-rules";
-import { wantsPaymentHelp } from "./payment-intent";
+import { sendsReceipt, wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
 import { closingNotNeeded, promisesHandoff, pseudoEscalation, withoutToolText, writesAccountNumber } from "./reply-guards";
@@ -646,6 +646,29 @@ export const runWhatsAppAi = async (input: {
     // Ya tuvo su llamada y pide otra (dueña, 12-nov: «la gente termina agendando de
     // 15 en 15 sesiones gratuitas y no pagan»): nunca se agenda sola; queda como
     // pedido que Dayana aprueba o rechaza en el CRM.
+    // Después de su llamada (dueña, 13-nov, caso Merylin: Dayana le mandó los
+    // enlaces de pago a mano, contestó «Ok si sra» y la IA le volvió a mandar el del
+    // paquete de 24): «el modelo no envía enlaces de pago ni continúa hablando, solo en el
+    // seguimiento». La IA calla (Dayana lo ve en «Te toca») salvo hablando del taller, y
+    // solo recibe un comprobante, sin mandar enlaces ni datos. Los seguimientos del cierre
+    // salen aparte (`quote-follow-up.ts`).
+    let afterCallReceiptOnly = false;
+    if (config.afterCall.quiet && stage === "tuvo_llamada" && !clientMode && !workshopCall && !always) {
+      const lastMsgs = await prisma.conversationMessage.findMany({
+        where: { conversationId },
+        orderBy: [{ sentAt: "desc" }, { id: "desc" }],
+        take: 12,
+        select: { direction: true, body: true, attachments: true, kind: true },
+      });
+      if (sendsReceipt(lastMsgs.reverse())) {
+        afterCallReceiptOnly = true;
+        clientMode = true;
+      } else {
+        await finish(run.id, "SKIPPED", { reason: "after_call" });
+        await handOffIfNeeded(conversationId, "after_call", silenced);
+        return;
+      }
+    }
     const nameInfo = await chatNameInfo(conversationId);
     const freeCallOn =
       config.salesFlow.enabled && config.booking.enabled && (!(stage && NO_FREE_CALL_STAGES.has(stage)) || workshopCall);
@@ -814,10 +837,18 @@ export const runWhatsAppAi = async (input: {
     // Con una clienta, lo que no es de pagos es de Dayana: la IA calla sin
     // avisar nada a la persona (como cualquier mensaje de una clienta). Solo
     // sale lo que comparte datos o el enlace, o recibe un comprobante.
-    const paymentAnswer = Boolean(result.receipt) || result.paymentBlocks.details.length > 0 || Boolean(result.paymentBlocks.link);
+    // Después de su llamada solo se recibe el comprobante: ni datos ni enlaces (13-nov).
+    if (afterCallReceiptOnly) {
+      result.paymentBlocks = { details: [], link: null };
+      result.linkBlocks = [];
+    }
+    const paymentAnswer = afterCallReceiptOnly
+      ? Boolean(result.receipt)
+      : Boolean(result.receipt) || result.paymentBlocks.details.length > 0 || Boolean(result.paymentBlocks.link);
     if (clientMode && (result.outcome.kind === "escalate" || !paymentAnswer)) {
-      await finish(run.id, "SKIPPED", { ...meta, reason: "customer" });
-      await handOffIfNeeded(conversationId, "customer", silenced);
+      const reason = afterCallReceiptOnly ? "after_call" : "customer";
+      await finish(run.id, "SKIPPED", { ...meta, reason });
+      await handOffIfNeeded(conversationId, reason, silenced);
       return;
     }
 

@@ -54,3 +54,16 @@ export const wantsPaymentHelp = (messagesOldestFirst: BurstMessage[]): boolean =
   const text = foldForSearch(burst.map((m) => m.body ?? "").join(" \n "));
   return ASKS.some((re) => re.test(text)) || PAID.some((re) => re.test(text));
 };
+
+/**
+ * ¿Manda un comprobante (foto o PDF) o dice que ya pagó? Sin contar pedir los
+ * datos de pago o el enlace: después de su llamada la IA no los manda (dueña,
+ * 13-nov), solo recibe el comprobante.
+ */
+export const sendsReceipt = (messagesOldestFirst: BurstMessage[]): boolean => {
+  const burst = lastBurst(messagesOldestFirst);
+  if (burst.length === 0) return false;
+  if (burst.some(hasReceiptFile)) return true;
+  const text = foldForSearch(burst.map((m) => m.body ?? "").join(" \n "));
+  return PAID.some((re) => re.test(text));
+};

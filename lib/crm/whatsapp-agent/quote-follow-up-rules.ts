@@ -571,17 +571,17 @@ export const followUpDue = (
 export const followUpText = (kind: "first" | "second", state: QuoteState, name: string | null): string => {
   const hola = name ? `Hola ${name}, te bendigo 🙏` : "Hola, te bendigo 🙏";
   if (kind === "second") {
-    return `${name ? `Hola ${name} 🙏` : "Hola 🙏"} Te escribo de parte de Dayana: sigue con un espacio para ti para iniciar tu proceso. Si tienes alguna dificultad con el pago, cuéntame y lo vemos por aquí.`;
+    return `${name ? `Hola ${name} 🙏` : "Hola 🙏"} ¿Cómo estás? Te escribo de parte de Dayana: sigue con un espacio para ti si deseas iniciar tu terapia. Si quieres hablar con Dayana, dímelo por aquí y ella te responde.`;
   }
   switch (state) {
     case "pagara":
-      return `${hola} ¿Cómo vas con el pago? Dayana queda muy atenta para iniciar tu proceso. Cuando lo hagas, me mandas el comprobante por aquí y Dayana te agenda.`;
+      return `${hola} ¿Cómo estás? ¿Cómo vas con el pago? Dayana queda muy atenta para iniciar tu proceso. Cuando lo hagas, me mandas el comprobante por aquí y Dayana te agenda. Si prefieres hablar con ella, dímelo.`;
     case "lo_piensa":
-      return `${hola} ¿Pudiste pensarlo? Dayana queda muy atenta para iniciar tu proceso personalizado. Si tienes alguna duda, con gusto te ayudo por aquí.`;
+      return `${hola} ¿Cómo estás? ¿Pudiste pensar en tomar tu terapia? Dayana queda muy atenta para iniciar tu proceso. Si quieres hablar con ella, dímelo por aquí y te responde.`;
     case "sin_dinero":
-      return `${hola} ¿Cómo has estado? Dayana queda atenta para cuando quieras iniciar tu proceso. Si tienes alguna dificultad con el pago, cuéntame y lo vemos.`;
+      return `${hola} ¿Cómo has estado? Dayana queda atenta para cuando quieras iniciar tu proceso. Si quieres hablar con ella, dímelo por aquí.`;
     default:
-      return `${hola} Dayana queda muy atenta para iniciar tu proceso personalizado. ¿Cuándo te gustaría empezar? Tan pronto envíes el comprobante de pago por aquí, Dayana te agenda.`;
+      return `${hola} ¿Cómo estás? Dayana queda muy atenta para tu proceso personalizado: ¿has pensado en iniciar tu terapia? Si quieres hablar con ella, dímelo por aquí; y tan pronto envíes el comprobante de pago, Dayana te agenda.`;
   }
 };
 

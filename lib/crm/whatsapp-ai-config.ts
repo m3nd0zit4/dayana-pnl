@@ -402,6 +402,15 @@ export const whatsAppAiConfigSchema = z.object({
    * dueña («2 seguimientos», «últimos 14 días»). Fuera de las 24 h usa la
    * plantilla «Seguimiento: iniciar el proceso».
    */
+  /**
+   * Después de su llamada gratis (etapa «tuvo la llamada», dueña, 13-nov,
+   * Merylin: Dayana le mandó los enlaces de pago a mano, contestó «Ok si sra» y
+   * la IA le volvió a mandar uno): «el modelo no envía enlaces de pago ni
+   * continúa hablando, solo el seguimiento». Encendido: la IA calla (Dayana lo
+   * ve en «Te toca»), solo recibe comprobantes, y salvo hablando del taller. Los
+   * seguimientos del cierre (`quoteFollowUp`) salen aparte.
+   */
+  afterCall: z.object({ quiet: z.boolean().default(true) }),
   quoteFollowUp: z.object({
     enabled: z.boolean().default(true),
     firstAfterDays: z.number().int().min(1).max(14).default(2),
@@ -529,6 +538,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   freeCall: { autoBook: false, serviceName: "Consulta gratis 15 min", maxPerDay: 6, offer: 3, soonFirst: true, preferredWeekdays: [], controller: true },
   waitingRoom: { enabled: false, proactive: false },
   callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
+  afterCall: { quiet: true },
   quoteFollowUp: { enabled: true, firstAfterDays: 2, secondAfterDays: 4, max: 2, lookbackDays: 14 },
   freeCallReminder: { enabled: true, minutesBefore: 60, message: DEFAULT_FREE_CALL_REMINDER },
   noShow: { enabled: true, afterMin: 12, message: DEFAULT_NO_SHOW_MESSAGE },
