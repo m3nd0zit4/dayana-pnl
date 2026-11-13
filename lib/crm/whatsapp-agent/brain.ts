@@ -1637,7 +1637,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // lista de la IA le llegó otra del CRM; eligió «3» de la nueva, el modelo pasó
               // option 3 + la hora buena, y se agendó la 3 de la vieja.
               const numbered = (body: string | null | undefined) => (body ?? "").split("\n").filter((l) => /^\s*\d{1,2}[.)]\s/.test(l));
-              const lastList = [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND" && numbered(l.body).length >= 2);
+              // Una lista de una sola hora también cuenta si pregunta cuál le queda mejor.
+              const isOfferList = (body: string | null | undefined) =>
+                numbered(body).length >= 2 || (numbered(body).length === 1 && /responderme con el numero|cual te queda mejor/.test(foldForSearch(body ?? "")));
+              const lastList = [...input.transcript].reverse().find((l) => l.direction === "OUTBOUND" && isOfferList(l.body));
               // La línea con ese número, en esa lista: la hora de la opción tiene que estar en ELLA
               // (no en cualquier línea: con otro orden, «2» no es la misma hora).
               const lineOf = args.option && lastList ? numbered(lastList.body).find((l) => new RegExp(`^\\s*${args.option}[.)]\\s`).test(l)) ?? "" : "";
@@ -1649,7 +1652,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               // -05:00 de Colombia). Si no es de esa lista (Carito), la hora del modelo vale
               // solo si es la de la línea con ese número en la lista que le llegó.
               const usePicked = pickedSeen;
-              if (picked && !usePicked) {
+              if (!usePicked && args.option && (picked || lineOf)) {
                 const zones = [...new Set([timezone, personTz() ?? timezone])];
                 const typedInLine = typedOk && Boolean(lineOf) && zones.some((z) => dayanaOfferedSlot([lineOf], typed!.toISOString(), z));
                 if (!typedInLine) {

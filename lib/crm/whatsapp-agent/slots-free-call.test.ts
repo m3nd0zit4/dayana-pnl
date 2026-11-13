@@ -233,3 +233,10 @@ describe("hourLimitsFrom: negaciones y ambiguos (revisión 13-nov, 2.ª)", () =>
     expect(saysCantMakeIt(["Es importante que hoy a las 5 pm me escribas"], { hm: "12:00" })).toBe(false);
   });
 });
+
+describe("hourLimitsFrom: «no» con salir/libre (revisión 13-nov, 3.ª)", () => {
+  test("«no estoy libre desde las 5» es un tope; «no salgo a las 6» no da una hora desde", () => {
+    expect(hourLimitsFrom(["no estoy libre desde las 5"])).toEqual({ toTime: "17:00" });
+    expect(hourLimitsFrom(["no salgo a las 6"])).toEqual({});
+  });
+});

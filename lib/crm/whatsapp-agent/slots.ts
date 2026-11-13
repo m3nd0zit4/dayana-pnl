@@ -454,17 +454,19 @@ export const hourLimitsFrom = (textsNewestFirst: (string | null | undefined)[]):
       const negated = NEGATED.test(s);
       if (!out.fromTime) {
         const w = s.match(WORK_RANGE);
-        const l = w ? null : s.match(LEAVE_AT);
-        const u = w || l ? null : s.match(WORK_UNTIL);
-        const f = w || l || u ? null : s.match(FREE_FROM);
+        // Con «no» (no salgo a las 6, no trabajo hasta las 5, no estoy libre desde las 5) esas
+        // frases no dan una hora «desde»: no se leen al derecho (revisión 13-nov).
+        const l = w || negated ? null : s.match(LEAVE_AT);
+        const u = w || l || negated ? null : s.match(WORK_UNTIL);
+        const f = w || l || u || negated ? null : s.match(FREE_FROM);
         const a = w || l || u || f || negated ? null : s.match(AFTER);
         // Al salir del trabajo, media hora para llegar.
         const from = w ? timeAt(w, 6, 30) : l ? timeAt(l, 2, 30) : u ? timeAt(u, 2, 30) : f ? timeAt(f, 1) : a ? timeAt(a, 1) : null;
         if (from) out.fromTime = from;
       }
-      // «no puedo después de las 5» → hasta las 5.
+      // «no puedo después de las 5» → hasta las 5; «no estoy libre desde las 5», igual.
       if (negated && !out.toTime) {
-        const a = s.match(AFTER);
+        const a = s.match(AFTER) ?? s.match(FREE_FROM);
         const to = a ? timeAt(a, 1, 0, true) : null;
         if (to) out.toTime = to;
       }
