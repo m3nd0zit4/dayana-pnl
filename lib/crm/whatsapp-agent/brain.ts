@@ -42,7 +42,7 @@ import {
   withoutPayUrls,
 } from "./chat-payment-link";
 import { saysSelfHarm } from "./pause-rules";
-import { asksForMoreHelp, seriousReply } from "./serious-reply";
+import { asksForCall, asksForMoreHelp, seriousReply } from "./serious-reply";
 import { familyPaidReply, paidForFamily } from "./family-paid";
 import { insults, RUDE_REPLY, rudeReplied } from "./rude-reply";
 import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls } from "./reply-guards";
@@ -1005,6 +1005,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !(workshopFlow && (input.stage === "tuvo_llamada" || input.stage === "clienta_pasada"));
   const salesOn = config.salesFlow.enabled && config.booking.enabled && !noFreeCall;
   const autoBook = salesOn && Boolean(input.freeCall?.autoBook);
+  // Ya tuvo su llamada (12-nov): puede agendar otra si la pide, pero el embudo
+  // (invitarla a la llamada, las horas tras un «sí» viejo) no se le vuelve a hacer.
+  const afterCall = input.stage === "tuvo_llamada";
+  const funnelOn = salesOn && !afterCall;
   const offeredNow = new Set<string>();
   const offeredBefore =
     salesOn && input.conversationId ? await offeredFreeCallSlots(input.conversationId, now).catch(() => [] as string[]) : [];
@@ -1989,10 +1993,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
             ? workshopPayLine(workshop)
             : null,
       // No le alcanza (28-oct): lo más económico que hay ahora (solo entonces: el prompt fijo no cambia).
-      cheaperItems.length > 0 ? cheaperLine(cheaperItems, { beforeCall: salesOn }) : null,
+      cheaperItems.length > 0 ? cheaperLine(cheaperItems, { beforeCall: funnelOn }) : null,
       guestEvent
         ? guestLine(guestEvent, input.transcript, { timezone, now: now.getTime() })
-        : salesOn
+        : funnelOn
         ? flowStateText(
             flowState(input.transcript, {
               keyQuestions: config.salesFlow.buyButtons.map((b) => b.keyQuestion),
@@ -2391,7 +2395,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     escalated &&
     input.stage === "tuvo_llamada" &&
     ["other", "unknown", "reschedule"].includes(modelOutcome.category) &&
-    asksForMoreHelp(lastInbound);
+    asksForMoreHelp(lastInbound) &&
+    // Pedir otra llamada o reagendar ya se puede (12-nov): eso no va a la escalera del pago.
+    !asksForCall(lastInbound);
   // Lo que ya decidió otra respuesta (la sesión urgente, el enlace, la comunidad, los datos, la cotización) va primero.
   const otherFallback = agendaOnly || chatLinkOnly || communityOnly || paymentDataOnly || Boolean(quotePay) || workshopOnly || cheaperOnly;
   // Solo lo que de verdad le llegaría: su respuesta, o el aviso de una escalada (no un comprobante recibido).
@@ -2735,6 +2741,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     outcome === modelOutcome &&
     (outcome.kind === "reply" || Boolean(blockedBy)) &&
     salesOn &&
+    (!afterCall || asksForCall(lastInbound)) &&
     !guestEvent &&
     !upcomingCall &&
     !serious &&

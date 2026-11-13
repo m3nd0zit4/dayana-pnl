@@ -50,7 +50,7 @@ const payLadder = (input: SeriousInput): string => {
       : `. ${ASK_HOW}`;
   const times = said(input.priorAi, PAY_MARKER);
   if (times === 0) {
-    return `Te entiendo. Tu llamada gratis con Dayana ya la tuviste: para trabajarlo con ella (otra llamada, una consulta o tu proceso), ${PAY_MARKER}${what}${how}`;
+    return `Te entiendo. Tu llamada gratis con Dayana ya la tuviste: para trabajarlo con ella en tu proceso, ${PAY_MARKER}${what}${how}`;
   }
   if (said(input.priorAi, DIRECT_MARKER) === 0) {
     return `Te lo digo de forma directa: muchas personas ya están trabajando su proceso con Dayana en sesiones personalizadas, y empezaron dando el paso del pago. Por aquí no puedo darte acompañamiento: eso lo trabajas con Dayana en tus sesiones, y ahí ella define contigo cuánto tiempo necesitas. Si no das el paso, nada va a cambiar. El siguiente paso es el pago${what}${how}`;
@@ -83,3 +83,11 @@ export const seriousReply = (input: SeriousInput): { text: string; attachLink: b
 const MORE_HELP =
   /\b(llamada|llamar|llamame|llamen|consulta|sesion|sesiones|gratis|gratuit[oa]|ayuda|ayudame|ayudeme|quitame|quiteme|angustia|miedos?|ansiedad|tristeza|agendar|reagendar|agendame|cita|hablar con (dayana|ella)|acompanamiento)\b/;
 export const asksForMoreHelp = (texts: string[]): boolean => texts.some((t) => MORE_HELP.test(foldForSearch(t)));
+
+/**
+ * Pide otra llamada o reagendar con Dayana. Desde el 12-nov (dueña: «las personas
+ * que ya tuvieron una llamada… quiero que sí sea posible») eso se agenda, no va
+ * a la escalera del pago.
+ */
+const WANTS_CALL = /\b(llamada|llamar|llamame|llamen|agendar|reagendar|agendame|cita|hablar con (dayana|ella))\b/;
+export const asksForCall = (texts: string[]): boolean => texts.some((t) => WANTS_CALL.test(foldForSearch(t)));

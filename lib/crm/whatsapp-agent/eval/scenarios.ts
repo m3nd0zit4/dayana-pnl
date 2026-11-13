@@ -895,10 +895,11 @@ export const SCENARIOS: Scenario[] = [
     ],
     // Contestar (pagar + comprobante) o pasárselo a Dayana: las dos valen (dueño, 21-oct).
     expect: {
-      noTool: ["offer_free_call_slots", "book_free_call", "send_payment_info"],
+      anyTool: ["offer_free_call_slots"],
+      noTool: ["send_payment_info"],
       mustNotMatch: [/N° Cuenta|Número de cuenta/i],
     },
-    goal: "Ya habló de la sesión y los valores con Dayana (Dayana le mandó cómo pagar): no le ofrece ni le reagenda la llamada gratis. Le explica con amabilidad que ya tuvo su llamada con Dayana y que, para empezar sus sesiones, haga el pago con los datos que le mandó Dayana y mande el comprobante por aquí para que Dayana lo verifique y le agende; o le pregunta si tiene alguna dificultad para pagar; o le dice que le avisa a Dayana.",
+    goal: "Ya tuvo su llamada, pero pedir otra o reagendar ya se puede (dueña, 12-nov): le ofrece horas reales para la llamada con Dayana (las pega el código), sin reproches ni la escalera del pago.",
   },
   {
     id: "carmen-buenos-dias-tras-pago",

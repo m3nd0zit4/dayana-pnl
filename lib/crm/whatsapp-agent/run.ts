@@ -642,7 +642,8 @@ export const runWhatsAppAi = async (input: {
       (route.segment === "new_lead" ||
         route.segment === "returning_lead" ||
         route.segment === "free_call_booked" ||
-        (workshopCall && route.segment === "after_call"));
+        // Ya tuvo su llamada y pide otra o reagendar (dueña, 12-nov): también se agenda sola.
+        route.segment === "after_call");
     const nameInfo = await chatNameInfo(conversationId);
     const freeCallOn =
       config.salesFlow.enabled && config.booking.enabled && (!(stage && NO_FREE_CALL_STAGES.has(stage)) || workshopCall);

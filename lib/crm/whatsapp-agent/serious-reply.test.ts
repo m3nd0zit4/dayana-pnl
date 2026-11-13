@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import type { ChatPaymentLink } from "./chat-payment-link";
-import { asksForMoreHelp, PAY_MARKER, seriousReply } from "./serious-reply";
+import { asksForCall, asksForMoreHelp, PAY_MARKER, seriousReply } from "./serious-reply";
+import { NO_FREE_CALL_STAGES } from "./stage";
 
 const link: ChatPaymentLink = { url: "https://www.dayanabeltran.com/pagar/p/therapy-3", sentAt: null, label: "paquete de 3 sesiones" };
 const base = { risk: false, stage: "tuvo_llamada", link, hasPaymentData: false, priorAi: [] as string[], canOfferFreeCall: false, upcomingLabel: null };
@@ -73,5 +74,23 @@ describe("asksForMoreHelp", () => {
     for (const t of ["el enlace no me abre", "¿me das factura?", "¿atiende presencial?"]) {
       expect([t, asksForMoreHelp([t])]).toEqual([t, false]);
     }
+  });
+});
+
+describe("ya tuvo su llamada: puede pedir otra o reagendar (dueña, 12-nov)", () => {
+  test("«tuvo la llamada» ya no está entre los estados sin llamada gratis; las clientas sí", () => {
+    expect(NO_FREE_CALL_STAGES.has("tuvo_llamada")).toBe(false);
+    expect(NO_FREE_CALL_STAGES.has("clienta_activa")).toBe(true);
+  });
+  test("pedir otra llamada o reagendar es pedir la llamada (no va a la escalera del pago)", () => {
+    for (const t of ["¿Puedo reagendar la llamada?", "Quiero otra llamada con Dayana", "me puedes agendar otra cita", "quiero hablar con Dayana"]) {
+      expect([t, asksForCall([t])]).toEqual([t, true]);
+    }
+    for (const t of ["Quítame esta angustia", "Necesito acompañamiento", "¿Me das una sesión gratis?"]) {
+      expect([t, asksForCall([t])]).toEqual([t, false]);
+    }
+  });
+  test("la escalera del pago ya no dice que no hay otra llamada", () => {
+    expect(seriousReply(base).text).not.toMatch(/otra llamada/);
   });
 });

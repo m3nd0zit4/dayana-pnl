@@ -44,7 +44,7 @@ export const STAGE_HELP: Record<Stage, string> = {
   conversando: "Ya habló antes y no ha agendado. La asistente sigue donde quedó, sin saludarla como nueva.",
   llamada_agendada: "Tiene la llamada gratis agendada. La asistente le confirma y la acompaña hasta la hora.",
   no_contesto: "No contestó la llamada gratis. La asistente le ofrece otra hora.",
-  tuvo_llamada: "Ya tuvo la llamada con Dayana (o Dayana ya le mandó cómo pagar) y no consta que haya pagado. La asistente la acompaña: le ayuda a pagar con lo que le mandó Dayana y recibe su comprobante. No hay otra llamada gratis.",
+  tuvo_llamada: "Ya tuvo la llamada con Dayana (o Dayana ya le mandó cómo pagar) y no consta que haya pagado. La asistente la acompaña: le ayuda a pagar con lo que le mandó Dayana y recibe su comprobante. Si pide otra llamada o reagendar, se la agenda.",
   clienta_activa: "Pagó y tiene un proceso o una sesión en curso. La atiende Dayana.",
   clienta_pasada: "Pagó antes (un proceso, una sesión o un taller) y no tiene nada en curso. La atiende Dayana.",
   por_revisar: "Puede que ya haya pagado (lo dice el chat o tiene una inscripción sin pago registrado), pero Dayana no lo ha confirmado. No se le ofrece la llamada gratis.",
@@ -59,7 +59,7 @@ export const STAGE_AI_RULE: Partial<Record<Stage, string>> = {
   no_contesto:
     "No alcanzó a hablar con Dayana en su llamada gratis: sin reproches, ofrécele otra hora para la llamada.",
   tuvo_llamada:
-    "Ya habló con Dayana (tuvo su llamada gratis o Dayana ya le dijo cómo pagar): no le ofrezcas otra llamada gratis ni la saludes como nueva. Si quiere pagar o pregunta a qué cuenta: si Dayana ya le mandó cómo pagar, que pague con eso (send_payment_link si fue un enlace); si no, dale los datos de pago con send_payment_info. Si pide reagendar, otra llamada, una consulta o una sesión gratis, o que la ayudes con lo que siente: no se la das; dile directo que ya tuvo su llamada gratis con Dayana y que la siguiente llamada o sesión es después del pago: que pague (send_payment_link si Dayana le mandó enlace; si no, pregúntale si prefiere el enlace o los datos para transferencia) y te mande el comprobante por aquí para que Dayana lo verifique y le agende. Si insiste, sé más directa: el paso es el pago. Si pregunta cuánto cuesta o qué proceso le conviene (no si solo repite el valor que le dio Dayana), eso lo confirma Dayana: escala con category=payment.",
+    "Ya habló con Dayana (tuvo su llamada gratis o Dayana ya le dijo cómo pagar): no la saludes como nueva ni le ofrezcas la llamada por tu cuenta. Si ella pide otra llamada, reagendar o hablar con Dayana, sí se puede (dueña, 12-nov): ofrécele horas con offer_free_call_slots y agéndala con book_free_call. Si quiere pagar o pregunta a qué cuenta: si Dayana ya le mandó cómo pagar, que pague con eso (send_payment_link si fue un enlace); si no, dale los datos de pago con send_payment_info. Si pide una sesión gratis o que la ayudes con lo que siente (sin pedir la llamada): la siguiente sesión es después del pago: que pague (send_payment_link si Dayana le mandó enlace; si no, pregúntale si prefiere el enlace o los datos para transferencia) y te mande el comprobante por aquí para que Dayana lo verifique y le agende. Si pregunta cuánto cuesta o qué proceso le conviene (no si solo repite el valor que le dio Dayana), eso lo confirma Dayana: escala con category=payment.",
   clienta_activa: "Es clienta: nunca le ofrezcas la llamada gratis. Da continuidad a su proceso.",
   clienta_pasada: "Ya fue clienta: nunca le ofrezcas la llamada gratis. Si quiere retomar, escala para que Dayana la atienda.",
   por_revisar: "Puede que ya sea clienta: no le ofrezcas la llamada gratis.",
@@ -71,7 +71,6 @@ export const STAGE_AI_RULE: Partial<Record<Stage, string>> = {
  * herramientas de la llamada gratis), no solo en el prompt.
  */
 export const NO_FREE_CALL_STAGES: ReadonlySet<Stage> = new Set<Stage>([
-  "tuvo_llamada",
   "clienta_activa",
   "clienta_pasada",
   "por_revisar",
