@@ -48,7 +48,7 @@ import { spendLimits } from "./spend";
 import { configWithSpendLevel } from "./spend-store";
 import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
-import { pauseHolds } from "./pause-rules";
+import { pauseHolds, saysSelfHarm } from "./pause-rules";
 import { sendsReceipt, wantsPaymentHelp } from "./payment-intent";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
@@ -548,6 +548,60 @@ export const runWhatsAppAi = async (input: {
       return;
     }
 
+    // Después de su llamada (dueña, 13-nov, caso Merylin: Dayana le mandó los enlaces de
+    // pago a mano, contestó «Ok si sra» y la IA le volvió a mandar el del paquete de 24):
+    // «el modelo no envía enlaces de pago ni continúa hablando, solo en el seguimiento».
+    // La IA calla (Dayana lo ve en «Te toca») salvo hablando del taller, y solo recibe un
+    // comprobante, sin mandar enlaces ni datos. Antes de gastar la ficha o la IA. Los
+    // seguimientos del cierre salen aparte (`quote-follow-up.ts`).
+    let afterCallReceiptOnly = false;
+    const stageEarly = segmentResult
+      ? segmentResult.review && segmentResult.segment !== "client"
+        ? "por_revisar"
+        : (segmentResult.stage ?? null)
+      : ((await prisma.whatsAppDossier.findUnique({ where: { conversationId }, select: { stage: true } }).catch(() => null))?.stage ?? null);
+    if (config.afterCall.quiet && stageEarly === "tuvo_llamada" && !clientMode && !always) {
+      const openWs = await openWorkshopForAi().catch(() => null);
+      const ws =
+        openWs && !(conversation.contactId && (await enrolledInWorkshop(conversation.contactId, openWs.id).catch(() => false))) ? openWs : null;
+      if (!(ws && workshopFlowActive(history, ws))) {
+        const lastMsgs = (
+          await prisma.conversationMessage.findMany({
+            where: { conversationId },
+            orderBy: [{ sentAt: "desc" }, { id: "desc" }],
+            take: 12,
+            select: { direction: true, body: true, attachments: true, kind: true },
+          })
+        ).reverse();
+        if (sendsReceipt(lastMsgs)) {
+          afterCallReceiptOnly = true;
+          clientMode = true;
+        } else {
+          // Algo grave (quiere hacerse daño): la persona no recibe respuesta de la IA, pero
+          // Dayana sí un aviso claro (no solo «Te toca»).
+          let tailStart = lastMsgs.length;
+          while (tailStart > 0 && lastMsgs[tailStart - 1]!.direction === "INBOUND") tailStart--;
+          const said = lastMsgs.slice(tailStart).map((m) => m.body ?? "");
+          if (saysSelfHarm(said)) {
+            await alertSilently(
+              conversationId,
+              {
+                category: "clinical",
+                severity: "normal",
+                reason: `Después de su llamada escribió algo delicado («${said.join(" ").slice(0, 160)}»). La IA no le contestó: te toca a ti.`,
+              },
+              conversation.contact?.firstName ?? conversation.participantName ?? null,
+              config,
+              null
+            ).catch((e: unknown) => console.warn("[whatsapp-agent] no se pudo avisar a Dayana", e));
+          }
+          await finish(run.id, "SKIPPED", { reason: "after_call" });
+          await handOffIfNeeded(conversationId, "after_call", silenced);
+          return;
+        }
+      }
+    }
+
     await setStatus(run.id, "THINKING", { startedAt: new Date() });
 
     const timezone = await getOperationalTimezone();
@@ -646,29 +700,6 @@ export const runWhatsAppAi = async (input: {
     // Ya tuvo su llamada y pide otra (dueña, 12-nov: «la gente termina agendando de
     // 15 en 15 sesiones gratuitas y no pagan»): nunca se agenda sola; queda como
     // pedido que Dayana aprueba o rechaza en el CRM.
-    // Después de su llamada (dueña, 13-nov, caso Merylin: Dayana le mandó los
-    // enlaces de pago a mano, contestó «Ok si sra» y la IA le volvió a mandar el del
-    // paquete de 24): «el modelo no envía enlaces de pago ni continúa hablando, solo en el
-    // seguimiento». La IA calla (Dayana lo ve en «Te toca») salvo hablando del taller, y
-    // solo recibe un comprobante, sin mandar enlaces ni datos. Los seguimientos del cierre
-    // salen aparte (`quote-follow-up.ts`).
-    let afterCallReceiptOnly = false;
-    if (config.afterCall.quiet && stage === "tuvo_llamada" && !clientMode && !workshopCall && !always) {
-      const lastMsgs = await prisma.conversationMessage.findMany({
-        where: { conversationId },
-        orderBy: [{ sentAt: "desc" }, { id: "desc" }],
-        take: 12,
-        select: { direction: true, body: true, attachments: true, kind: true },
-      });
-      if (sendsReceipt(lastMsgs.reverse())) {
-        afterCallReceiptOnly = true;
-        clientMode = true;
-      } else {
-        await finish(run.id, "SKIPPED", { reason: "after_call" });
-        await handOffIfNeeded(conversationId, "after_call", silenced);
-        return;
-      }
-    }
     const nameInfo = await chatNameInfo(conversationId);
     const freeCallOn =
       config.salesFlow.enabled && config.booking.enabled && (!(stage && NO_FREE_CALL_STAGES.has(stage)) || workshopCall);
@@ -838,7 +869,7 @@ export const runWhatsAppAi = async (input: {
     // avisar nada a la persona (como cualquier mensaje de una clienta). Solo
     // sale lo que comparte datos o el enlace, o recibe un comprobante.
     // Después de su llamada solo se recibe el comprobante: ni datos ni enlaces (13-nov).
-    if (afterCallReceiptOnly) {
+    if (config.afterCall.quiet && stage === "tuvo_llamada" && !always) {
       result.paymentBlocks = { details: [], link: null };
       result.linkBlocks = [];
     }

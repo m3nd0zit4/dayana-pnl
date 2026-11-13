@@ -42,6 +42,9 @@ describe("sendsReceipt (13-nov: después de su llamada solo se recibe el comprob
     expect(sendsReceipt(burst("Ya te transferí, te mando el comprobante"))).toBe(true);
     expect(sendsReceipt(burst("", [{ kind: "image" }]))).toBe(true);
     expect(sendsReceipt(burst("Ya pagué"))).toBe(true);
+    expect(sendsReceipt(burst("Transferí hace un rato"))).toBe(true);
+    expect(sendsReceipt(burst("Ya te consigné"))).toBe(true);
+    expect(sendsReceipt(burst("Te envié el pago"))).toBe(true);
     expect(sendsReceipt(burst("Mándame el link de pago por favor"))).toBe(false);
     expect(sendsReceipt(burst("¿A qué cuenta consigno?"))).toBe(false);
     expect(sendsReceipt(burst("Ok si sra"))).toBe(false);

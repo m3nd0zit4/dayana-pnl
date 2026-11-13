@@ -402,6 +402,13 @@ export const whatsAppAiConfigSchema = z.object({
    * dueña («2 seguimientos», «últimos 14 días»). Fuera de las 24 h usa la
    * plantilla «Seguimiento: iniciar el proceso».
    */
+  quoteFollowUp: z.object({
+    enabled: z.boolean().default(true),
+    firstAfterDays: z.number().int().min(1).max(14).default(2),
+    secondAfterDays: z.number().int().min(1).max(14).default(4),
+    max: z.number().int().min(0).max(3).default(2),
+    lookbackDays: z.number().int().min(1).max(30).default(14),
+  }),
   /**
    * Después de su llamada gratis (etapa «tuvo la llamada», dueña, 13-nov,
    * Merylin: Dayana le mandó los enlaces de pago a mano, contestó «Ok si sra» y
@@ -411,13 +418,6 @@ export const whatsAppAiConfigSchema = z.object({
    * seguimientos del cierre (`quoteFollowUp`) salen aparte.
    */
   afterCall: z.object({ quiet: z.boolean().default(true) }),
-  quoteFollowUp: z.object({
-    enabled: z.boolean().default(true),
-    firstAfterDays: z.number().int().min(1).max(14).default(2),
-    secondAfterDays: z.number().int().min(1).max(14).default(4),
-    max: z.number().int().min(0).max(3).default(2),
-    lookbackDays: z.number().int().min(1).max(30).default(14),
-  }),
   /**
    * Recordatorio de la llamada gratis antes de la hora (`free-call-reminder-rules.ts`):
    * «hoy a las … Dayana te llamará por WhatsApp, ten a mano un espacio

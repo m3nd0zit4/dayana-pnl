@@ -27,6 +27,8 @@ const PAID = [
   /\bya (te |le )?(pague|transferi|consigne|deposite|envie el pago|hice el pago|realice el pago)\b/,
   /\b(hice|realice|envie|mande) (el|la) (pago|transferencia|consignacion|deposito)\b/,
   /\bpago (realizado|hecho|enviado|listo)\b/,
+  // «Transferí», «consigné», «te envié el pago» sin «ya»: también es decir que pagó.
+  /\b(transferi|consigne|deposite|abone)\b|\b(envie|mande) (el|un) pago\b/,
   /\bno (me )?(paso|salio|pasa|sale) (el pago|la transferencia)\b/,
   /\b(rechazad[ao]|rebotad[ao]|devolvio)\b.*\b(pago|transferencia)\b/,
 ];
