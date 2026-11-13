@@ -257,7 +257,7 @@ export const URGENCIES = [
  * evento abierto ese día (la llamada es donde se ve qué conviene).
  */
 export const INTERESTS = [
-  { id: "sesiones", label: "Sesiones de coaching 1 a 1" },
+  { id: "sesiones", label: "Sesiones 1 a 1 con Dayana" },
   { id: "cursos", label: "Cursos" },
   { id: "talleres", label: "Talleres" },
   { id: "eventos", label: "Webinars y eventos gratuitos" },

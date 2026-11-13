@@ -193,7 +193,7 @@ const main = async () => {
     const rowB = rows.find((r) => r.contactId === b.contactId);
     check("11. una fila por persona", rows.length === 2, rows.length);
     check("11. Ana: agendada, confirmó, vino 2 veces", rowA?.stage === "agendada" && rowA.confirmed && rowA.visits === 2, rowA);
-    check("11. Ana: canal y respuestas", rowA?.channel === "instagram" && rowA.campaign === `e2e-${run}` && rowA.interests.join(",") === "Sesiones de coaching 1 a 1,Talleres" && rowA.goal === "Vivir de mi marca personal y mi contenido" && rowA.social === "@ana.e2e", rowA);
+    check("11. Ana: canal y respuestas", rowA?.channel === "instagram" && rowA.campaign === `e2e-${run}` && rowA.interests.join(",") === "Sesiones 1 a 1 con Dayana,Talleres" && rowA.goal === "Vivir de mi marca personal y mi contenido" && rowA.social === "@ana.e2e", rowA);
     check("11. Ana: su hora", rowA?.call?.startIso === third.startIso);
     check("11. Beto: dejó sus datos", rowB?.stage === "datos" && rowB.call === null && !rowB.confirmed, rowB?.stage);
     const stats = funnelStats(rows);
