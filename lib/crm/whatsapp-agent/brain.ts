@@ -1639,13 +1639,22 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
               const pickedSeen = Boolean(picked) && (!lastList || foldForSearch(lastList.body ?? "").includes(foldForSearch(picked!.label)));
               const typed = args.startIso ? new Date(args.startIso) : null;
               const typedOk = Boolean(typed && !Number.isNaN(typed.getTime()));
-              // La hora que escribió el modelo manda si el número no es de la lista que vio
-              // o no cuadra con esa hora; si no, el número (revisión 21-oct).
-              const usePicked = pickedSeen && (!typedOk || typed!.getTime() === new Date(picked!.startIso).getTime());
-              if (picked && !usePicked && !typedOk) {
-                return log("book_free_call", args, {
-                  error: "La lista que ella recibió no es la que guardé: pasa el startIso exacto de la hora que eligió (la de la última lista que le llegó).",
-                });
+              // Si el número es de la lista que vio, manda el número: la hora que escribe el
+              // modelo falla con otras zonas (auditoría 13-nov: «3:15 p. m.» de su hora con el
+              // -05:00 de Colombia). Si no es de esa lista (Carito), la hora del modelo vale
+              // solo si es la de la línea con ese número en la lista que le llegó.
+              const usePicked = pickedSeen;
+              if (picked && !usePicked) {
+                const line = (lastList?.body ?? "").split("\n").find((l) => new RegExp(`^\\s*${args.option}[.)]\\s`).test(l)) ?? "";
+                const zones = [...new Set([timezone, personTz() ?? timezone])];
+                const typedInLine = typedOk && Boolean(line) && zones.some((z) => dayanaOfferedSlot([line], typed!.toISOString(), z));
+                if (!typedInLine) {
+                  return log("book_free_call", args, {
+                    error: line
+                      ? `La opción ${args.option} de la última lista que le llegó dice «${line.trim()}»: pasa el startIso exacto de esa hora (en la hora de Colombia).`
+                      : "La lista que ella recibió no es la que guardé: pasa el startIso exacto de la hora que eligió (la de la última lista que le llegó).",
+                  });
+                }
               }
               const start = new Date(usePicked ? picked!.startIso : (args.startIso ?? picked?.startIso ?? ""));
               if (Number.isNaN(start.getTime())) {
