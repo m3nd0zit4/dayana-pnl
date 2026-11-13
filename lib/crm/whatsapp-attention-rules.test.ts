@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  askedSomething,
   appointmentCoversUntil,
   appointmentJustLinked,
   burstState,
@@ -439,4 +440,12 @@ test("lastInboundSeen: el último mensaje de la persona que la IA leyó", () => 
     ).getTime()
   ).toBe(at(7).getTime());
   expect(lastInboundSeen([{ direction: "INBOUND" }], start).getTime()).toBe(start.getTime());
+});
+
+describe("askedSomething: una invitación sin «?» (Sandy, 13-nov)", () => {
+  test("su «ok» a «Si quieres, te agendo…» pide respuesta", () => {
+    expect(askedSomething({ body: "Si quieres, te agendo una llamada gratis de 15 minutos con Dayana." })).toBe(true);
+    expect(askedSomething({ body: "Dime qué día y a qué hora te queda bien y busco un espacio." })).toBe(true);
+    expect(askedSomething({ body: "Con gusto 🙏" })).toBe(false);
+  });
 });

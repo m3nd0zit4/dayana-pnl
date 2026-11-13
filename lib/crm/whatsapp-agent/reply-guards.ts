@@ -435,3 +435,18 @@ export const withoutRepeatedGreeting = (
   if (rest === text || rest.trim().split(/\s+/).length < 3) return text;
   return rest.charAt(0).toUpperCase() + rest.slice(1);
 };
+
+/**
+ * El modelo escribió horas de la llamada por su cuenta, sin pedirlas a la agenda
+ * (auditoría 13-nov: 19 de los 22 bloqueos «horas que no salieron de tu agenda»
+ * no llamaron a `offer_free_call_slots`; el freno cambiaba la respuesta por
+ * «Déjame revisar la agenda» y 6 nunca tuvieron respuesta). Una hora junto a
+ * palabras de agenda o de la llamada, y no de un evento, un taller o una clase.
+ */
+const OWN_TIME = /\b(a las? \d{1,2}(:\d{2})?|\d{1,2}(:\d{2})?\s*(a\.?\s?m\b|p\.?\s?m\b|am\b|pm\b))/;
+const AGENDA_WORDS = /\b(llamada|llamarte|te llama|espacio|espacios|horario|horarios|disponible|disponibles|agenda|agendar|agendo|cita)\b/;
+const NOT_A_CALL = /\b(evento|webinar|taller|clase|clases|live|en vivo|curso|meet|sesion de hoy)\b/;
+export const writesOwnHours = (text: string | null | undefined): boolean => {
+  const t = foldForSearch(text ?? "");
+  return OWN_TIME.test(t) && AGENDA_WORDS.test(t) && !NOT_A_CALL.test(t);
+};

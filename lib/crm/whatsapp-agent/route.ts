@@ -84,6 +84,8 @@ export const decideRoute = (input: {
   return { routerEnabled: true, mode, segment, skip, always: false };
 };
 
+/** Respuestas automáticas en 24 h a una persona que no es clienta: solo para cortar un bucle. */
+export const LEAD_LOOP_GUARD = 60;
 const LEADS = new Set<Segment>(["new_lead", "returning_lead", "free_call_booked", "after_call"]);
 
 /**
@@ -93,5 +95,6 @@ const LEADS = new Set<Segment>(["new_lead", "returning_lead", "free_call_booked"
  */
 export const maxPerDayFor = (config: WhatsAppAiConfig, segment: Segment | null, always = false): number =>
   always || (config.router.enabled && segment && LEADS.has(segment))
-    ? Math.max(config.maxPerDay, config.router.maxPerDayNewLead)
+    ? // Sin tope práctico para quien aún no es clienta (dueña, 13-nov): solo un freno ante un bucle.
+      Math.max(config.maxPerDay, config.router.maxPerDayNewLead, LEAD_LOOP_GUARD)
     : config.maxPerDay;

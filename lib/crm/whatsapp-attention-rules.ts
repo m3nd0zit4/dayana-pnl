@@ -9,6 +9,8 @@
  * celular— o pulsa «Listo». Un mensaje nuevo que importa lo vuelve a abrir.
  */
 
+import { foldForSearch } from "./search-normalize";
+
 type When = Date | string | null | undefined;
 
 const time = (v: When): number | null => {
@@ -246,6 +248,9 @@ export const askedSomething = (m: (TrivialInput & { source?: string | null; clie
   if (!m) return false;
   const text = m.body ?? "";
   if (/[?¿]/.test(text) || /https?:\/\//i.test(text)) return true;
+  // Una invitación sin signo de pregunta («Si quieres, te agendo una llamada…», «Dime qué
+  // día…»): su «ok» es el «sí» (Sandy, 13-nov) y se contesta.
+  if (/\b(si quieres|te agendo|quieres que|dime (que|cual|si)|me cuentas|me confirmas|avisame|puedes responderme)\b/.test(foldForSearch(text))) return true;
   return isAutoSend(m);
 };
 

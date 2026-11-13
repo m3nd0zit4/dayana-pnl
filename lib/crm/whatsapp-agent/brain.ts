@@ -45,7 +45,7 @@ import { saysSelfHarm } from "./pause-rules";
 import { asksForCall, asksForMoreHelp, seriousReply } from "./serious-reply";
 import { familyPaidReply, paidForFamily } from "./family-paid";
 import { insults, RUDE_REPLY, rudeReplied } from "./rude-reply";
-import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls } from "./reply-guards";
+import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, sharesAccount, typedPaymentData, urlKeys, withoutInventedUrls, writesOwnHours } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -2820,7 +2820,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     !state.urgentSession &&
     !state.receipt &&
     !toolCalls.some((c) => c.tool === "offer_free_call_slots" || c.tool === "book_free_call") &&
-    (cantMakeIt || acceptedCallWithoutHours(input.transcript))
+    (cantMakeIt ||
+      acceptedCallWithoutHours(input.transcript) ||
+      // Escribió horas por su cuenta: van las de la agenda de verdad, no «Déjame revisar la agenda» (13-nov).
+      (outcome.kind === "reply" && !workshopAskNow && !workshopFlow && writesOwnHours(outcome.message)))
   ) {
     // Cuándo dijo que puede en sus últimos mensajes (lo último manda; no lo de las sesiones).
     await offerSlots(availabilityArgs(input.transcript.filter((l) => l.direction === "INBOUND").slice(-6).map((l) => l.body ?? "")));

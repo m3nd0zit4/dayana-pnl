@@ -50,10 +50,11 @@ import { handleWaitingRoom } from "./waiting-room";
 import { handleCallFollowUpReply } from "./call-outcome";
 import { pauseHolds, saysSelfHarm } from "./pause-rules";
 import { CANCELLED_BOOKING } from "./free-call-rules";
-import { sendsReceipt, wantsPaymentHelp } from "./payment-intent";
+import { sendsReceipt } from "./payment-intent";
+import { isHoldingLine, waitBeforeReplyMs } from "./reply-timing";
 import { notifyReceipt, saveReceipt, withPaymentBlocks } from "./payment-info";
 import { alreadySaid } from "./repeat-guard";
-import { closingNotNeeded, promisesHandoff, pseudoEscalation, withoutToolText, writesAccountNumber } from "./reply-guards";
+import { promisesHandoff, pseudoEscalation, withoutToolText, writesAccountNumber } from "./reply-guards";
 import { BREACH_HOLDING, BREACH_REASON, confirmsCall, promiseBreach } from "./promise-guard";
 import { chatNameInfo } from "./chat-name";
 import { latestFreeCallOffer, offeredFreeCallSlots } from "./free-call";
@@ -78,7 +79,8 @@ import { personFirstName } from "@/lib/person-name";
  */
 
 /** Cuánto se espera a que la persona termine de escribir. */
-const DEBOUNCE_MS = Number(process.env.WHATSAPP_AI_DEBOUNCE_MS ?? 8000);
+// 20 s (antes 8): auditoría del 13-nov, el 21 % de las respuestas salía con la persona aún escribiendo.
+const DEBOUNCE_MS = Number(process.env.WHATSAPP_AI_DEBOUNCE_MS ?? 20000);
 /**
  * Lo que lee el modelo del hilo: todo lo de las últimas 2 semanas (hasta
  * HISTORY mensajes) y, si el chat estuvo quieto, al menos los últimos
@@ -343,7 +345,8 @@ export const runWhatsAppAi = async (input: {
         take: 12,
         select: { direction: true, body: true, attachments: true, kind: true },
       });
-      if (wantsPaymentHelp(recent.reverse())) {
+      // Dueña, 13-nov: con una clienta la IA solo recibe el comprobante (ni datos ni enlaces).
+      if (sendsReceipt(recent.reverse())) {
         clientMode = true;
         route = { ...route, mode: routeConfig.defaultMode, skip: null };
       }
@@ -422,9 +425,13 @@ export const runWhatsAppAi = async (input: {
     });
     runId = run.id;
 
-    // La persona suele mandar dos o tres mensajes seguidos. Se espera un poco
-    // y se contesta todo junto, como haría una persona.
-    await sleep(DEBOUNCE_MS);
+    // La persona suele mandar dos o tres mensajes seguidos. Se espera a que
+    // termine y se contesta todo junto, como haría una persona (más si lo último
+    // es un saludo solo o una frase cortada).
+    const trigger = await prisma.conversationMessage
+      .findFirst({ where: { conversationId, externalMessageId: input.triggerMessageId }, select: { body: true } })
+      .catch(() => null);
+    await sleep(waitBeforeReplyMs(trigger?.body, DEBOUNCE_MS));
     const latest = await latestInbound(conversationId);
     if (newerThan(latest, input.triggerMessageId)) {
       // Llegó otro mensaje después: esa ejecución contesta los dos.
@@ -531,10 +538,10 @@ export const runWhatsAppAi = async (input: {
       await finish(run.id, "SKIPPED", { reason: "trivial" });
       return;
     }
-    // En modo IA, a un «gracias» / «amén» / emoji tampoco, si lo último nuestro
-    // ya fue un cierre o si le está contestando a Dayana (21-oct: «Con gusto 🙏»
-    // en cadena con Carmen y Patricia).
-    if (!burst.needsReply && closingNotNeeded(conversation.messages)) {
+    // En modo IA, a un «gracias» / «ok» / «amén» / emoji que no contesta una
+    // pregunta nuestra, tampoco (13-nov: 143 «Con gusto 🙏» de relleno en 30 días;
+    // antes solo si lo último nuestro ya era un cierre o si le hablaba a Dayana).
+    if (!burst.needsReply) {
       await finish(run.id, "SKIPPED", { reason: "trivial" });
       return;
     }
@@ -870,11 +877,11 @@ export const runWhatsAppAi = async (input: {
     // avisar nada a la persona (como cualquier mensaje de una clienta). Solo
     // sale lo que comparte datos o el enlace, o recibe un comprobante.
     // Después de su llamada solo se recibe el comprobante: ni datos ni enlaces (13-nov).
-    if (config.afterCall.quiet && stage === "tuvo_llamada" && !always) {
+    if (clientMode || (config.afterCall.quiet && stage === "tuvo_llamada" && !always)) {
       result.paymentBlocks = { details: [], link: null };
       result.linkBlocks = [];
     }
-    const paymentAnswer = afterCallReceiptOnly
+    const paymentAnswer = clientMode
       ? Boolean(result.receipt)
       : Boolean(result.receipt) || result.paymentBlocks.details.length > 0 || Boolean(result.paymentBlocks.link);
     if (clientMode && (result.outcome.kind === "escalate" || !paymentAnswer)) {
@@ -1748,8 +1755,10 @@ const escalate = async (
   // Si lo último que le mandamos ya es este mismo aviso («Déjame avisarle a
   // Dayana…» cuatro veces seguidas, 14-oct), no se repite: lo tiene a la vista
   // y Dayana ya está avisada.
-  const lastSent = holding
-    ? await prisma.conversationMessage.findFirst({
+  // Un aviso de espera por día basta (13-nov: el mismo, 15 veces en 24 h en 8 chats):
+  // Dayana ya está avisada y «Te toca» sigue abierto.
+  const recentOut = holding
+    ? await prisma.conversationMessage.findMany({
         where: {
           conversationId,
           direction: "OUTBOUND",
@@ -1757,10 +1766,13 @@ const escalate = async (
           sentAt: { gte: new Date(Date.now() - 24 * 3600_000) },
         },
         orderBy: { sentAt: "desc" },
-        select: { body: true },
+        select: { body: true, isAutoReply: true },
+        take: 20,
       })
-    : null;
-  const repeated = Boolean(holding) && alreadySaid(holding!, [lastSent?.body]);
+    : [];
+  const repeated =
+    Boolean(holding) &&
+    (alreadySaid(holding!, [recentOut[0]?.body]) || (isHoldingLine(holding) && recentOut.some((m) => m.isAutoReply && isHoldingLine(m.body))));
   if (holding && !repeated && status === "ESCALATED" && !(await answeredSince(conversationId, from))) {
     await sendAuto(conversationId, holding).catch((e) =>
       console.error("[whatsapp-agent] mensaje de espera", e)
