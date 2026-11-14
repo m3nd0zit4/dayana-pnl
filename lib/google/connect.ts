@@ -12,7 +12,7 @@ import {
   parseGrantedScopes,
   type GoogleAccountIdentity,
 } from "./oauth";
-import { signOAuthState } from "./oauth-state";
+import { createOAuthPkce, encodePkceCookie, signOAuthState } from "./oauth-state";
 
 /**
  * Único punto que habla con el OAuth de Google.
@@ -38,7 +38,9 @@ export {
   GoogleReauthorizationRequiredError,
   RECONNECT_ONCE_MESSAGE,
   SCOPES_MISSING_MESSAGE,
+  UNREADABLE_TOKEN_MESSAGE,
   googleRedirectUri,
+  servicesNotGrantedMessage,
   type GoogleAccountIdentity,
 } from "./oauth";
 
@@ -54,8 +56,11 @@ const requireClient = () => {
 /**
  * URL de Google a la que mandar el navegador para dar (o renovar) el permiso.
  *
- * Google vuelve siempre a `googleRedirectUri()`; qué cuenta es, quién lo pidió
- * y a dónde volver viajan firmados en `state` (caduca en 15 min).
+ * Google vuelve siempre a `googleRedirectUri()`; qué cuenta es, quién lo pidió,
+ * qué servicios se piden y a dónde volver viajan firmados en `state` (caduca en
+ * 15 min). `pkceCookie` es el valor de la cookie `GOOGLE_OAUTH_COOKIE` que la
+ * ruta pone en su respuesta (`setGoogleOAuthCookie`): sin ella el callback no
+ * acepta el `state`.
  */
 export const startAccountAuthorization = async (input: {
   accountId: string;
@@ -63,18 +68,25 @@ export const startAccountAuthorization = async (input: {
   services: readonly GoogleService[];
   returnTo?: string;
   loginHint?: string | null;
-}): Promise<string> =>
-  buildAuthorizationUrl({
-    client: requireClient(),
+}): Promise<{ url: string; pkceCookie: string }> => {
+  const client = requireClient();
+  const pkce = createOAuthPkce();
+  const url = buildAuthorizationUrl({
+    client,
     services: input.services,
     redirectUri: googleRedirectUri(),
     state: signOAuthState({
       accountId: input.accountId,
       staffUserId: input.staffUserId,
+      services: Array.from(new Set(input.services)),
+      nonce: pkce.nonce,
       returnTo: input.returnTo ?? "/admin/ajustes/integraciones",
     }),
     loginHint: input.loginHint,
+    codeChallenge: pkce.challenge,
   });
+  return { url, pkceCookie: encodePkceCookie(pkce) };
+};
 
 export type CompletedAuthorization = {
   /** Ya cifrado, listo para `google_accounts.refresh_token_enc`. */
@@ -96,11 +108,13 @@ export class GoogleNoRefreshTokenError extends Error {
 
 /** Cambia el `code` de la vuelta de Google por los tokens y la identidad. */
 export const completeAccountAuthorization = async (
-  code: string
+  code: string,
+  codeVerifier: string
 ): Promise<CompletedAuthorization> => {
   const token = await exchangeAuthorizationCode({
     client: requireClient(),
     code,
+    codeVerifier,
     redirectUri: googleRedirectUri(),
   });
   if (!token.refresh_token) throw new GoogleNoRefreshTokenError();
@@ -151,8 +165,8 @@ const provider = createGoogleTokenProvider({
 /**
  * Access token válido para una cuenta conectada.
  *
- * Solo sirve si la cuenta concedió los scopes de los servicios pedidos (por
- * defecto los suyos menos Meet, que se pide aparte).
+ * Se piden los servicios que se van a usar y solo se exigen sus scopes; que
+ * falte uno hace fallar esa llamada sin apagar la cuenta.
  */
 export const getAccountToken = provider.getAccountToken;
 

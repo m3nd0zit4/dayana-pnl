@@ -10,7 +10,7 @@ import {
 } from "@/lib/notifications/health";
 import { getSocialConnections } from "@/lib/crm/social-accounts";
 import { listGoogleAccounts } from "@/lib/crm/google-accounts";
-import { isGoogleEnabled } from "@/lib/google/connect";
+import { googleRedirectUri, isGoogleEnabled } from "@/lib/google/connect";
 import { getIntegrationsOverview } from "@/lib/crm/integrations";
 import { requireOwnerSettings } from "@/app/admin/(panel)/ajustes/owner-gate";
 import { getStaffSession } from "@/lib/auth/staff-session";
@@ -97,6 +97,7 @@ const Page = async ({
           enabled={isGoogleEnabled()}
           initialAccounts={googleAccounts}
           connectResult={params.google ?? null}
+          redirectUri={googleRedirectUri()}
         />
       </section>
 

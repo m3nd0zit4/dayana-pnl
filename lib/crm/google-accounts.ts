@@ -29,6 +29,13 @@ export type GoogleAccountSummary = Pick<
   | "createdAt"
 >;
 
+/**
+ * Lo único que sale de este módulo. `refreshTokenEnc` (el permiso de Google,
+ * cifrado), `grantedScopes` y `connectSubject` no se devuelven nunca: el token
+ * solo se lee en `lib/google/connect.ts` (`load` del almacén de tokens), y así
+ * no puede acabar en una respuesta JSON, el navegador o el historial de una
+ * tool.
+ */
 const SUMMARY_SELECT = {
   id: true,
   email: true,
@@ -61,8 +68,8 @@ export const listActiveGoogleAccountsForService = (
     orderBy: { createdAt: "asc" },
   });
 
-export const getGoogleAccount = (id: string): Promise<GoogleAccount | null> =>
-  prisma.googleAccount.findUnique({ where: { id } });
+export const getGoogleAccount = (id: string): Promise<GoogleAccountSummary | null> =>
+  prisma.googleAccount.findUnique({ where: { id }, select: SUMMARY_SELECT });
 
 /**
  * Fila pendiente: existe para que el `state` del consentimiento apunte a algo,
@@ -72,23 +79,24 @@ export const getGoogleAccount = (id: string): Promise<GoogleAccount | null> =>
 export const createPendingGoogleAccount = (input: {
   services: GoogleService[];
   staffUserId: string;
-}): Promise<GoogleAccount> =>
+}): Promise<GoogleAccountSummary> =>
   prisma.googleAccount.create({
     data: {
       connectSubject: newConnectSubject(),
       services: input.services,
       connectedByStaffId: input.staffUserId,
     },
+    select: SUMMARY_SELECT,
   });
 
 /**
  * Consentimiento completado: guarda el refresh token (ya cifrado), los scopes
- * que Google concedió y quién es la cuenta.
+ * que Google concedió, los servicios que quedan y quién es la cuenta.
  *
- * `missingServices` son los servicios marcados cuyos permisos Google no dio
- * (la pantalla de consentimiento deja desmarcar casillas): entonces la cuenta
- * queda guardada pero apagada, con el motivo a la vista, en vez de decir que
- * tiene Calendario y fallar en la primera cita.
+ * La pantalla de consentimiento deja desmarcar casillas, así que `services`
+ * son solo los pedidos que Google concedió (lo decide el callback), y
+ * `lastError` dice cuáles faltaron. Solo si no concedió ninguno queda apagada
+ * (`isActive: false`): un Drive sin conceder no puede tumbar el Calendario.
  */
 export const activateGoogleAccount = (
   id: string,
@@ -96,9 +104,11 @@ export const activateGoogleAccount = (
     identity: { email: string | null; displayName: string | null; avatarUrl: string | null };
     refreshTokenEnc: string;
     grantedScopes: string[];
-    missingReason?: string | null;
+    services: GoogleService[];
+    isActive: boolean;
+    lastError: string | null;
   }
-): Promise<GoogleAccount> =>
+): Promise<GoogleAccountSummary> =>
   prisma.googleAccount.update({
     where: { id },
     data: {
@@ -107,37 +117,48 @@ export const activateGoogleAccount = (
       avatarUrl: input.identity.avatarUrl,
       refreshTokenEnc: input.refreshTokenEnc,
       grantedScopes: input.grantedScopes,
+      services: input.services,
       authorizedAt: new Date(),
-      isActive: !input.missingReason,
-      lastError: input.missingReason ?? null,
+      isActive: input.isActive,
+      lastError: input.lastError,
     },
+    select: SUMMARY_SELECT,
   });
 
 /**
  * Cambia qué servicios expone la cuenta.
  *
- * Añadir un servicio añade scopes, y un permiso ya concedido no los gana solo,
- * así que en ese caso hay que volver a pasar por el consentimiento — de ahí
- * `needsReauthorization`, que la ruta traduce en una URL nueva.
+ * Quitar un servicio se guarda ya. Añadirlo NO: añade scopes, un permiso ya
+ * concedido no los gana solo, y guardar la casilla antes de que Google la
+ * conceda dejaría la cuenta diciendo que tiene Drive sin tenerlo (y si la
+ * persona cancela en Google, así se quedaría). Los añadidos se devuelven en
+ * `added`; la ruta pide el consentimiento con la lista entera y el callback
+ * guarda solo lo que Google concedió.
  */
 export const setGoogleAccountServices = async (
   id: string,
-  services: GoogleService[]
-): Promise<{ account: GoogleAccount; needsReauthorization: boolean }> => {
-  const current = await prisma.googleAccount.findUnique({ where: { id } });
+  requested: GoogleService[]
+): Promise<{ account: GoogleAccountSummary; added: GoogleService[] }> => {
+  const current = await prisma.googleAccount.findUnique({
+    where: { id },
+    select: { services: true },
+  });
   if (!current) throw new Error("La cuenta de Google no existe.");
 
-  const added = services.filter((s) => !current.services.includes(s));
+  const added = requested.filter((s) => !current.services.includes(s));
+  const kept = current.services.filter((s) => requested.includes(s));
   const account = await prisma.googleAccount.update({
     where: { id },
-    data: { services },
+    data: { services: kept },
+    select: SUMMARY_SELECT,
   });
 
-  return { account, needsReauthorization: added.length > 0 };
+  return { account, added };
 };
 
-export const deleteGoogleAccount = (id: string): Promise<GoogleAccount> =>
-  prisma.googleAccount.delete({ where: { id } });
+export const deleteGoogleAccount = async (id: string): Promise<void> => {
+  await prisma.googleAccount.delete({ where: { id }, select: { id: true } });
+};
 
 /**
  * Cuántas cuentas hay conectadas y funcionando. Lo usa la pantalla de
