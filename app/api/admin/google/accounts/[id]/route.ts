@@ -9,10 +9,10 @@ import {
   setGoogleAccountServices,
 } from "@/lib/crm/google-accounts";
 import {
+  forgetAccountToken,
   GoogleNotConfiguredError,
   startAccountAuthorization,
 } from "@/lib/google/connect";
-import { googleCallbackUrl } from "../../callback-url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,6 +21,8 @@ type Params = { id: string };
 
 const patchSchema = z.object({
   services: z.array(z.enum(GoogleService)),
+  /** «Volver a conectar con Google»: pide la URL aunque no se añada nada. */
+  reauthorize: z.boolean().optional(),
 });
 
 /**
@@ -31,6 +33,9 @@ const patchSchema = z.object({
  * volver a pasar por Google. En ese caso se devuelve la URL nueva y la UI
  * manda allí al operador en vez de dejar una cuenta que dice tener Calendario
  * pero falla en cuanto se usa.
+ *
+ * `reauthorize: true` hace lo mismo sin cambiar servicios: es el botón de
+ * reconectar de una cuenta caída (o de una conectada por Vercel Connect).
  */
 export const PATCH = withStaff<Params>("owner", async ({ req, staff, params }) => {
   const { id } = params;
@@ -55,15 +60,16 @@ export const PATCH = withStaff<Params>("owner", async ({ req, staff, params }) =
     changes: { from: existing.services, to: account.services },
   });
 
-  if (!needsReauthorization) {
+  if (!needsReauthorization && !parsed.data.reauthorize) {
     return NextResponse.json({ account, url: null });
   }
 
   try {
     const url = await startAccountAuthorization({
-      connectSubject: account.connectSubject,
+      accountId: account.id,
+      staffUserId: staff.id,
       services: account.services,
-      callbackUrl: googleCallbackUrl(req, account.id),
+      loginHint: account.email,
     });
     return NextResponse.json({ account, url });
   } catch (error) {
@@ -88,6 +94,7 @@ export const DELETE = withStaff<Params>("owner", async ({ staff, params }) => {
   if (!existing) return apiError("NOT_FOUND", 404);
 
   await deleteGoogleAccount(id);
+  forgetAccountToken(id);
 
   fireAuditLog({
     staffUserId: staff.id,

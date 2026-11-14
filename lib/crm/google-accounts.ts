@@ -8,11 +8,11 @@ import { prisma } from "@/lib/db";
  */
 
 /**
- * Sujeto nuevo para Vercel Connect.
+ * Identificador opaco y único de la fila (`connectSubject`).
  *
- * Aleatorio y de un solo uso a propósito: el permiso de Google queda atado a
- * este valor, así que derivarlo del staff o del correo haría que dos cuentas
- * distintas acabaran compartiendo (o pisándose) el mismo permiso.
+ * Nació como el sujeto de Vercel Connect; con el OAuth directo ya no se le
+ * pasa a nadie, pero la columna es única y obligatoria, así que se sigue
+ * rellenando con un valor aleatorio.
  */
 const newConnectSubject = (): string =>
   `google:${crypto.randomBytes(16).toString("hex")}`;
@@ -65,9 +65,9 @@ export const getGoogleAccount = (id: string): Promise<GoogleAccount | null> =>
   prisma.googleAccount.findUnique({ where: { id } });
 
 /**
- * Fila pendiente: existe para tener un sujeto estable que darle a Connect, pero
- * `isActive` sigue en falso hasta que vuelve el consentimiento. Antes de eso no
- * representa ninguna cuenta real de Google.
+ * Fila pendiente: existe para que el `state` del consentimiento apunte a algo,
+ * pero `isActive` sigue en falso hasta que vuelve el consentimiento. Antes de
+ * eso no representa ninguna cuenta real de Google.
  */
 export const createPendingGoogleAccount = (input: {
   services: GoogleService[];
@@ -81,19 +81,35 @@ export const createPendingGoogleAccount = (input: {
     },
   });
 
-/** Consentimiento completado: la cuenta pasa a estar operativa. */
+/**
+ * Consentimiento completado: guarda el refresh token (ya cifrado), los scopes
+ * que Google concedió y quién es la cuenta.
+ *
+ * `missingServices` son los servicios marcados cuyos permisos Google no dio
+ * (la pantalla de consentimiento deja desmarcar casillas): entonces la cuenta
+ * queda guardada pero apagada, con el motivo a la vista, en vez de decir que
+ * tiene Calendario y fallar en la primera cita.
+ */
 export const activateGoogleAccount = (
   id: string,
-  identity: { email: string | null; displayName: string | null; avatarUrl: string | null }
+  input: {
+    identity: { email: string | null; displayName: string | null; avatarUrl: string | null };
+    refreshTokenEnc: string;
+    grantedScopes: string[];
+    missingReason?: string | null;
+  }
 ): Promise<GoogleAccount> =>
   prisma.googleAccount.update({
     where: { id },
     data: {
-      email: identity.email,
-      displayName: identity.displayName,
-      avatarUrl: identity.avatarUrl,
-      isActive: true,
-      lastError: null,
+      email: input.identity.email,
+      displayName: input.identity.displayName,
+      avatarUrl: input.identity.avatarUrl,
+      refreshTokenEnc: input.refreshTokenEnc,
+      grantedScopes: input.grantedScopes,
+      authorizedAt: new Date(),
+      isActive: !input.missingReason,
+      lastError: input.missingReason ?? null,
     },
   });
 

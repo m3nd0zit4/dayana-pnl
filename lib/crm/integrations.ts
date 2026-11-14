@@ -82,7 +82,7 @@ export const getIntegrationsOverview = async (): Promise<
           ? "attention"
           : "off",
     detail: !googleEnabled
-      ? "Conector no declarado."
+      ? "Falta el cliente OAuth de Google."
       : `${activeGoogle} de ${googleAccounts.length} cuenta(s) activa(s).`,
     // La marca de Google no depende de ninguna variable puntual.
     requiredEnv: [],
