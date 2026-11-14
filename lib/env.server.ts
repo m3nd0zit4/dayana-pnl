@@ -86,6 +86,12 @@ const productionSchema = z
     WHATSAPP_API_TOKEN: z.string().trim().optional(),
     WHATSAPP_PHONE_NUMBER_ID: z.string().trim().optional(),
     WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().trim().optional(),
+    // Cuentas de Google (lib/google/oauth.ts): por defecto usan el cliente del
+    // acceso con Google (AUTH_GOOGLE_ID / AUTH_GOOGLE_SECRET). Estas solo
+    // sustituyen ese cliente o fijan la URI de redirección; son opcionales.
+    GOOGLE_OAUTH_CLIENT_ID: z.string().trim().optional(),
+    GOOGLE_OAUTH_CLIENT_SECRET: z.string().trim().optional(),
+    GOOGLE_OAUTH_REDIRECT_URI: httpsUrl.optional(),
   })
   .refine(
     (env) => env.NEXT_PUBLIC_PAYPAL_CLIENT_ID === env.PAYPAL_CLIENT_ID,
@@ -126,6 +132,13 @@ const productionSchema = z
       Boolean(env.WHATSAPP_API_TOKEN?.trim()) ===
       Boolean(env.WHATSAPP_PHONE_NUMBER_ID?.trim()),
     "WhatsApp: set both WHATSAPP_API_TOKEN and WHATSAPP_PHONE_NUMBER_ID, or neither"
+  )
+  // Con uno solo, googleOAuthClient() cae en silencio al cliente del login.
+  .refine(
+    (env) =>
+      Boolean(env.GOOGLE_OAUTH_CLIENT_ID?.trim()) ===
+      Boolean(env.GOOGLE_OAUTH_CLIENT_SECRET?.trim()),
+    "Google OAuth: set both GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET, or neither"
   );
 
 let validated = false;

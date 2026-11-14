@@ -36,10 +36,8 @@ export const GROUP_ANCHOR: Record<IntegrationGroup, string> = {
 export type IntegrationAuthModel =
   /** Solo variables de entorno; sin cuenta que conectar o revocar desde la UI. */
   | "static-env"
-  /** OAuth propio, token cifrado en nuestra base (`SocialAccount`). */
-  | "custom-oauth"
-  /** Vercel Connect guarda el token; nosotros solo la metadata (`GoogleAccount`). */
-  | "vercel-connect";
+  /** OAuth propio, token cifrado en nuestra base (`SocialAccount`, `GoogleAccount`). */
+  | "custom-oauth";
 
 export type IntegrationCatalogEntry = {
   label: string;
@@ -75,7 +73,7 @@ export const INTEGRATION_CATALOG: Record<IntegrationId, IntegrationCatalogEntry>
   google: {
     label: "Google",
     group: "Google",
-    authModel: "vercel-connect",
+    authModel: "custom-oauth",
   },
   paypal: {
     label: "PayPal",

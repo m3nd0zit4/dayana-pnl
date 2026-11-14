@@ -1,4 +1,4 @@
-import { GOOGLE_CONNECTOR_ENV, isGoogleEnabled } from "@/lib/google/connect";
+import { GOOGLE_OAUTH_ENV, isGoogleEnabled } from "@/lib/google/connect";
 import { isInngestConfigured } from "@/lib/inngest/config";
 import {
   emailProviderId,
@@ -230,15 +230,15 @@ export const getIntegrationHealth = (
     {
       id: "google",
       label: "Cuentas de Google",
-      // Igual que el resto de esta pantalla, esto solo dice si el conector
+      // Igual que el resto de esta pantalla, esto solo dice si el cliente OAuth
       // está declarado. Cuántas cuentas hay conectadas de verdad se ve en
       // /admin/ajustes/google, que sí consulta la base de datos.
       status: isGoogleEnabled() ? "ok" : "not_configured",
       detail: isGoogleEnabled()
-        ? "Conector declarado. Las cuentas se conectan en Ajustes → Google."
-        : `Falta ${GOOGLE_CONNECTOR_ENV}. Se define tras crear el conector con \`vercel connect create\`.`,
+        ? "Cliente OAuth de Google declarado. Las cuentas se conectan en Ajustes → Integraciones → Google («Conectar con Google»)."
+        : "Faltan AUTH_GOOGLE_ID y AUTH_GOOGLE_SECRET (el cliente OAuth de Google, el mismo del acceso con Google).",
       canTest: false,
-      requiredEnv: [GOOGLE_CONNECTOR_ENV],
+      requiredEnv: [...GOOGLE_OAUTH_ENV],
       enables:
         "Calendario, Contactos y Drive para el asistente, sobre las cuentas de Google que conectes.",
     },

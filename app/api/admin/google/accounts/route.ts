@@ -13,7 +13,6 @@ import {
   isGoogleEnabled,
   startAccountAuthorization,
 } from "@/lib/google/connect";
-import { googleCallbackUrl } from "../callback-url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,15 +47,15 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
 
   try {
     const url = await startAccountAuthorization({
-      connectSubject: account.connectSubject,
+      accountId: account.id,
+      staffUserId: staff.id,
       services: parsed.data.services,
-      callbackUrl: googleCallbackUrl(req, account.id),
     });
 
     return NextResponse.json({ accountId: account.id, url });
   } catch (error) {
-    // La fila pendiente solo existe para sostener el sujeto de este
-    // consentimiento. Si el consentimiento ni siquiera arrancó, dejarla
+    // La fila pendiente solo existe para que el `state` de este
+    // consentimiento apunte a algo. Si el consentimiento ni siquiera arrancó, dejarla
     // llenaría la pantalla de cuentas fantasma que no se pueden conectar.
     await deleteGoogleAccount(account.id).catch(() => undefined);
 

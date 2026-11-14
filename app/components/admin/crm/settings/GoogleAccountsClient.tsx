@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { GoogleService } from "@prisma/client";
-import { CalendarDays, FolderOpen, Plus, Trash2, TriangleAlert, UsersRound, Video } from "lucide-react";
+import { CalendarDays, FolderOpen, Plus, RefreshCw, Trash2, TriangleAlert, UsersRound, Video } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/app/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/app/components/ui/avatar";
 import { Badge } from "@/app/components/ui/badge";
@@ -67,6 +67,14 @@ const CONNECT_MESSAGE: Record<string, { title: string; ok: boolean }> = {
   denied: { title: "No se completó el permiso en Google. No se conectó nada.", ok: false },
   invalid: { title: "La vuelta de Google llegó incompleta. Inténtalo otra vez.", ok: false },
   not_found: { title: "Esa conexión ya no existe. Empieza de nuevo.", ok: false },
+  missing_scopes: {
+    title: "Google no dio todos los permisos. Vuelve a conectar y deja marcadas todas las casillas que pide Google.",
+    ok: false,
+  },
+  no_refresh: {
+    title: "Google no entregó un permiso permanente. Quita el acceso de la app en myaccount.google.com/permissions y vuelve a conectar.",
+    ok: false,
+  },
 };
 
 const initials = (account: AccountSummary) =>
@@ -112,13 +120,17 @@ const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult }: Props
     }
   };
 
-  const updateServices = async (account: AccountSummary, services: GoogleService[]) => {
+  const updateServices = async (
+    account: AccountSummary,
+    services: GoogleService[],
+    reauthorize = false
+  ) => {
     setBusyId(account.id);
     try {
       const res = await fetch(`/api/admin/google/accounts/${account.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ services }),
+        body: JSON.stringify({ services, reauthorize }),
       });
       const data = (await res.json()) as { url?: string | null; detail?: string };
       if (!res.ok) {
@@ -129,7 +141,7 @@ const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult }: Props
       // Añadir un servicio añade scopes, y Google no los concede
       // retroactivamente: hay que volver a pasar por el consentimiento.
       if (data.url) {
-        toast("Falta autorizar el servicio nuevo en Google.", "info");
+        if (!reauthorize) toast("Falta autorizar el servicio nuevo en Google.", "info");
         window.location.assign(data.url);
         return;
       }
@@ -174,8 +186,9 @@ const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult }: Props
         <h2 className="text-lg font-semibold tracking-tight">Cuentas de Google</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Conecta una o varias cuentas y elige qué puede ver el asistente en cada
-          una. Los permisos los guarda Vercel Connect; aquí no se almacena
-          ninguna contraseña ni ningún token.
+          una. Se conecta con «Conectar con Google»: Google pide el permiso y aquí
+          solo se guarda ese permiso, cifrado. Nunca se pide ni se guarda la
+          contraseña.
         </p>
       </div>
 
@@ -190,10 +203,9 @@ const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult }: Props
           <TriangleAlert className="size-4" />
           <AlertTitle>Google todavía no está configurado</AlertTitle>
           <AlertDescription>
-            Falta la variable <code>GOOGLE_CONNECT_CONNECTOR</code>. Se define
-            con el UID del conector después de crearlo con{" "}
-            <code>vercel connect create</code> y enlazarlo al proyecto con{" "}
-            <code>vercel connect attach</code>.
+            Faltan las variables <code>AUTH_GOOGLE_ID</code> y{" "}
+            <code>AUTH_GOOGLE_SECRET</code> (el cliente OAuth de Google, el mismo
+            del acceso con Google).
           </AlertDescription>
         </Alert>
       )}
@@ -243,10 +255,20 @@ const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult }: Props
                   <Alert variant="destructive">
                     <TriangleAlert className="size-4" />
                     <AlertTitle>Hay que volver a autorizarla</AlertTitle>
-                    <AlertDescription>
-                      {account.lastError ??
-                        "El permiso no llegó a completarse o Google lo retiró."}{" "}
-                      Vuelve a marcar un servicio para reiniciar el permiso.
+                    <AlertDescription className="space-y-3">
+                      <p>
+                        {account.lastError ??
+                          "El permiso no llegó a completarse o Google lo retiró."}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!enabled || busyId === account.id}
+                        onClick={() => updateServices(account, account.services, true)}
+                      >
+                        <RefreshCw className="size-4" />
+                        Volver a conectar con Google
+                      </Button>
                     </AlertDescription>
                   </Alert>
                 )}
@@ -327,7 +349,7 @@ const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult }: Props
             disabled={!enabled || connecting || newServices.length === 0}
           >
             <Plus className="size-4" />
-            {connecting ? "Abriendo Google…" : "Conectar cuenta de Google"}
+            {connecting ? "Abriendo Google…" : "Conectar con Google"}
           </Button>
         </CardContent>
       </Card>

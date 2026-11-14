@@ -1554,19 +1554,17 @@ model SocialPost {
 /// Instagram, donde no hay teléfono con el que emparejar.
 /// Una cuenta de Google conectada desde /admin/ajustes/google.
 ///
-/// Aquí no hay tokens: los guarda Vercel Connect y esta tabla solo lleva la
-/// metadata que la UI necesita (a nombre de quién está, qué expone, si sigue
-/// viva). Por eso no reutiliza `SocialAccount`, que sí cifra tokens propios y
-/// cuelga de `SocialPost`.
+/// OAuth directo con Google (desde el 14-nov-2026; antes Vercel Connect): el
+/// refresh token vive aquí, cifrado con `lib/crypto/secret-box.ts` igual que
+/// los de TikTok. No reutiliza `SocialAccount` porque aquel cuelga de
+/// `SocialPost` y guarda access tokens; aquí solo se guarda el refresh token y
+/// el access token se pide en cada proceso (`lib/google/connect.ts`).
 model GoogleAccount {
   id String @id @default(cuid())
 
-  /// Sujeto que se le pasa a Vercel Connect (`subject: { type: "user", id }`).
-  ///
-  /// Connect no soporta instalaciones multi-tenant en conectores OAuth
-  /// propios, así que varias cuentas de Google se consiguen dando un sujeto
-  /// distinto a cada una. El permiso de Google queda atado a este valor: si se
-  /// regenera o se reutiliza, se pierde o se cruza el acceso.
+  /// Identificador opaco y único de la fila. Era el sujeto de Vercel Connect;
+  /// hoy no se le pasa a nadie, pero se conserva (columna única obligatoria)
+  /// para no reescribir las filas existentes.
   connectSubject String @unique @map("connect_subject")
 
   /// Se rellenan tras la primera autorización correcta; antes de eso la fila
@@ -1577,8 +1575,16 @@ model GoogleAccount {
 
   services GoogleService[]
 
-  /// Falso mientras no se complete el consentimiento, y de nuevo cuando Connect
-  /// dice que el permiso ya no existe. La UI ofrece reconectar en ambos casos.
+  /// Refresh token de Google cifrado (`sealSecret`). Nulo en las filas que se
+  /// conectaron por Vercel Connect: esas hay que reconectarlas una vez.
+  refreshTokenEnc String?   @map("refresh_token_enc")
+  /// Scopes que Google concedió de verdad (puede ser menos de lo pedido).
+  grantedScopes   String[]  @default([]) @map("granted_scopes")
+  /// Última vez que se completó el consentimiento.
+  authorizedAt    DateTime? @map("authorized_at")
+
+  /// Falso mientras no se complete el consentimiento, y de nuevo cuando Google
+  /// dice que el permiso ya no existe (`invalid_grant`). La UI ofrece reconectar.
   isActive  Boolean @default(false) @map("is_active")
   lastError String? @map("last_error")
 
