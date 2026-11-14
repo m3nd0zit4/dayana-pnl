@@ -13,6 +13,7 @@ import {
   isGoogleEnabled,
   startAccountAuthorization,
 } from "@/lib/google/connect";
+import { setGoogleOAuthCookie } from "@/lib/google/oauth-cookie";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,13 +47,13 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
   });
 
   try {
-    const url = await startAccountAuthorization({
+    const { url, pkceCookie } = await startAccountAuthorization({
       accountId: account.id,
       staffUserId: staff.id,
       services: parsed.data.services,
     });
 
-    return NextResponse.json({ accountId: account.id, url });
+    return setGoogleOAuthCookie(NextResponse.json({ accountId: account.id, url }), pkceCookie);
   } catch (error) {
     // La fila pendiente solo existe para que el `state` de este
     // consentimiento apunte a algo. Si el consentimiento ni siquiera arrancó, dejarla

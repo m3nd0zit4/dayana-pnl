@@ -28,6 +28,8 @@ type Props = {
   initialAccounts: AccountSummary[];
   /** Mensaje de vuelta del consentimiento (?google=connected|denied|…). */
   connectResult: string | null;
+  /** URI de redirección exacta que debe estar registrada en el cliente OAuth. */
+  redirectUri: string;
 };
 
 const SERVICES: {
@@ -64,11 +66,15 @@ const SERVICES: {
 
 const CONNECT_MESSAGE: Record<string, { title: string; ok: boolean }> = {
   connected: { title: "Cuenta de Google conectada.", ok: true },
-  denied: { title: "No se completó el permiso en Google. No se conectó nada.", ok: false },
+  denied: { title: "No se completó el permiso en Google. La cuenta sigue como estaba.", ok: false },
   invalid: { title: "La vuelta de Google llegó incompleta. Inténtalo otra vez.", ok: false },
   not_found: { title: "Esa conexión ya no existe. Empieza de nuevo.", ok: false },
   missing_scopes: {
-    title: "Google no dio todos los permisos. Vuelve a conectar y deja marcadas todas las casillas que pide Google.",
+    title: "Google no dio ninguno de los permisos pedidos. Vuelve a conectar y deja marcadas todas las casillas que pide Google.",
+    ok: false,
+  },
+  partial_scopes: {
+    title: "Cuenta conectada, pero Google no dio todos los permisos: los servicios sin permiso quedaron desmarcados.",
     ok: false,
   },
   no_refresh: {
@@ -80,7 +86,7 @@ const CONNECT_MESSAGE: Record<string, { title: string; ok: boolean }> = {
 const initials = (account: AccountSummary) =>
   (account.displayName ?? account.email ?? "G").slice(0, 1).toUpperCase();
 
-const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult }: Props) => {
+const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult, redirectUri }: Props) => {
   const router = useRouter();
   const { toast, confirm } = useCrm();
   const [accounts, setAccounts] = useState(initialAccounts);
@@ -210,6 +216,11 @@ const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult }: Props
         </Alert>
       )}
 
+      <p className="text-xs text-muted-foreground">
+        URI de redirección que debe estar registrada en el cliente OAuth de Google
+        Cloud: <code className="break-all">{redirectUri}</code>
+      </p>
+
       {accounts.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           No hay ninguna cuenta conectada todavía.
@@ -250,6 +261,13 @@ const GoogleAccountsClient = ({ enabled, initialAccounts, connectResult }: Props
                     <Trash2 className="size-4" />
                   </Button>
                 </div>
+
+                {account.isActive && account.lastError && (
+                  <Alert>
+                    <TriangleAlert className="size-4" />
+                    <AlertDescription>{account.lastError}</AlertDescription>
+                  </Alert>
+                )}
 
                 {!account.isActive && (
                   <Alert variant="destructive">

@@ -59,7 +59,7 @@ export const resolveGoogleAccount = async (
     }
     return {
       account: explicit,
-      token: await getAccountToken(explicit.id, service === "MEET" ? ["MEET"] : undefined),
+      token: await getAccountToken(explicit.id, [service]),
     };
   }
 
@@ -71,7 +71,7 @@ export const resolveGoogleAccount = async (
 
   return {
     account: candidates[0],
-    token: await getAccountToken(candidates[0].id, service === "MEET" ? ["MEET"] : undefined),
+    token: await getAccountToken(candidates[0].id, [service]),
   };
 };
 

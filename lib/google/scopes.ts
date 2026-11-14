@@ -32,13 +32,6 @@ export const SERVICE_SCOPES: Record<GoogleService, string[]> = {
   MEET: ["https://www.googleapis.com/auth/meetings.space.readonly"],
 };
 
-/**
- * Servicios que el token no exige salvo que se nombren: Meet llegó después y un
- * permiso viejo no lo tiene, así que exigirlo por defecto daría por caída la
- * cuenta del calendario hasta que se reconecte.
- */
-export const ON_REQUEST_ONLY: readonly GoogleService[] = ["MEET"];
-
 export const scopesForServices = (services: readonly GoogleService[]): string[] => [
   ...IDENTITY_SCOPES,
   ...services.flatMap((service) => SERVICE_SCOPES[service]),
@@ -68,4 +61,17 @@ export const SERVICE_LABELS: Record<GoogleService, string> = {
   CONTACTS: "Contactos",
   DRIVE: "Drive",
   MEET: "Meet",
+};
+
+/**
+ * Qué queda de un consentimiento: de los servicios pedidos, los que Google
+ * concedió (`granted`) y los que no (`missing`). La pantalla de Google deja
+ * desmarcar casillas, así que puede ser cualquier mezcla.
+ */
+export const splitGrantedServices = (
+  requested: readonly GoogleService[],
+  grantedScopes: readonly string[]
+): { granted: GoogleService[]; missing: GoogleService[] } => {
+  const missing = servicesMissingScopes(requested, grantedScopes);
+  return { granted: requested.filter((s) => !missing.includes(s)), missing };
 };

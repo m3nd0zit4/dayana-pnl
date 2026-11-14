@@ -1,6 +1,6 @@
 import type { GoogleService } from "@prisma/client";
 import { getSiteUrl } from "@/lib/site-url";
-import { ON_REQUEST_ONLY, missingServiceScopes, scopesForServices } from "./scopes";
+import { SERVICE_LABELS, scopesForServices, servicesMissingScopes } from "./scopes";
 
 /**
  * OAuth 2.0 de Google, flujo de servidor web, sin intermediarios.
@@ -64,6 +64,8 @@ export const buildAuthorizationUrl = (input: {
   state: string;
   redirectUri: string;
   loginHint?: string | null;
+  /** PKCE S256 (`createOAuthPkce().challenge`). */
+  codeChallenge?: string;
 }): string => {
   const url = new URL(GOOGLE_AUTH_URL);
   url.searchParams.set("client_id", input.client.clientId);
@@ -77,6 +79,10 @@ export const buildAuthorizationUrl = (input: {
   url.searchParams.set("include_granted_scopes", "true");
   url.searchParams.set("state", input.state);
   if (input.loginHint) url.searchParams.set("login_hint", input.loginHint);
+  if (input.codeChallenge) {
+    url.searchParams.set("code_challenge", input.codeChallenge);
+    url.searchParams.set("code_challenge_method", "S256");
+  }
   return url.toString();
 };
 
@@ -129,6 +135,8 @@ export const exchangeAuthorizationCode = (input: {
   client: GoogleOAuthClient;
   code: string;
   redirectUri: string;
+  /** El `code_verifier` PKCE de la cookie del navegador que empezó el permiso. */
+  codeVerifier?: string;
   fetchImpl?: FetchLike;
 }): Promise<GoogleTokenResponse> =>
   postToken(
@@ -138,6 +146,7 @@ export const exchangeAuthorizationCode = (input: {
       client_id: input.client.clientId,
       client_secret: input.client.clientSecret,
       redirect_uri: input.redirectUri,
+      ...(input.codeVerifier ? { code_verifier: input.codeVerifier } : {}),
     },
     input.fetchImpl ?? fetch
   );
@@ -219,6 +228,16 @@ export const RECONNECT_ONCE_MESSAGE =
 export const SCOPES_MISSING_MESSAGE =
   "Google no dio todos los permisos de los servicios marcados. Vuelve a conectar la cuenta y deja marcadas todas las casillas que pide Google.";
 
+/** Servicios pedidos que Google no concedió (la cuenta sigue con los demás). */
+export const servicesNotGrantedMessage = (services: readonly GoogleService[]): string => {
+  const names = services.map((s) => SERVICE_LABELS[s]).join(", ");
+  return `Google no dio permiso de ${names}: esa casilla quedó desmarcada. Para usarlo, márcala otra vez y acepta todas las casillas que pide Google.`;
+};
+
+/** El refresh token guardado no se puede descifrar (AUTH_SECRET distinto o valor dañado). */
+export const UNREADABLE_TOKEN_MESSAGE =
+  "No se pudo descifrar el permiso guardado de esta cuenta (¿cambió AUTH_SECRET?). Vuelve a conectarla en Ajustes → Integraciones → Google.";
+
 export type StoredGoogleAccount = {
   id: string;
   isActive: boolean;
@@ -243,8 +262,10 @@ type CachedToken = { token: string; expiresAt: number; refreshTokenEnc: string }
  * ~60 s antes de que caduque y comparte la misma promesa entre peticiones
  * simultáneas, así que una ráfaga de tools no dispara una ráfaga a Google.
  *
- * El token cubre todos los scopes concedidos; qué servicios puede usar cada
- * llamada lo decide la comprobación contra `grantedScopes` y `services`.
+ * El token cubre todos los scopes concedidos; cada llamada nombra los servicios
+ * que va a usar y solo se comprueban esos contra `grantedScopes`. Que falte el
+ * permiso de un servicio hace fallar esa llamada, nunca apaga la cuenta: el
+ * Calendario no puede caer porque Drive o Contactos no estén concedidos.
  */
 export const createGoogleTokenProvider = (deps: {
   store: GoogleTokenStore;
@@ -265,11 +286,20 @@ export const createGoogleTokenProvider = (deps: {
   const refresh = async (account: StoredGoogleAccount & { refreshTokenEnc: string }) => {
     const client = deps.client();
     if (!client) throw new GoogleNotConfiguredError();
+    // Descifrar va aparte: si falla no es un error pasajero de Google sino un
+    // permiso que nunca se va a poder usar (AUTH_SECRET rotado, otro entorno o
+    // valor dañado), así que la cuenta pasa a «Volver a conectar».
+    let refreshToken: string;
+    try {
+      refreshToken = deps.store.open(account.refreshTokenEnc);
+    } catch {
+      throw await reauth(account.id, UNREADABLE_TOKEN_MESSAGE);
+    }
     let response: GoogleTokenResponse;
     try {
       response = await refreshAccessToken({
         client,
-        refreshToken: deps.store.open(account.refreshTokenEnc),
+        refreshToken,
         fetchImpl: deps.fetchImpl,
       });
     } catch (error) {
@@ -296,26 +326,22 @@ export const createGoogleTokenProvider = (deps: {
 
   const getAccountToken = async (
     accountId: string,
-    /** Solo estos servicios (p. ej. `["MEET"]`); por defecto los de la cuenta menos Meet. */
-    only?: readonly GoogleService[]
+    /** Los servicios que va a usar esta llamada (p. ej. `["CALENDAR"]`). */
+    services: readonly GoogleService[]
   ): Promise<string> => {
     const account = await deps.store.load(accountId);
     if (!account) throw new Error("La cuenta de Google no existe.");
     if (!account.isActive) throw new GoogleReauthorizationRequiredError(accountId);
     if (!account.refreshTokenEnc) throw await reauth(accountId, RECONNECT_ONCE_MESSAGE);
 
-    const services = only
-      ? only.filter((s) => account.services.includes(s))
-      : account.services.filter((s) => !ON_REQUEST_ONLY.includes(s));
-    if (missingServiceScopes(services, account.grantedScopes).length > 0) {
-      // Sin el permiso de Meet la cuenta sigue sirviendo para lo demás: no se apaga.
-      if (only && only.every((s) => ON_REQUEST_ONLY.includes(s))) {
-        throw new GoogleReauthorizationRequiredError(
-          accountId,
-          "Esta cuenta no dio permiso de Meet. Vuelve a conectarla con Meet marcado."
-        );
-      }
-      throw await reauth(accountId, SCOPES_MISSING_MESSAGE);
+    const missing = servicesMissingScopes(services, account.grantedScopes);
+    if (missing.length > 0) {
+      // Falla solo esta llamada: la cuenta sigue sirviendo para lo que sí concedió.
+      const names = missing.map((s) => SERVICE_LABELS[s]).join(", ");
+      throw new GoogleReauthorizationRequiredError(
+        accountId,
+        `Esta cuenta no dio permiso de ${names}. Vuelve a conectarla en Ajustes → Integraciones → Google con ${names} marcado.`
+      );
     }
 
     const cached = cache.get(accountId);
@@ -331,10 +357,18 @@ export const createGoogleTokenProvider = (deps: {
     if (!pending) {
       pending = refresh({ ...account, refreshTokenEnc: account.refreshTokenEnc });
       inflight.set(accountId, pending);
-      pending
-        .then((fresh) => cache.set(accountId, fresh))
+      const mine = pending;
+      // Solo toca la entrada de ESTE refresco: si `forget` corrió en medio
+      // (reconexión, borrado) y otro refresco ya ocupó la clave, ni se cachea
+      // un token viejo ni se borra el refresco nuevo.
+      mine
+        .then((fresh) => {
+          if (inflight.get(accountId) === mine) cache.set(accountId, fresh);
+        })
         .catch(() => undefined)
-        .finally(() => inflight.delete(accountId));
+        .finally(() => {
+          if (inflight.get(accountId) === mine) inflight.delete(accountId);
+        });
     }
     return (await pending).token;
   };

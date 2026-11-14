@@ -13,6 +13,7 @@ import {
   GoogleNotConfiguredError,
   startAccountAuthorization,
 } from "@/lib/google/connect";
+import { setGoogleOAuthCookie } from "@/lib/google/oauth-cookie";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,14 +29,16 @@ const patchSchema = z.object({
 /**
  * Cambia qué servicios expone una cuenta.
  *
- * Quitar un servicio es inmediato: el token deja de pedir ese scope. Añadirlo
- * no, porque un permiso ya concedido no gana scopes por sí solo — hay que
- * volver a pasar por Google. En ese caso se devuelve la URL nueva y la UI
- * manda allí al operador en vez de dejar una cuenta que dice tener Calendario
- * pero falla en cuanto se usa.
+ * Quitar un servicio es inmediato. Añadirlo no se guarda aquí: un permiso ya
+ * concedido no gana scopes por sí solo, así que se devuelve la URL de Google
+ * con la lista entera y el callback guarda solo los servicios que Google
+ * concedió. Si la persona cancela en Google, la cuenta sigue exactamente como
+ * estaba (y el Calendario sigue agendando).
  *
- * `reauthorize: true` hace lo mismo sin cambiar servicios: es el botón de
+ * `reauthorize: true` pide la URL sin cambiar servicios: es el botón de
  * reconectar de una cuenta caída (o de una conectada por Vercel Connect).
+ *
+ * La respuesta lleva solo campos de resumen: nunca el permiso cifrado.
  */
 export const PATCH = withStaff<Params>("owner", async ({ req, staff, params }) => {
   const { id } = params;
@@ -47,31 +50,36 @@ export const PATCH = withStaff<Params>("owner", async ({ req, staff, params }) =
   const existing = await getGoogleAccount(id);
   if (!existing) return apiError("NOT_FOUND", 404);
 
-  const { account, needsReauthorization } = await setGoogleAccountServices(
-    id,
-    parsed.data.services
-  );
+  const requested = Array.from(new Set(parsed.data.services));
+  const { account, added } = await setGoogleAccountServices(id, requested);
+  const needsConsent = added.length > 0 || parsed.data.reauthorize === true;
 
   fireAuditLog({
     staffUserId: staff.id,
     action: "GOOGLE_ACCOUNT_SERVICES_UPDATED",
     entityType: "GoogleAccount",
     entityId: account.id,
-    changes: { from: existing.services, to: account.services },
+    changes: {
+      from: existing.services,
+      to: account.services,
+      ...(added.length > 0 ? { pendingConsent: added } : {}),
+    },
   });
 
-  if (!needsReauthorization && !parsed.data.reauthorize) {
+  if (!needsConsent) {
     return NextResponse.json({ account, url: null });
   }
+  // Reconectar sin ningún servicio pediría a Google solo la identidad.
+  if (requested.length === 0) return apiError("INVALID_BODY", 400);
 
   try {
-    const url = await startAccountAuthorization({
+    const { url, pkceCookie } = await startAccountAuthorization({
       accountId: account.id,
       staffUserId: staff.id,
-      services: account.services,
+      services: requested,
       loginHint: account.email,
     });
-    return NextResponse.json({ account, url });
+    return setGoogleOAuthCookie(NextResponse.json({ account, url }), pkceCookie);
   } catch (error) {
     if (error instanceof GoogleNotConfiguredError) {
       return apiError("GOOGLE_NOT_CONFIGURED", 503, { detail: error.message });
