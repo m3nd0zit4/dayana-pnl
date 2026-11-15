@@ -257,18 +257,24 @@ export const abandonCheckoutEnrollment = async (
   }
 
   /**
-   * Intento de pago rechazado de alguien identificable.
+   * Intento de pago rechazado: se conserva SIEMPRE.
    *
-   * El teléfono sigue siendo `+pending:` —lo pide `/pago/exito`, y a ese paso
-   * no llegó— pero el proveedor sí reportó su email, así que no es un checkout
-   * abandonado sino una clienta que INTENTÓ pagar y no pudo. Borrarlo era
-   * tirar exactamente el caso que hay que revisar y devolver la llamada.
+   * No es un checkout abandonado sino alguien que INTENTÓ pagar y no pudo, y
+   * esa fila (con el motivo del proveedor) es lo que hay que revisar.
+   *
+   * Antes sólo se conservaba si el proveedor había reportado un email. Lenis
+   * (14-nov) intentó pagar el taller dos veces con Nequi por Mercado Pago; MP
+   * los rechazó (`bank_error`) y mandó su nombre pero no su email, así que
+   * cada rechazo se borró al instante —matrícula y pago en cascada— justo
+   * después de avisar «Pago rechazado». En Pagos no quedó nada y no había
+   * forma de saber qué pasó. Sin email ni teléfono la fila sale en Pagos como
+   * «Sin identificar», con «Asignar contacto».
    */
   const rejected = await prisma.payment.count({
     where: { enrollmentId, status: PaymentStatus.FAILED },
   });
-  if (rejected > 0 && enrollment.contact.email) {
-    return { abandoned: false, reason: "failed_attempt_with_contact" };
+  if (rejected > 0) {
+    return { abandoned: false, reason: "failed_attempt" };
   }
 
   if (
@@ -314,8 +320,11 @@ export const abandonStalePlaceholderCheckouts = async (): Promise<number> => {
       createdAt: { lt: cutoff },
       contact: { phoneE164: { startsWith: PLACEHOLDER_PHONE_PREFIX } },
       // Mismo criterio que `abandonCheckoutEnrollment`: un pago pendiente es
-      // un pago en curso, no un checkout abandonado.
-      payments: { none: { status: { not: PaymentStatus.FAILED } } },
+      // un pago en curso, y uno rechazado es un intento que se conserva. Sólo
+      // se barre lo que no tiene ningún pago. (Si los rechazados entraran
+      // aquí, `abandonCheckoutEnrollment` los saltaría cada noche y, al
+      // acumularse más de 100, ocuparían todo el lote.)
+      payments: { none: {} },
     },
     select: { id: true },
     take: 100,

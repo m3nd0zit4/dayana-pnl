@@ -91,6 +91,17 @@ const DETAILS: Record<string, Entry> = {
     "Tu banco rechazó la operación. Puedes intentar con otra tarjeta o llamarlos.",
     "Rechazo del banco emisor."
   ),
+  /**
+   * Con Nequi o PSE dentro de Mercado Pago: el pago se crea al elegir el medio
+   * y queda esperando que la persona lo apruebe en su app o en su banco. Si no
+   * lo aprueba a tiempo, o la entidad falla, MP lo cierra así (Lenis, 14-nov:
+   * mandó la captura de la pantalla de Nequi antes de tocar «Pagar»). No es un
+   * fallo de la página.
+   */
+  bank_error: rejected(
+    "Tu banco o Nequi no completó el pago. Si no lo aprobaste en la app, vuelve a intentarlo y confírmalo allí.",
+    "El banco o Nequi no completó el pago: no se aprobó en la app a tiempo o la entidad falló. No es un fallo de la página."
+  ),
   rejected_by_regulations: rejected(
     "No pudimos procesar este pago por restricciones de la entidad. Escríbenos y te damos otra vía.",
     "Rechazado por normativa.",
