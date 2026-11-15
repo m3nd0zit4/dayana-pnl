@@ -16,6 +16,8 @@ import { markAttended } from "@/lib/crm/whatsapp-agent/attention";
 import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
 import { spreadSlots } from "@/lib/crm/whatsapp-agent/slots";
 import { offerFreeCallSlots } from "@/lib/crm/whatsapp-agent/free-call";
+import { slotLabel } from "@/lib/crm/whatsapp-agent/free-call-rules";
+import { chatPersonZone } from "@/lib/crm/whatsapp-agent/person-zone";
 import { isFreeCallService } from "@/lib/crm/whatsapp-agent/event-title";
 import {
   getChat,
@@ -269,16 +271,23 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
         ) ?? config.booking.services[0];
       const timezone = await getOperationalTimezone();
       try {
+        // Su zona (Jorge, Chile, 14-nov: el botón solo daba la hora de Colombia y eligió
+        // «8:00 p. m.» pensando en la suya): la de la ficha, la del contacto o la que se
+        // deduce del chat o del número. Sin saberla, la de Colombia dicha como tal.
+        const personTz = await chatPersonZone(conversation);
         // La llamada gratis con las mismas reglas que la IA (tope del día, hoy y
         // mañana primero, días preferidos): el botón ofrecía días ya llenos y la
         // persona elegía una hora que no se podía agendar (Carolina, 21-oct).
         const slots = isFreeCallService(service.name, service.minutes)
-          ? await offerFreeCallSlots({ config, personTz: timezone, dayanaTz: timezone })
+          ? await offerFreeCallSlots({ config, personTz: personTz ?? timezone, dayanaTz: timezone })
           : spreadSlots(await availableSlots({ config: config.booking, durationMin: service.minutes, timezone }), 3);
         if (slots.length === 0) {
           return NextResponse.json({ text: "", slots: [] });
         }
+        const both = personTz != null && slots.some((s) => slotLabel(s.startIso, personTz, timezone).includes("(tu hora)"));
         const lines = slots.map((s) => {
+          const label = both ? slotLabel(s.startIso, personTz, timezone) : null;
+          if (label) return `• ${label[0].toUpperCase()}${label.slice(1)}`;
           const d = new Date(s.startIso);
           const day = new Intl.DateTimeFormat("es-CO", {
             timeZone: timezone,
@@ -289,7 +298,9 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
           return `• ${day[0].toUpperCase()}${day.slice(1)}, ${getTimeLabelInTz(d, timezone)}`;
         });
         return NextResponse.json({
-          text: `Tengo estos espacios para ${service.name.toLowerCase()} (${service.minutes} min, hora de Colombia):\n${lines.join("\n")}\n¿Cuál te queda mejor?`,
+          text: both
+            ? `Tengo estos espacios para ${service.name.toLowerCase()} (${service.minutes} min), en tu hora y en la de Colombia:\n${lines.join("\n")}\n¿Cuál te queda mejor?`
+            : `Tengo estos espacios para ${service.name.toLowerCase()} (${service.minutes} min, hora de Colombia):\n${lines.join("\n")}\n¿Cuál te queda mejor?`,
           slots,
         });
       } catch (e) {

@@ -318,6 +318,9 @@ export const dayanaOfferedSlot = (texts: (string | null | undefined)[], startIso
   const hasTime = (line: string) => new RegExp(`(^|[^\\d:])${time.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(line);
   return texts.some((raw) =>
     norm(raw ?? "")
+      // «10:00 p. m. (tu hora) · 8:00 p. m. en Colombia» (botón «Horas libres» con su zona,
+      // 14-nov): la hora de ella no es la de Dayana, no cuenta.
+      .replace(/\d{1,2}:\d{2} [ap]m \(tu hora\)/g, "")
       .split("\n")
       // Con fecha escrita, la fecha manda (otro jueves no vale); sin fecha, el día de la semana.
       .some((line) =>

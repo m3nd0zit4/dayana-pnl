@@ -250,3 +250,13 @@ describe("slotLabel / dualZoneLabel (las horas en su zona y en la de Colombia)",
     expect(plain(slotLabel(iso, null, "America/Bogota"))).toBe("jueves, 22 de octubre, 3:00 p. m. (hora de Colombia)");
   });
 });
+
+describe("dualZoneLabel: la hora de su país y la de Colombia (dueña, 14-nov)", () => {
+  const iso = "2026-11-16T20:00:00.000Z"; // lunes 3:00 p. m. en Colombia
+  test("Colombia: una sola; mismo reloj en otro país: dicho; otro reloj: las dos", () => {
+    const sp = (s: string) => s.replace(/\s/g, " ");
+    expect(sp(dualZoneLabel(iso, "America/Bogota", "America/Bogota"))).toBe("lunes, 16 de noviembre, 3:00 p. m.");
+    expect(sp(dualZoneLabel(iso, "America/Lima", "America/Bogota"))).toBe("lunes, 16 de noviembre, 3:00 p. m. (tu hora, la misma de Colombia)");
+    expect(sp(dualZoneLabel(iso, "America/Santiago", "America/Bogota"))).toBe("lunes, 16 de noviembre, 5:00 p. m. (tu hora) · 3:00 p. m. en Colombia");
+  });
+});

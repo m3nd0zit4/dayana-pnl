@@ -37,12 +37,15 @@ const fmt = (iso: string, tz: string, withDay: boolean) =>
 
 /**
  * «jueves 16 de octubre, 3:00 p. m. (tu hora) · 4:00 p. m. en Colombia».
- * Si la persona está en la hora de Colombia, una sola.
+ * Si la persona está en Colombia, una sola. En otro país con la misma hora (Perú,
+ * Ecuador, Panamá…), una sola pero dicho (dueña, 14-nov: «que aclare la hora
+ * Colombia y la hora del país»): «… 3:00 p. m. (tu hora, la misma de Colombia)».
  */
 export const dualZoneLabel = (iso: string, personTz: string, dayanaTz: string): string => {
   const mine = fmt(iso, personTz, true);
   const sameClock = fmt(iso, personTz, true) === fmt(iso, dayanaTz, true);
-  return sameClock ? mine : `${mine} (tu hora) · ${fmt(iso, dayanaTz, false)} en Colombia`;
+  if (sameClock) return personTz === dayanaTz || personTz === "America/Bogota" ? mine : `${mine} (tu hora, la misma de Colombia)`;
+  return `${mine} (tu hora) · ${fmt(iso, dayanaTz, false)} en Colombia`;
 };
 
 /**
