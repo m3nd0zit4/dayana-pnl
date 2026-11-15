@@ -674,6 +674,9 @@ export const runWhatsAppAi = async (input: {
         ? (await prisma.whatsAppDossier.findUnique({ where: { conversationId }, select: { timezone: true } }).catch(() => null))?.timezone
         : null) ??
       trustedContactTimezone(conversation.contact) ??
+      // Lo que se deduce del chat o del número (Manuel, +58, 14-nov): sin esto la frase
+      // «las 7 de Colombia son las … de tu hora» no tenía con qué comprobarse.
+      inferPersonZone(phone, history)?.timezone ??
       null;
 
     // En qué punto está con Dayana: lo recién calculado (con el enrutador) o lo que dice la ficha.

@@ -43,7 +43,7 @@ import { saysSelfHarm } from "./pause-rules";
 import { asksForCall, seriousReply } from "./serious-reply";
 import { familyPaidReply, paidForFamily } from "./family-paid";
 import { insults, RUDE_REPLY, rudeReplied } from "./rude-reply";
-import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, typedPaymentData, urlKeys, asksAboutSchedule, withoutInventedUrls, writesOwnHours } from "./reply-guards";
+import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, typedPaymentData, urlKeys, asksAboutSchedule, withoutInventedUrls, withoutPlaceholders, writesOwnHours, fixZoneClaims } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -2621,7 +2621,18 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     return withoutFakeLinks(clean) || clean;
   };
   // Ningún nombre que no sea seguro, aunque el modelo lo escriba (lo que recibe la persona).
-  const named = (text: string | null) => (text ? fixNameInReply(text, nameInfo) : text);
+  // Y nada entre corchetes que el modelo dejó de plantilla («[Estrella/nombre]», 14-nov).
+  // Y «las 7 de Colombia son las 7 de tu hora» con la cuenta hecha por el código (Manuel, 14-nov).
+  const zoneOffset = (() => {
+    const tz = personTz();
+    if (!tz) return null;
+    const wall = (zone: string) => new Date(now.toLocaleString("en-US", { timeZone: zone })).getTime();
+    return Math.round((wall(tz) - wall(timezone)) / 60_000);
+  })();
+  const named = (text: string | null) =>
+    text
+      ? fixZoneClaims(fixNameInReply(withoutPlaceholders(text, sureFirstName(nameInfo)) || text.replace(/[[\]]/g, ""), nameInfo), zoneOffset)
+      : text;
   // Dijo que sí a la llamada gratis y el modelo le preguntó qué día prefiere, o el país
   // otra vez, sin buscar horas (Moi, Belén, Ana, 21–26 oct: nunca les llegaron). Las
   // busca el código, como la herramienta (con los días o la franja que dijo ahora), y

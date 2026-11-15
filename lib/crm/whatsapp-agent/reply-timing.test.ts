@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { asksAboutSchedule, writesOwnHours } from "./reply-guards";
+import { asksAboutSchedule, fixZoneClaims, withoutPlaceholders, writesOwnHours } from "./reply-guards";
 import { isHoldingLine, waitBeforeReplyMs } from "./reply-timing";
 
 describe("waitBeforeReplyMs (13-nov: contestaba mientras la persona seguía escribiendo)", () => {
@@ -51,5 +51,29 @@ describe("asksAboutSchedule (revisión 13-nov)", () => {
     expect(asksAboutSchedule(["Sí"])).toBe(true);
     expect(asksAboutSchedule(["¿Cuánto cuesta la terapia?"])).toBe(false);
     expect(asksAboutSchedule(["Gracias por la información"])).toBe(false);
+  });
+});
+
+describe("withoutPlaceholders (Estrella, 14-nov: «Perfecto, [Estrella/nombre].»)", () => {
+  const t = "Perfecto, [Estrella/nombre]. Ya sabemos que estás en Colombia. Si gustas, dime en qué horario te queda mejor.";
+  test("el nombre: por el seguro o fuera con su coma", () => {
+    expect(withoutPlaceholders(t, null)).toBe("Perfecto. Ya sabemos que estás en Colombia. Si gustas, dime en qué horario te queda mejor.");
+    expect(withoutPlaceholders(t, "Estrella")).toBe("Perfecto, Estrella. Ya sabemos que estás en Colombia. Si gustas, dime en qué horario te queda mejor.");
+    expect(withoutPlaceholders("Hola [nombre], te bendigo.", null)).toBe("Hola, te bendigo.");
+  });
+  test("otro hueco: la frase entera fuera; un enlace Markdown, intacto", () => {
+    expect(withoutPlaceholders("Listo. Tu llamada es a las [hora]. Dayana te llama.", null)).toBe("Listo. Dayana te llama.");
+    expect(withoutPlaceholders("Mira [aquí](https://x.com)", null)).toBe("Mira [aquí](https://x.com)");
+    expect(withoutPlaceholders("Hola, ¿cómo estás?", null)).toBe("Hola, ¿cómo estás?");
+  });
+});
+
+describe("fixZoneClaims (Manuel, Venezuela, 14-nov)", () => {
+  test("la segunda hora la calcula el código", () => {
+    expect(fixZoneClaims("Sí, Manuel: las 7:00 p. m. de Colombia son las 7:00 p. m. de Venezuela.", 60)).toBe(
+      "Sí, Manuel: las 7:00 p. m. de Colombia son las 8:00 p. m. de Venezuela."
+    );
+    expect(fixZoneClaims("las 6:15 p. m. de Colombia son las 8:15 p. m. de tu hora", 120)).toBe("las 6:15 p. m. de Colombia son las 8:15 p. m. de tu hora");
+    expect(fixZoneClaims("las 7:00 p. m. de Colombia son las 7:00 p. m. de tu hora", null)).toBe("las 7:00 p. m. de Colombia son las 7:00 p. m. de tu hora");
   });
 });

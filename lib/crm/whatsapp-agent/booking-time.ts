@@ -128,6 +128,9 @@ const COUNTRY_WORDS: { re: RegExp; iso: string }[] = [
   { re: /\b(estados unidos|usa|eeuu)\b/, iso: "US" },
 ];
 
+/** Lo que va antes de un país que es el de Dayana, no el suyo («¿ustedes están en Colombia?»). */
+const ABOUT_DAYANA = /\b(ustedes|usted|dayana|ella|doctora)\b[^.?!\n]*$|\b(estan|son de|es de|queda en|quedan en)\s+(en\s+)?$/;
+
 /** Países con varias zonas cuya zona principal sirve sin preguntar la ciudad. */
 const MAIN_ZONE_OK = new Set(["ES", "AR", "CL"]);
 
@@ -151,9 +154,19 @@ export const inferPersonZone = (
   );
   const city = CITY_ZONES.find((c) => c.re.test(said));
   if (city) return { iso: city.iso, city: city.city, timezone: city.timezone };
-  const named = COUNTRY_WORDS.find((c) => c.re.test(said))?.iso ?? null;
   // El país del número tal cual (inferLocaleFromPhone devuelve el país de respaldo para todo).
   const fromPhone = /^\d{7,15}$/.test(phone) ? (parsePhoneNumberFromString(`+${phone}`)?.country ?? null) : null;
+  // Los países que nombra, en orden, sin los que pregunta de Dayana (Manuel, +58, 14-nov:
+  // «Venezuela ustedes estan en Colombia o donde» se leía Colombia —el primero de la
+  // lista— y le llegaron horas de Colombia como suyas, «las 7 de Colombia son las 7 de
+  // Venezuela»). Si su número es de uno de los que nombra, ese; si no, el primero.
+  const mentioned = COUNTRY_WORDS.flatMap((c) => {
+    const re = new RegExp(c.re.source, "g");
+    return [...said.matchAll(re)]
+      .filter((m) => !ABOUT_DAYANA.test(said.slice(Math.max(0, m.index - 28), m.index)))
+      .map((m) => ({ iso: c.iso, at: m.index }));
+  }).sort((a, b) => a.at - b.at);
+  const named = mentioned.find((m) => m.iso === fromPhone)?.iso ?? mentioned[0]?.iso ?? null;
   const iso = named ?? fromPhone;
   if (!iso) return null;
   if (MULTI_ZONE_COUNTRIES.has(iso) && !MAIN_ZONE_OK.has(iso)) return null;

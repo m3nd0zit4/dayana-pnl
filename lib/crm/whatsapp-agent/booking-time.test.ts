@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { countryName, describeRequestedTime, isValidTimezone, resolvePersonTimezone } from "./booking-time";
+import { countryName, describeRequestedTime, inferPersonZone, isValidTimezone, resolvePersonTimezone } from "./booking-time";
 
 describe("hora de la persona → hora de Colombia", () => {
   test("La Paz, Baja California Sur (UTC-7) → Colombia (UTC-5)", () => {
@@ -28,4 +28,17 @@ test("zona de la persona", () => {
   expect(resolvePersonTimezone("PE", "no/existe")).toBe("America/Lima");
   expect(isValidTimezone("Europe/Madrid")).toBe(true);
   expect(countryName("MX")).toBe("México");
+});
+
+describe("inferPersonZone: el país que dice, no el que pregunta de Dayana (Manuel, 14-nov)", () => {
+  const said = (body: string) => [{ direction: "INBOUND" as const, body }];
+  test("«Venezuela ustedes estan en Colombia o donde» es Venezuela", () => {
+    expect(inferPersonZone("584126847305", said("Venezuela ustedes estan en Colombia o donde"))?.timezone).toBe("America/Caracas");
+    expect(inferPersonZone("", said("Venezuela ustedes estan en Colombia o donde"))?.timezone).toBe("America/Caracas");
+    expect(inferPersonZone("", said("¿Dayana está en Colombia? yo soy de Ecuador"))?.timezone).toBe("America/Guayaquil");
+  });
+  test("lo de siempre sigue igual", () => {
+    expect(inferPersonZone("", said("Desde Colombia"))?.timezone).toBe("America/Bogota");
+    expect(inferPersonZone("", said("estoy en peru"))?.timezone).toBe("America/Lima");
+  });
 });

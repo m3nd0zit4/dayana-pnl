@@ -448,3 +448,68 @@ export const writesOwnHours = (text: string | null | undefined): boolean => {
 const SCHEDULE_ASK =
   /\b(hora|horas|horario|horarios|cuando|dia|dias|agenda|agendar|agendame|llamada|cita|disponible|manana|hoy|lunes|martes|miercoles|jueves|viernes|sabado|domingo|tarde|noche|semana|si|ok|dale|claro|listo|bueno|perfecto|puedo)\b/;
 export const asksAboutSchedule = (texts: (string | null | undefined)[]): boolean => texts.some((t) => SCHEDULE_ASK.test(foldForSearch(t ?? "")));
+
+/**
+ * Lo que el modelo deja entre corchetes como plantilla nunca sale (Estrella, 14-nov:
+ * «Perfecto, [Estrella/nombre]. Ya sabemos que estás en Colombia…»). Un corchete con
+ * el nombre («[nombre]», «[Estrella/nombre]», «[Nombre del cliente]») se cambia por el
+ * nombre seguro o se quita con su coma; cualquier otro («[hora]», «[Enlace]») se quita.
+ * Un enlace en Markdown («[texto](https://…)») no se toca.
+ */
+const PLACEHOLDER = /(\s*,)?\s*\[([^\][\n]{1,48})\](?!\()/g;
+const NAME_SLOT = /\b(nombre|name|cliente|persona|usuari[oa])\b|\//;
+export const withoutPlaceholders = (text: string, sureName: string | null): string => {
+  if (!text.includes("[")) return text;
+  // El nombre: por el seguro, o fuera con su coma.
+  const named = text.replace(PLACEHOLDER, (m, comma: string | undefined, inner: string) =>
+    NAME_SLOT.test(foldForSearch(inner)) ? (sureName ? `${comma ? "," : ""} ${sureName}` : "") : m
+  );
+  // Otro hueco («[hora]», «[día]»): la frase entera fuera (quedaría a medias), salvo
+  // si lleva un enlace de verdad; ahí solo el hueco.
+  const out = named
+    .split("\n")
+    .map((line) =>
+      line
+        .split(/(?<=[.!?…])\s+/)
+        .filter((sentence) => !PLACEHOLDER_ONLY.test(sentence) || /https?:\/\//.test(sentence))
+        .map((sentence) => sentence.replace(PLACEHOLDER, ""))
+        .join(" ")
+    )
+    .join("\n");
+  return out
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/[ \t]+([,.!?…:;])/g, "$1")
+    .replace(/,([.!?…])/g, "$1")
+    .replace(/(^|\n)[ \t]*[,.]\s*/g, "$1")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+};
+const PLACEHOLDER_ONLY = /\[[^\][\n]{1,48}\](?!\()/;
+
+/**
+ * «Las 7:00 p. m. de Colombia son las 7:00 p. m. de Venezuela» (Manuel, 14-nov: son las
+ * 8). Cuando el modelo convierte una hora de Colombia a la de la persona, la cuenta la
+ * hace el código: `offsetMin` = minutos que su hora va por delante de la de Colombia.
+ * Solo toca la segunda hora de esa frase; sin la zona de la persona no se toca nada.
+ */
+const HOUR = String.raw`(\d{1,2})(?::(\d{2}))?\s*(a|p)\.?\s*m\.?`;
+const ZONE_CLAIM = new RegExp(
+  String.raw`(las?\s+)${HOUR}(\s+(?:de|en|hora de)\s+colombia\s+(?:son|serian|serían|equivalen a|es)\s+(?:las?\s+)?)${HOUR}`,
+  "gi"
+);
+const fmtHour = (min: number): string => {
+  const m = ((min % 1440) + 1440) % 1440;
+  const h24 = Math.floor(m / 60);
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${String(m % 60).padStart(2, "0")} ${h24 < 12 ? "a. m." : "p. m."}`;
+};
+const toMin = (h: string, mm: string | undefined, ap: string): number =>
+  ((Number(h) % 12) + (ap.toLowerCase() === "p" ? 12 : 0)) * 60 + Number(mm ?? 0);
+export const fixZoneClaims = (text: string, offsetMin: number | null): string => {
+  if (offsetMin === null) return text;
+  return text.replace(ZONE_CLAIM, (whole, pre: string, h1: string, m1: string | undefined, ap1: string, mid: string, h2: string, m2: string | undefined, ap2: string) => {
+    const expected = toMin(h1, m1, ap1) + offsetMin;
+    if (toMin(h2, m2, ap2) === ((expected % 1440) + 1440) % 1440) return whole;
+    return `${pre}${fmtHour(toMin(h1, m1, ap1))}${mid}${fmtHour(expected)}`;
+  });
+};
