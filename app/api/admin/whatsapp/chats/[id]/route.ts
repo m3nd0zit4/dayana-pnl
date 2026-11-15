@@ -17,7 +17,7 @@ import { markAttended } from "@/lib/crm/whatsapp-agent/attention";
 import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
 import { spreadSlots } from "@/lib/crm/whatsapp-agent/slots";
 import { offerFreeCallSlots } from "@/lib/crm/whatsapp-agent/free-call";
-import { slotLabel } from "@/lib/crm/whatsapp-agent/free-call-rules";
+import { sameClockNote, slotLabel } from "@/lib/crm/whatsapp-agent/free-call-rules";
 import { chatPersonZone } from "@/lib/crm/whatsapp-agent/person-zone";
 import { isFreeCallService } from "@/lib/crm/whatsapp-agent/event-title";
 import {
@@ -305,7 +305,9 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
         return NextResponse.json({
           text: both
             ? `Tengo estos espacios para ${service.name.toLowerCase()} (${service.minutes} min), en tu hora y en la de Colombia:\n${lines.join("\n")}\n¿Cuál te queda mejor?`
-            : `Tengo estos espacios para ${service.name.toLowerCase()} (${service.minutes} min, hora de Colombia):\n${lines.join("\n")}\n¿Cuál te queda mejor?`,
+            : personTz && sameClockNote(slots[0]!.startIso, personTz, timezone)
+              ? `Tengo estos espacios para ${service.name.toLowerCase()} (${service.minutes} min; en tu país y en Colombia es la misma hora):\n${lines.join("\n")}\n¿Cuál te queda mejor?`
+              : `Tengo estos espacios para ${service.name.toLowerCase()} (${service.minutes} min, hora de Colombia):\n${lines.join("\n")}\n¿Cuál te queda mejor?`,
           slots,
         });
       } catch (e) {

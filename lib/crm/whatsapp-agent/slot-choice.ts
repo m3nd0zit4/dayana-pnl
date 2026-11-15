@@ -1,7 +1,7 @@
 import { getDateKeyInTz, getTimeLabelInTz } from "@/lib/datetime/zoned-time";
 
 import { foldForSearch } from "../search-normalize";
-import { dualZoneLabel } from "./free-call-rules";
+import { dualZoneLabel, sameClockNote } from "./free-call-rules";
 import { timesIn, weekdaysIn } from "./promise-guard";
 
 /**
@@ -277,7 +277,7 @@ export const COORDINATE_QUESTION = "¿Cuál te queda mejor? Puedes responderme c
 const OFFER_LEAD = "Estas son las horas libres de Dayana para tu llamada gratis de 15 minutos:";
 const OFFER_LEAD_CLOSEST = "En lo que me dijiste no hay espacio en la agenda de Dayana, pero estas horas sí están libres:";
 
-export type OfferContext = { now: Date; personTz: string };
+export type OfferContext = { now: Date; personTz: string; dayanaTz?: string };
 
 /** Hoy o mañana en su hora: las «lo antes posible». */
 const isSoon = (o: OfferedSlot, ctx: OfferContext): boolean => {
@@ -296,9 +296,12 @@ export const groupedOfferList = (options: OfferedSlot[], ctx: OfferContext): str
   const soon = options.filter((o) => isSoon(o, ctx));
   const later = options.filter((o) => !isSoon(o, ctx));
   const line = (o: OfferedSlot) => `${options.indexOf(o) + 1}. ${o.label}`;
+  // Otro país con el reloj de Colombia: dicho una vez, debajo de las horas (14-nov).
+  const note = options[0] ? sameClockNote(options[0].startIso, ctx.personTz, ctx.dayanaTz ?? "America/Bogota") : null;
+  const withNote = (q: string) => (note ? `${note}\n\n${q}` : q);
   // Una sola hora (la exacta que pidió, eval 14-nov): «¿Te la agendo?», no «¿cuál te queda mejor?».
-  if (options.length === 1) return `${line(options[0]!)}\n\n${SINGLE_QUESTION}`;
-  if (soon.length === 0 || later.length === 0) return `${options.map(line).join("\n")}\n\n${COORDINATE_QUESTION}`;
+  if (options.length === 1) return `${line(options[0]!)}\n\n${withNote(SINGLE_QUESTION)}`;
+  if (soon.length === 0 || later.length === 0) return `${options.map(line).join("\n")}\n\n${withNote(COORDINATE_QUESTION)}`;
   const today = getDateKeyInTz(ctx.now, ctx.personTz);
   const soonKeys = new Set(soon.map((o) => getDateKeyInTz(new Date(o.startIso), ctx.personTz)));
   const when = soonKeys.size > 1 ? "hoy o mañana" : soonKeys.has(today) ? "hoy" : "mañana";
@@ -309,7 +312,7 @@ export const groupedOfferList = (options: OfferedSlot[], ctx: OfferContext): str
     "Si te queda mejor un poco más adelante:",
     ...later.map(line),
     "",
-    COORDINATE_QUESTION,
+    withNote(COORDINATE_QUESTION),
   ].join("\n");
 };
 

@@ -37,16 +37,24 @@ const fmt = (iso: string, tz: string, withDay: boolean) =>
 
 /**
  * «jueves 16 de octubre, 3:00 p. m. (tu hora) · 4:00 p. m. en Colombia».
- * Si la persona está en Colombia, una sola. En otro país con la misma hora (Perú,
- * Ecuador, Panamá…), una sola pero dicho (dueña, 14-nov: «que aclare la hora
- * Colombia y la hora del país»): «… 3:00 p. m. (tu hora, la misma de Colombia)».
+ * Si la persona está en la hora de Colombia, una sola (en otro país con el mismo
+ * reloj, la lista lo dice una vez: `sameClockNote`).
  */
 export const dualZoneLabel = (iso: string, personTz: string, dayanaTz: string): string => {
   const mine = fmt(iso, personTz, true);
   const sameClock = fmt(iso, personTz, true) === fmt(iso, dayanaTz, true);
-  if (sameClock) return personTz === dayanaTz || personTz === "America/Bogota" ? mine : `${mine} (tu hora, la misma de Colombia)`;
-  return `${mine} (tu hora) · ${fmt(iso, dayanaTz, false)} en Colombia`;
+  return sameClock ? mine : `${mine} (tu hora) · ${fmt(iso, dayanaTz, false)} en Colombia`;
 };
+
+/**
+ * Otro país con la misma hora que Colombia (Perú, Ecuador, Panamá…): una línea, una vez,
+ * debajo de las horas (dueña, 14-nov: «que aclare la hora Colombia y la hora del país»).
+ * Repetido en cada hora sonaba a máquina.
+ */
+export const sameClockNote = (iso: string, personTz: string | null | undefined, dayanaTz: string): string | null =>
+  personTz && personTz !== dayanaTz && personTz !== "America/Bogota" && fmt(iso, personTz, true) === fmt(iso, dayanaTz, true)
+    ? "Son horas de tu país; en Colombia es la misma hora."
+    : null;
 
 /**
  * Una hora para un mensaje que sale solo (reagendar). Con su zona, las dos

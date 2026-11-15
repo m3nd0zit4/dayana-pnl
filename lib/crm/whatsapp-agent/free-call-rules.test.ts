@@ -4,6 +4,7 @@ import {
   bookingFollowsEvent,
   countedFreeCalls,
   dualZoneLabel,
+  sameClockNote,
   freeCallsPerDay,
   isCalendarFreeCall,
   isFreeCallBooking,
@@ -256,7 +257,10 @@ describe("dualZoneLabel: la hora de su país y la de Colombia (dueña, 14-nov)",
   test("Colombia: una sola; mismo reloj en otro país: dicho; otro reloj: las dos", () => {
     const sp = (s: string) => s.replace(/\s/g, " ");
     expect(sp(dualZoneLabel(iso, "America/Bogota", "America/Bogota"))).toBe("lunes, 16 de noviembre, 3:00 p. m.");
-    expect(sp(dualZoneLabel(iso, "America/Lima", "America/Bogota"))).toBe("lunes, 16 de noviembre, 3:00 p. m. (tu hora, la misma de Colombia)");
+    expect(sp(dualZoneLabel(iso, "America/Lima", "America/Bogota"))).toBe("lunes, 16 de noviembre, 3:00 p. m.");
+    expect(sameClockNote(iso, "America/Lima", "America/Bogota")).toBe("Son horas de tu país; en Colombia es la misma hora.");
+    expect(sameClockNote(iso, "America/Bogota", "America/Bogota")).toBeNull();
+    expect(sameClockNote(iso, "America/Santiago", "America/Bogota")).toBeNull();
     expect(sp(dualZoneLabel(iso, "America/Santiago", "America/Bogota"))).toBe("lunes, 16 de noviembre, 5:00 p. m. (tu hora) · 3:00 p. m. en Colombia");
   });
 });
