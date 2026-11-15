@@ -240,3 +240,12 @@ describe("hourLimitsFrom: «no» con salir/libre (revisión 13-nov, 3.ª)", () =
     expect(hourLimitsFrom(["no salgo a las 6"])).toEqual({});
   });
 });
+
+describe("dayanaOfferedSlot con las dos horas (botón «Horas libres» con su zona, Jorge, Chile, 14-nov)", () => {
+  const msg =
+    "Tengo estos espacios para consulta gratis 15 min (15 min), en tu hora y en la de Colombia:\n• Sábado, 14 de noviembre, 10:00 p. m. (tu hora) · 8:00 p. m. en Colombia\n¿Cuál te queda mejor?";
+  test("vale la hora de Colombia de la línea, no la suya leída como de Colombia", () => {
+    expect(dayanaOfferedSlot([msg], "2026-11-15T01:00:00.000Z", "America/Bogota")).toBe(true);
+    expect(dayanaOfferedSlot([msg], "2026-11-15T03:00:00.000Z", "America/Bogota")).toBe(false);
+  });
+});
