@@ -1,11 +1,12 @@
 import {
-  getToken,
   getTokenResponse,
   startAuthorization,
   NoValidTokenError,
   UserAuthorizationRequiredError,
 } from "@vercel/connect";
 import type { GoogleService } from "@prisma/client";
+import crypto from "crypto";
+import { openSecret, sealSecret } from "@/lib/crypto/secret-box";
 import { prisma } from "@/lib/db";
 
 /**
@@ -140,6 +141,42 @@ const markNeedsReauthorization = async (accountId: string, reason: string) => {
   return new GoogleReauthorizationRequiredError(accountId);
 };
 
+/**
+ * El access token de Google, compartido entre instancias (14-nov). El SDK solo lo
+ * guarda en memoria del proceso, y en Vercel cada instancia nueva (webhooks, el reloj
+ * de cada minuto) pedía el suyo: Vercel Connect bloqueó las peticiones por «fair use»
+ * y la IA se quedó sin leer la agenda. Ahora se guarda cifrado (`sealSecret`) en
+ * `site_settings` hasta poco antes de que caduque (~1 h): una petición por hora y
+ * permiso, no una por instancia. Solo el token corto: el de larga vida sigue en Connect.
+ */
+const SHARED_TOKEN_MARGIN_MS = 5 * 60_000;
+
+const sharedTokenKey = (accountId: string, scopes: string[]): string =>
+  `google.token.${accountId}.${crypto.createHash("sha256").update([...scopes].sort().join(" ")).digest("hex").slice(0, 16)}`;
+
+const readSharedToken = async (key: string): Promise<{ token: string; expiresAt: number } | null> => {
+  try {
+    const row = await prisma.siteSetting.findUnique({ where: { key }, select: { value: true } });
+    if (!row?.value) return null;
+    const parsed = JSON.parse(openSecret(row.value)) as { token?: unknown; expiresAt?: unknown };
+    return typeof parsed.token === "string" && typeof parsed.expiresAt === "number"
+      ? { token: parsed.token, expiresAt: parsed.expiresAt }
+      : null;
+  } catch {
+    return null;
+  }
+};
+
+const writeSharedToken = async (key: string, token: string, expiresAt: number): Promise<void> => {
+  try {
+    const value = sealSecret(JSON.stringify({ token, expiresAt }));
+    await prisma.siteSetting.upsert({ where: { key }, create: { key, value }, update: { value } });
+  } catch (e) {
+    // Sin la copia compartida todo sigue funcionando: solo se piden más tokens.
+    console.warn("[google] no se pudo guardar el token compartido", e instanceof Error ? e.message : e);
+  }
+};
+
 const needsReauthorization = (error: unknown): boolean =>
   error instanceof UserAuthorizationRequiredError ||
   error instanceof NoValidTokenError;
@@ -164,12 +201,21 @@ export const getAccountToken = async (
   const services = only
     ? only.filter((s) => account.services.includes(s))
     : account.services.filter((s) => !ON_REQUEST_ONLY.includes(s));
+  const scopes = scopesForServices(services);
+  const cacheKey = sharedTokenKey(accountId, scopes);
+  const shared = await readSharedToken(cacheKey);
+  if (shared && shared.expiresAt - Date.now() > SHARED_TOKEN_MARGIN_MS) return shared.token;
   try {
-    return await getToken(requireConnector(), {
+    const response = await getTokenResponse(requireConnector(), {
       subject: { type: "user", id: account.connectSubject },
-      scopes: scopesForServices(services),
+      scopes,
     });
+    await writeSharedToken(cacheKey, response.token, response.expiresAt);
+    return response.token;
   } catch (error) {
+    // Vercel Connect no da un token nuevo (14-nov: «blocked… for exceeding the fair use
+    // limit») pero el compartido aún vale: se usa hasta su último minuto.
+    if (!needsReauthorization(error) && shared && shared.expiresAt - Date.now() > 30_000) return shared.token;
     // Sin el permiso de Meet la cuenta sigue sirviendo para lo demás: no se apaga.
     if (needsReauthorization(error) && only?.every((s) => ON_REQUEST_ONLY.includes(s))) throw error;
     if (needsReauthorization(error)) {
