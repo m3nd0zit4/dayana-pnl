@@ -31,6 +31,12 @@ const SENTENCE_WORDS = new Set(
   ["es", "mi", "mis", "tu", "tus", "su", "sus", "soy", "yo", "eres", "en", "con", "sin", "por", "para", "que", "the", "my", "of", "and", "is", "no"]
 );
 
+/** Palabras que nunca son el primer nombre de alguien. */
+const NOT_A_FIRST_NAME = new Set([
+  "la", "el", "los", "las", "un", "una", "lo", "hola", "holi", "buenas", "buenos", "saludos",
+  "llamar", "llamada", "llamado", "cita", "agendar", "agenda", "reunion", "consulta", "sesion", "terapia", "pago", "pendiente", "recordar", "confirmar",
+]);
+
 /** Tratamientos que van antes del nombre: se saltan. */
 const TITLES = new Set(["dra", "dr", "doctora", "doctor", "sra", "sr", "srta", "lic", "ing", "prof", "don", "dona"]);
 
@@ -59,6 +65,9 @@ const nameWords = (raw: string | null | undefined): string[] | null => {
   if (folded.some((w) => NOT_A_NAME.has(w) || SENTENCE_WORDS.has(w))) return null;
   const at = folded.findIndex((w) => !TITLES.has(w));
   const first = at >= 0 ? words[at] : undefined;
+  // Un artículo, un saludo o una palabra de la agenda delante no es un nombre (auditoría
+  // 14-nov: «la negra bella» → «Hola La»; un evento «… llamar» → «Hola Llamar»).
+  if (at >= 0 && NOT_A_FIRST_NAME.has(folded[at]!)) return null;
   // Iniciales («SF», «J»): sin vocal o de una letra, no es un nombre.
   if (!first || first.length < 2 || !/[aeiouáéíóúü]/i.test(first)) return null;
   return words.slice(at);

@@ -28,6 +28,8 @@ export type Scenario = {
   clientMode?: boolean;
   /** Zona horaria ya conocida de la persona (si no, la IA tiene que preguntar). */
   personTimezone?: string | null;
+  /** Su número (para deducir el país); por defecto uno de Colombia. */
+  phone?: string;
   /** Ya tiene una cita de verdad (para el freno de promesas, como en run.ts). */
   hasBooking?: boolean;
   /** Horas que ya la respaldan (las que dio la agenda antes, la de su cita). */

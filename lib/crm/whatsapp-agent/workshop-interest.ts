@@ -58,7 +58,7 @@ const dayMonth = (w: OpenWorkshop): { day: string; month: string } | null => {
 };
 
 const INTEREST =
-  /\?|\b(costo|costos|precio|precios|valor|cuanto|cuesta|vale|info|informacion|inscrib\w*|apunt\w*|cupo|cupos|interes\w*|quiero|quisiera|me gustaria|link|enlace|horario|horarios|hora|fecha|cuando|donde|participar|asistir|separar|reservar|unirme|entrar|entrare|entraria|inscribire|asistire|participare)\b/;
+  /\?|\b(costo|costos|precio|precios|valor|cuanto|cuesta|vale|info|informacion|inscrib\w*|apunt\w*|cupo|cupos|interes\w*|quiero|quisiera|me gustaria|link|enlace|horario|horarios|hora|fecha|cuando|donde|participar|asistir|separar|reservar|unirme|entrar|entrare|entraria|inscribire|asistire|participare|detalle|detalles|enviarme|mandarme|pasarme|temario|contenido)\b/;
 
 /**
  * ¿Pregunta por el taller abierto? «taller» y una señal de interés («¿cuánto

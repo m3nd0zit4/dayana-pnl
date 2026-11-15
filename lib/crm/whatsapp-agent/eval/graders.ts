@@ -183,7 +183,13 @@ export const GRADERS: Record<string, (ctx: GradeContext) => Grade> = {
     return { id: "promesas_con_respaldo", pass: !v, detail: v ? `${v.breach}: ${v.detail}` : undefined };
   },
   corto: (ctx) => {
-    const words = ownText(ctx).split(/\s+/).filter(Boolean).length;
+    // La lista de horas la pega el código (con las dos zonas es larga): no cuenta como texto del modelo.
+    const words = ownText(ctx)
+      .split("\n")
+      .filter((l) => !/^\s*\d+\.\s/.test(l) && !/^(Si quieres hablar con Dayana|Si te queda mejor|¿Cuál te queda mejor\?|¿Te la agendo\?)/.test(l.trim()))
+      .join(" ")
+      .split(/\s+/)
+      .filter(Boolean).length;
     return { id: "corto", pass: words <= 90, detail: words > 90 ? `${words} palabras` : undefined };
   },
 };

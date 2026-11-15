@@ -168,9 +168,13 @@ const ChatView = ({
       | { draft: { action: string; message: string; reason: string } }
       | null;
     if (!data) return;
-    if (data.draft.action === "reply") {
+    if (data.draft.action === "reply" && data.draft.message.trim()) {
       setText(data.draft.message);
       lastDraft.current = data.draft.message;
+      // Lo escalaría o no le escribiría: la propuesta igual queda, y se dice por qué (14-nov).
+      if (data.draft.reason) toast(data.draft.reason, "info");
+    } else if (!data.draft.message.trim()) {
+      toast(data.draft.reason || "La IA no tiene una propuesta para este mensaje. Escríbele tú.", "info");
     } else {
       // Escalaría: igual deja en el cuadro lo que le diría, para revisarlo y mandarlo (dueña, 25-oct:
       // «no me deja aprobar»). Sin pisar lo que ya estabas escribiendo.

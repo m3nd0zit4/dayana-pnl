@@ -1,6 +1,6 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
-import { observeAiUsage, recordAiUsage, type AiUsage } from "./usage";
+import { modelFromUrl, observeAiUsage, recordAiUsage, usageFromResponseText, type AiUsage } from "./usage";
 
 /**
  * Las claves de Gemini, con respaldo: si una se queda sin créditos o sin cuota
@@ -108,8 +108,22 @@ const createKeyedFetch =
     return last as { res: Response; key: string };
   };
 
-/** Suelta una respuesta que no se va a usar (si no, la conexión queda tomada). */
-const discard = (res: Response) => res.body?.cancel().catch(() => undefined);
+/**
+ * Lee el cuerpo UNA vez y devuelve una respuesta nueva con ese mismo texto. Antes se
+ * leían copias (`res.clone()`) para ver si Google bloqueó el pedido y para anotar los
+ * tokens; en Bun eso a veces dejaba vacío el cuerpo que leía el SDK («Invalid JSON
+ * response… JSON parsing failed: Text: .»: 18 de 231 respuestas en la evaluación del
+ * 13-nov, y todas en cuanto se añadió una copia más el 14-nov). Sin copias no pasa.
+ */
+type ReadResponse = { res: Response; text: string };
+const readOnce = async (res: Response): Promise<ReadResponse> => {
+  const text = await res.text().catch(() => "");
+  const headers = new Headers(res.headers);
+  // El texto ya viene descomprimido: sin estas cabeceras nadie intenta descomprimirlo otra vez.
+  headers.delete("content-encoding");
+  headers.delete("content-length");
+  return { text, res: new Response(text, { status: res.status, statusText: res.statusText, headers }) };
+};
 
 /**
  * Google a veces bloquea el pedido entero: contesta 200 sin `candidates`, solo
@@ -118,17 +132,22 @@ const discard = (res: Response) => res.body?.cancel().catch(() => undefined);
  * contestaba y el mismo pedido se repetía cada vez). Devuelve el cuerpo y el
  * motivo, o null si no es eso.
  */
-const blockedPrompt = async (res: Response): Promise<{ body: Record<string, unknown>; reason: string } | null> => {
-  if (res.status !== 200) return null;
-  const body = await res
-    .clone()
-    .json()
-    .catch(() => null);
+const blockedPrompt = (r: ReadResponse): { body: Record<string, unknown>; reason: string } | null => {
+  if (r.res.status !== 200) return null;
+  let body: Record<string, unknown> | null = null;
+  try {
+    body = JSON.parse(r.text) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
   if (!body || typeof body !== "object" || (Array.isArray(body.candidates) && body.candidates.length > 0)) return null;
   if (!("promptFeedback" in body) && !("usageMetadata" in body)) return null;
   const reason = (body.promptFeedback as { blockReason?: unknown } | undefined)?.blockReason;
   return { body, reason: typeof reason === "string" && reason ? reason : "OTHER" };
 };
+
+/** Un 200 sin nada en el cuerpo: el SDK lo lee como «Invalid JSON response». */
+const emptyOk = (r: ReadResponse): boolean => r.res.status === 200 && !r.text.trim();
 
 /** El mismo pedido con el modelo completo en vez del «-lite» (o null si no hay otro). */
 const fullModelUrl = (url: string): string | null => {
@@ -154,18 +173,35 @@ export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch =>
     if (opts.onUsage) observeAiUsage(answeredUrl, res, opts.onUsage);
     return res;
   };
+  // Lo mismo con el texto ya leído (sin copias).
+  const answeredRead = (answeredUrl: string, r: ReadResponse): Response => {
+    if (opts.onUsage && r.res.ok) {
+      const model = modelFromUrl(answeredUrl);
+      const usage = model ? usageFromResponseText(model, r.text) : null;
+      if (usage) opts.onUsage(usage);
+    }
+    return r.res;
+  };
   return async (input, init) => {
-    const { res, key } = await keyed(input, init);
+    const first = await keyed(input, init);
     const url = input instanceof Request ? input.url : String(input);
-    if (!url.includes(":generateContent")) return answered(url, res);
-    const blocked = await blockedPrompt(res);
-    if (!blocked) return answered(url, res);
-    void discard(res);
+    if (!url.includes(":generateContent")) return answered(url, first.res);
+    let key = first.key;
+    let read = await readOnce(first.res);
+    // Un 200 con el cuerpo vacío: se repite el mismo pedido, hasta dos veces.
+    const repeatable = !(input instanceof Request) && (init?.body == null || typeof init.body === "string");
+    for (let attempt = 0; repeatable && attempt < 2 && emptyOk(read); attempt++) {
+      console.warn(`[gemini] respuesta vacía de Google: repito el pedido (${attempt + 1})`);
+      const again = await keyed(input, init);
+      key = again.key;
+      read = await readOnce(again.res);
+    }
+    const blocked = blockedPrompt(read);
+    if (!blocked) return answeredRead(url, read);
     console.warn(`[gemini] Google bloqueó el pedido (${blocked.reason}): ${JSON.stringify(blocked.body).slice(0, 800)}`);
 
     // Solo se repite lo que se puede repetir igual: URL + cuerpo de texto.
-    const body = init?.body;
-    const retryable = !(input instanceof Request) && (body == null || typeof body === "string");
+    const retryable = repeatable;
     const baseFetch: GeminiFetch = opts.baseFetch ?? ((i, o) => fetch(i, o));
     const now = (opts.now ?? Date.now)();
     const keys = (opts.keys ?? geminiKeys)();
@@ -182,15 +218,13 @@ export const createGeminiFetch = (opts: GeminiFetchOptions = {}): GeminiFetch =>
     // Un error pasajero (cuota, caída) llega tal cual si nada contestó: el SDK reintenta.
     let transient: Response | null = null;
     for (const retry of retries) {
-      const r = await retry.run();
-      if (r.ok && !(await blockedPrompt(r))) {
+      const r = await readOnce(await retry.run());
+      if (r.res.ok && !emptyOk(r) && !blockedPrompt(r)) {
         console.warn(`[gemini] contestó con ${retry.label}`);
-        if (transient) void discard(transient);
-        return answered(retry.url, r);
+        return answeredRead(retry.url, r);
       }
-      console.warn(`[gemini] tampoco con ${retry.label} (${r.status})`);
-      if ((r.status === 429 || r.status >= 500) && !transient) transient = r;
-      else void discard(r);
+      console.warn(`[gemini] tampoco con ${retry.label} (${r.res.status})`);
+      if ((r.res.status === 429 || r.res.status >= 500) && !transient) transient = r.res;
     }
     if (transient) return transient;
     const promptFeedback = { ...(blocked.body.promptFeedback as object | undefined), blockReason: blocked.reason };

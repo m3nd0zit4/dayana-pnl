@@ -42,7 +42,9 @@ const main = async () => {
   const { setFreeCallCalendarForTests } = await import("@/lib/crm/whatsapp-agent/free-call");
   const { getDateKeyInTz, getTimeHmInTz } = await import("@/lib/datetime/zoned-time");
   const { conversationSituation, situationText } = await import("@/lib/crm/whatsapp-agent/situation");
-  const { SCENARIOS } = await import("@/lib/crm/whatsapp-agent/eval/scenarios");
+  const { SCENARIOS: BASE_SCENARIOS } = await import("@/lib/crm/whatsapp-agent/eval/scenarios");
+  const { SCENARIOS_14NOV } = await import("@/lib/crm/whatsapp-agent/eval/scenarios-14nov");
+  const SCENARIOS = [...BASE_SCENARIOS, ...SCENARIOS_14NOV];
   const { gradeReply } = await import("@/lib/crm/whatsapp-agent/eval/graders");
   const { judgePasses, judgeReply } = await import("@/lib/crm/whatsapp-agent/eval/judge");
 
@@ -131,7 +133,7 @@ const main = async () => {
       transcript: s.transcript,
       name: s.name,
       nameInfo,
-      phone: "573000000000",
+      phone: s.phone ?? "573000000000",
       conversationId: null,
       contactId: null,
       client: s.client ?? null,

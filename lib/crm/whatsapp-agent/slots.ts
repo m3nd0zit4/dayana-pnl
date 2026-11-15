@@ -289,12 +289,53 @@ export type SlotWish = {
   toTime?: string;
   /** No a mediodía («no puedo a mediodía por mi trabajo»). */
   avoidMidday?: boolean;
+  /**
+   * Una hora exacta que pidió, en su hora («exactamente a las 12», «tipo 3 de la tarde»,
+   * «el lunes a las 6pm»): se ofrecen las libres más cercanas, a una hora como mucho
+   * (Ale, Silvia, Manuel, 14-nov: les salían otras).
+   */
+  nearTime?: string;
+};
+
+/** Minutos del día de «HH:MM». */
+const hmMinutes = (hm: string): number => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3, 5));
+export const NEAR_TIME_WINDOW_MIN = 60;
+
+/**
+ * La hora exacta que pide, si la dice (en su hora). Con a. m./p. m. o «de la
+ * mañana/tarde/noche» manda eso; sin nada, las 12 son mediodía y de 1 a 6 es de la
+ * tarde; de 7 a 11 sin más es ambiguo y no se toma. «Después de / antes de / desde /
+ * hasta» son límites (`hourLimitsFrom`), no una hora exacta.
+ */
+const EXACT = /(?:\b(?:a|tipo|como a|sobre|para)\s+las?\s+|\btipo\s+|(?<![\d:])(?=\d{1,2}(?:[:.]\d{2})?\s*(?:am|pm|a\s?m|p\s?m|de la (?:manana|tarde|noche))\b)|(?<![\d:.])(?=(?:1[3-9]|2[0-3])[:.][0-5]\d\b))(\d{1,2})(?:[:.]([0-5]\d))?\s*(am|pm|a\s?m|p\s?m|de la manana|de la tarde|de la noche|del mediodia)?(?!\s*(?:dias?|semanas?|meses|horas|minutos?|personas?|sesiones?|anos?)\b)(?![\d:])/;
+export const exactTimeFrom = (textsNewestFirst: (string | null | undefined)[]): string | null => {
+  for (const raw of textsNewestFirst) {
+    const t = fold(raw ?? "")
+      .replace(/\b([ap])\.\s?m\.?/g, "$1m")
+      .replace(/\b(despues|antes|desde|hasta|a partir) de las? \d{1,2}([:.]\d{2})?/g, " ");
+    const m = EXACT.exec(t);
+    if (!m) continue;
+    const h = Number(m[1]);
+    const min = Number(m[2] ?? 0);
+    const mark = (m[3] ?? "").replace(/\s/g, "");
+    if (h > 23) continue;
+    let hour: number | null;
+    if (h > 12) hour = h;
+    else if (mark === "am" || mark === "delamanana") hour = h % 12;
+    else if (mark === "pm" || mark === "delatarde" || mark === "delanoche") hour = (h % 12) + 12;
+    else if (mark === "delmediodia" || h === 12) hour = 12;
+    else if (h >= 1 && h <= 6) hour = h + 12;
+    else hour = null;
+    if (hour === null) continue;
+    return `${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+  }
+  return null;
 };
 
 export const hasWish = (w: SlotWish | null | undefined): w is SlotWish =>
   Boolean(
     w &&
-      (w.weekdays?.length || w.dates?.length || w.notWeekdays?.length || w.notDates?.length || w.partOfDay || w.fromDate || w.fromTime || w.toTime || w.avoidMidday)
+      (w.weekdays?.length || w.dates?.length || w.notWeekdays?.length || w.notDates?.length || w.partOfDay || w.fromDate || w.fromTime || w.toTime || w.avoidMidday || w.nearTime)
   );
 
 const WEEKDAY_WORDS: Record<string, number> = { domingo: 0, lunes: 1, martes: 2, miercoles: 3, jueves: 4, viernes: 5, sabado: 6 };
@@ -396,8 +437,20 @@ export const matchesWish = (slot: Slot, wish: SlotWish, personTz: string): boole
   if (wish.fromTime && hm < wish.fromTime) return false;
   if (wish.toTime && hm >= wish.toTime) return false;
   if (wish.avoidMidday && hm >= "11:00" && hm < "14:00") return false;
+  if (wish.nearTime && Math.abs(hmMinutes(hm) - hmMinutes(wish.nearTime)) > NEAR_TIME_WINDOW_MIN) return false;
   return true;
 };
+
+/** Con una hora exacta: las más cercanas a esa hora (y antes las de días más cercanos). */
+export const pickNearTime = (slots: Slot[], nearTime: string, personTz: string, count: number): Slot[] =>
+  [...slots]
+    .sort((a, b) => {
+      const da = Math.abs(hmMinutes(getTimeHmInTz(new Date(a.startIso), personTz)) - hmMinutes(nearTime));
+      const db = Math.abs(hmMinutes(getTimeHmInTz(new Date(b.startIso), personTz)) - hmMinutes(nearTime));
+      return da - db || a.startIso.localeCompare(b.startIso);
+    })
+    .slice(0, count)
+    .sort((a, b) => a.startIso.localeCompare(b.startIso));
 
 /**
  * Las horas que dijo que puede o no (Carito, 9 y 12-nov: «después de las 5 pm»,
@@ -512,6 +565,8 @@ export const relaxedWishes = (wish: SlotWish): { step: WishStep; wish: SlotWish 
   };
   const byDay = Boolean(wish.dates?.length || wish.weekdays?.length);
   const steps: { step: WishStep; wish: SlotWish }[] = [{ step: "exact", wish }];
+  // Pidió una hora exacta que no está: lo demás que dijo (sus días, su franja) primero.
+  if (wish.nearTime) steps.push({ step: byDay ? "same_days" : "same_time", wish: { ...wish, nearTime: undefined } });
   if (byDay && wish.partOfDay) {
     steps.push({ step: "same_days", wish: { ...keep, weekdays: wish.weekdays, dates: wish.dates } });
     steps.push({ step: "same_time", wish: { ...keep, partOfDay: wish.partOfDay } });

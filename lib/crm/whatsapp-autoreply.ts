@@ -221,32 +221,64 @@ export const draftAutoReply = async (input: {
   /** For a simulation inside one real chat: what the AI remembers and Dayana's instruction for it. */
   memory?: string | null;
   chatInstructions?: string | null;
+  /**
+   * «Que la IA proponga» (dueña, 14-nov: «a veces lo oprimo y no genera nada»): Dayana
+   * pidió un texto para revisarlo y mandarlo ella. Si la IA no escribiría nada (le está
+   * respondiendo a Dayana) o se lo pasaría a ella, se le pide otra vez un borrador.
+   */
+  mustWrite?: boolean;
 }): Promise<ReplyDraft> => {
-  const result = await think({
-    config: input.config,
-    transcript: input.transcript,
-    name: input.name,
-    phone: input.phone ?? "570000000000",
-    conversationId: null,
-    contactId: null,
-    client: input.client ?? null,
-    memory: input.memory ?? null,
-    chatInstructions: input.chatInstructions ?? null,
-    timezone: await getOperationalTimezone(),
-    mode: "preview",
-  });
-  const o = result.outcome;
-  // Tal como saldría: sin apodos, con los datos de pago debajo y, al escalar,
-  // el aviso que recibe la persona.
-  const holding = input.config.pauses.onEscalation
-    ? input.config.escalation.holdingMessage
-    : result.holdingReply || input.config.escalation.holdingMessage || "Déjame consultarlo con Dayana y te confirmo por aquí.";
-  return {
-    action: o.kind,
-    message: o.kind === "reply" ? withPaymentBlocks(polishReply(o.message), { ...result.paymentBlocks, links: result.linkBlocks }) : holding,
-    reason: o.kind === "escalate" ? `${o.category}: ${o.reason}` : "",
-    outcome: o,
-    examples: result.examples,
-    toolCalls: result.toolCalls,
+  const timezone = await getOperationalTimezone();
+  const run = (chatInstructions: string | null) =>
+    think({
+      config: input.config,
+      transcript: input.transcript,
+      name: input.name,
+      phone: input.phone ?? "570000000000",
+      conversationId: null,
+      contactId: null,
+      client: input.client ?? null,
+      memory: input.memory ?? null,
+      chatInstructions,
+      timezone,
+      mode: "preview",
+    });
+  const shape = async (result: Awaited<ReturnType<typeof think>>): Promise<ReplyDraft> => {
+    const o = result.outcome;
+    // Tal como saldría: sin apodos, con los datos de pago debajo y, al escalar,
+    // el aviso que recibe la persona.
+    const holding = input.config.pauses.onEscalation
+      ? input.config.escalation.holdingMessage
+      : result.holdingReply || input.config.escalation.holdingMessage || "Déjame consultarlo con Dayana y te confirmo por aquí.";
+    return {
+      action: o.kind,
+      message: o.kind === "reply" ? withPaymentBlocks(polishReply(o.message), { ...result.paymentBlocks, links: result.linkBlocks }) : holding,
+      reason: o.kind === "escalate" ? `${o.category}: ${o.reason}` : "",
+      outcome: o,
+      examples: result.examples,
+      toolCalls: result.toolCalls,
+    };
   };
+  const first = await run(input.chatInstructions ?? null);
+  const draft = await shape(first);
+  const empty = draft.action === "reply" && !draft.message.trim();
+  if (!input.mustWrite || (draft.action === "reply" && !empty)) return draft;
+  // Lo que la IA ya tenía pensado para la persona al escalar.
+  if (draft.action === "escalate" && first.suggestedReply?.trim()) {
+    return { ...draft, action: "reply", message: polishReply(first.suggestedReply), reason: `La IA te lo pasaría a ti (${draft.reason}); esto es lo que le diría.` };
+  }
+  const again = await shape(
+    await run(
+      [
+        input.chatInstructions?.trim() || null,
+        "PROPUESTA PARA DAYANA: Dayana va a leer tu respuesta, corregirla si hace falta y mandarla ella. Escribe SIEMPRE el mejor mensaje para la persona ahora mismo, en su idioma y con el tono de la asistente: no escales, no uses no_reply y no digas que lo vas a consultar con Dayana.",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    )
+  );
+  if (again.action === "reply" && again.message.trim()) {
+    return { ...again, reason: empty ? "La IA no le escribiría nada ahora; esto es lo que propone si quieres escribirle." : `La IA te lo pasaría a ti (${draft.reason}); esto es lo que propone.` };
+  }
+  return empty ? { ...draft, action: "escalate", message: "", reason: "La IA no supo qué proponer para este mensaje." } : draft;
 };

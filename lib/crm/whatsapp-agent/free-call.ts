@@ -17,7 +17,7 @@ import {
   type UpcomingFreeCall,
 } from "./free-call-rules";
 import { resolveConversations } from "./pending";
-import { hasWish, matchesWish, pickFreeCallSlots, relaxedWishes, type SlotWish, type WishStep } from "./slots";
+import { hasWish, matchesWish, pickFreeCallSlots, pickNearTime, relaxedWishes, type SlotWish, type WishStep } from "./slots";
 
 /**
  * La llamada gratis de 15 minutos: el único objetivo de la asistente con una
@@ -164,8 +164,15 @@ export const offerFreeCallSlotsFor = async (input: {
     });
   const label = (s: (typeof slots)[number]) => ({ startIso: s.startIso, label: dualZoneLabel(s.startIso, input.personTz, input.dayanaTz) });
   if (hasWish(input.wish)) {
-    for (const { step, wish } of relaxedWishes(input.wish)) {
-      const found = pick(slots.filter((s) => matchesWish(s, wish, input.personTz)));
+    const asked = input.wish;
+    for (const { step, wish: relaxed } of relaxedWishes(asked)) {
+      // La hora exacta solo en el primer intento; después, lo de siempre en sus días.
+      const wish = step === "exact" ? relaxed : { ...relaxed, nearTime: undefined };
+      const fits = slots.filter((s) => matchesWish(s, wish, input.personTz));
+      const found =
+        step === "exact" && wish.nearTime
+          ? pickNearTime(fits.filter((s) => !fullDays.has(s.dateKey)), wish.nearTime, input.personTz, input.config.freeCall.offer)
+          : pick(fits);
       if (found.length > 0) return { options: found.map(label), matchedWish: step === "exact", ...(step === "exact" ? {} : { closest: step }) };
     }
     return { options: [], matchedWish: false, closest: "any" };

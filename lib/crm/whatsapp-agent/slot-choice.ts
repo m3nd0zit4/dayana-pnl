@@ -66,6 +66,8 @@ const CHOICE_WORDS = new Set([
   // La cortesía alrededor de la elección (Laura, 26-oct: «Disculpa mejor viernes, 30 de
   // octubre, 9:00 a.m.» + «Te agradezco mucho» no se agendó y le dijeron que Dayana lo confirmaba).
   ..."disculpa disculpe disculpame perdon perdona perdoname agradezco agradecida agradecido mucho muchas muchisimas mil amable muy doctora dra".split(" "),
+  // «18.30, 6.30 sería», «esa me sirve», «me queda bien» (14-nov).
+  ..."seria sirve queda bien esa ese esta este perfecto vale listo dale".split(" "),
   ..."lunes martes miercoles jueves viernes sabado domingo".split(" "),
   ..."enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split(" "),
   ...Object.keys(ORDINAL),
@@ -174,12 +176,19 @@ const pickedNumber = (folded: string, count: number): number | null => {
 /** Con `lenient` (la confirmación del modelo la respalda), lo largo y las palabras sueltas valen; un «no», «otra» o una pregunta no. */
 const LENIENT_MAX_CHARS = 200;
 
+const SINGLE_YES =
+  /^(si+|sip|claro( que si)?|dale|listo|perfecto|ok(ay)?|de una|vale|esa|esa (me sirve|esta bien)|me sirve|agendala|agendamela|si,? (por favor|porfa|gracias|agendala|perfecto|dale|esa|me sirve)|por favor)[\s,.!]*(por favor|porfa|gracias|dayana)?[\s.!]*$/;
+
 export const resolveChoice = (text: string, options: OfferedSlot[], ctx: ChoiceContext, opts: { lenient?: boolean } = {}): Choice => {
   const folded = foldForSearch(text)
     .replace(/\s+/g, " ")
     // «7:30 pn» (Sandy, 13-nov): la n está al lado de la m en el teclado.
     .replace(/(\d)\s*p\.?\s?n\b/g, "$1 pm")
+    // «18.30, 6.30 sería» (Silvia, 14-nov): la hora con punto.
+    .replace(/\b([01]?\d|2[0-3])\.([0-5]\d)\b/g, "$1:$2")
     .trim();
+  // Un «sí» a una sola hora ofrecida es esa hora (eval 14-nov: «Sí, a esa hora Dayana tiene espacio… ¿Te la agendo?»).
+  if (options.length === 1 && SINGLE_YES.test(folded)) return { kind: "one", option: options[0]! };
   if (
     !options.length ||
     !folded ||
@@ -260,6 +269,7 @@ export const CHOICE_QUESTION = "¿Cuál te queda mejor? Puedes responderme con e
  * persona para un mejor horario»): el número, o que diga qué día y hora le sirven.
  * Lleva la pregunta de siempre: los detectores de «la lista» la buscan.
  */
+export const SINGLE_QUESTION = "¿Te la agendo? Respóndeme «sí» o dime otra hora que te sirva.";
 export const COORDINATE_QUESTION = "¿Cuál te queda mejor? Puedes responderme con el número, o dime qué día y a qué hora te sirve y lo coordinamos.";
 
 const OFFER_LEAD = "Estas son las horas libres de Dayana para tu llamada gratis de 15 minutos:";
@@ -284,6 +294,8 @@ export const groupedOfferList = (options: OfferedSlot[], ctx: OfferContext): str
   const soon = options.filter((o) => isSoon(o, ctx));
   const later = options.filter((o) => !isSoon(o, ctx));
   const line = (o: OfferedSlot) => `${options.indexOf(o) + 1}. ${o.label}`;
+  // Una sola hora (la exacta que pidió, eval 14-nov): «¿Te la agendo?», no «¿cuál te queda mejor?».
+  if (options.length === 1) return `${line(options[0]!)}\n\n${SINGLE_QUESTION}`;
   if (soon.length === 0 || later.length === 0) return `${options.map(line).join("\n")}\n\n${COORDINATE_QUESTION}`;
   const today = getDateKeyInTz(ctx.now, ctx.personTz);
   const soonKeys = new Set(soon.map((o) => getDateKeyInTz(new Date(o.startIso), ctx.personTz)));

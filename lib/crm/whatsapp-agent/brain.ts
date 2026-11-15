@@ -19,7 +19,7 @@ import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsFor
 import { formatMoneyMinor } from "../money";
 import { alreadyPaidReply, alreadyPaidToolNote } from "./receipt-already-paid";
 import { likelySamePayment, providerLabel, webPaymentForReceipt } from "./receipt-web-payment";
-import { dayanaOfferedSlot, hourLimitsFrom, saidPartOfDay, saysCantMakeIt, spreadSlots, wishFromWords, type WishStep } from "./slots";
+import { dayanaOfferedSlot, exactTimeFrom, hourLimitsFrom, saidPartOfDay, saysCantMakeIt, spreadSlots, wishFromWords, type WishStep } from "./slots";
 import { redactPrices } from "./price-guard";
 import { softenForPrompt, withDayanaWording } from "./wording";
 import { countryName, describeRequestedTime, inferPersonZone, MULTI_ZONE_COUNTRIES, resolvePersonTimezone } from "./booking-time";
@@ -43,7 +43,7 @@ import { saysSelfHarm } from "./pause-rules";
 import { asksForCall, seriousReply } from "./serious-reply";
 import { familyPaidReply, paidForFamily } from "./family-paid";
 import { insults, RUDE_REPLY, rudeReplied } from "./rude-reply";
-import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, typedPaymentData, urlKeys, asksAboutSchedule, withoutInventedUrls, withoutPlaceholders, writesOwnHours, fixZoneClaims } from "./reply-guards";
+import { answeringDayana, givesEmergencyAdvice, withoutRepeatedGreeting, promisesHandoff, typedPaymentData, urlKeys, asksAboutSchedule, withoutInventedUrls, withoutPlaceholders, writesOwnHours, fixZoneClaims, asksForSlots, asksWhenInstead } from "./reply-guards";
 import { foldForSearch } from "../search-normalize";
 import {
   URGENT_SESSION_REPLY,
@@ -82,6 +82,7 @@ import {
 } from "./workshop-interest";
 import { enrolledInWorkshop, openWorkshopForAi } from "../workshop-interests";
 import { chatInstructionsLine } from "./chat-instructions";
+import { detectOtherLanguage, languageLine, toldSpanishOnly } from "./language";
 import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
 import {
@@ -157,7 +158,7 @@ export type BrainResult = {
    * Las horas de la llamada gratis ofrecidas en esta vuelta, en orden: van
    * debajo del mensaje, numeradas, pegadas por el código (`slot-choice.ts`).
    */
-  slotOffer: { options: OfferedSlot[]; matchedWish: boolean | null } | null;
+  slotOffer: { options: OfferedSlot[]; matchedWish: boolean | null; exactHour?: boolean } | null;
   /**
    * La llamada gratis se agendó o se movió en esta vuelta: la confirmación sale
    * del código con esta hora (`bookedMessage`), no del modelo. `text` es esa
@@ -1387,7 +1388,13 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         .slice(-12)
         .reverse()
         .map((l) => l.body);
-      const wish = { ...wishFromWords(said ? args : { ...args, franja: undefined }, tz, now), ...hourLimitsFrom(recentInbound) };
+      // Una hora exacta que pidió en sus últimos mensajes («a las 12 hora de mi país», 14-nov).
+      const nearTime = exactTimeFrom(recentInbound.slice(0, 3));
+      const wish = {
+        ...wishFromWords(said ? args : { ...args, franja: undefined }, tz, now),
+        ...hourLimitsFrom(recentInbound),
+        ...(nearTime ? { nearTime } : {}),
+      };
       const { options, matchedWish, closest } = await offerFreeCallSlotsFor({ config, personTz: tz, dayanaTz: timezone, now, wish });
       if (options.length === 0) {
         const limited = Boolean(wish.fromTime || wish.toTime || wish.avoidMidday);
@@ -1399,7 +1406,9 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       }
       options.forEach((o) => offeredNow.add(new Date(o.startIso).toISOString()));
       // La lista la pega el código (numerada, en este orden): «la 2» es esta 2.
-      state.slotOffer = { options, matchedWish: matchedWish ?? null };
+      // Pidió una hora exacta y esa hora está libre (Paula, eval 14-nov): se le dice que sí, no una lista más.
+      const exactHour = Boolean(nearTime && options.some((o) => getTimeHmInTz(new Date(o.startIso), tz) === nearTime));
+      state.slotOffer = { options, matchedWish: matchedWish ?? null, exactHour };
       // No se pudo mover y le ofrece otras: esas sí van.
       if (state.keepsCall === "moveFailed") state.keepsCall = null;
       return log("offer_free_call_slots", args, {
@@ -1986,6 +1995,11 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       dossierPart,
       input.memory ? `MEMORIA (lo que sabemos de esta persona):\n${input.memory}` : null,
       chatInstructionsLine(input.chatInstructions),
+      // Escribe en otro idioma (dueña, 14-nov): se le contesta en el suyo y se le dice que Dayana atiende en español.
+      languageLine(
+        detectOtherLanguage(input.transcript.filter((l) => l.direction === "INBOUND").slice(-3).map((l) => l.body)),
+        toldSpanishOnly(input.transcript.filter((l) => l.direction === "OUTBOUND").map((l) => l.body))
+      ),
       snippetsPart,
       examplesPart,
       stickers.length > 0
@@ -2642,12 +2656,15 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // las 20:00» y cada mensaje suyo terminaba en «Déjame consultarlo con Dayana»).
   // El modelo escribió horas de la llamada por su cuenta (revisión 13-nov): solo sin una
   // llamada ya agendada (eso es confirmarla) y si lo que ella escribió va de agendar.
+  // También en la llamada por el taller y cuando contesta un paso de agendar con una palabra
+  // («Bogotá» a «¿desde qué ciudad?»): psicología, 14-nov, recibió «Déjame revisar la agenda»
+  // y nunca las horas (el modelo escribió «8:30p, 9:00p» y el freno las paró).
+  const bookingStepBefore = /\b(llamada|agend|horario|hora)\b/.test(foldForSearch(lastOutbound?.body ?? "")) || /\b(pais|ciudad)\b.*\?/.test(foldForSearch(lastOutbound?.body ?? ""));
   const modelWroteHours =
     outcome.kind === "reply" &&
     !workshopAskNow &&
-    !workshopFlow &&
     !upcomingForLead &&
-    asksAboutSchedule(lastInbound) &&
+    (asksAboutSchedule(lastInbound) || bookingStepBefore) &&
     writesOwnHours(outcome.message);
   let autoOffered = false;
   // Tiene la llamada agendada y dice que a esa hora no puede (Carito, 12-nov: el modelo
@@ -2675,7 +2692,10 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     (cantMakeIt ||
       acceptedCallWithoutHours(input.transcript) ||
       // Escribió horas por su cuenta: van las de la agenda de verdad, no «Déjame revisar la agenda» (13-nov).
-      modelWroteHours)
+      modelWroteHours ||
+      // Preguntó qué días u horas hay, o el modelo le preguntó «¿qué día y hora?» en vez de
+      // darle las horas libres (auditoría 14-nov): las horas de verdad, debajo de su frase.
+      (outcome.kind === "reply" && (asksForSlots(lastInbound) || asksWhenInstead(outcome.message))))
   ) {
     // Cuándo dijo que puede en sus últimos mensajes (lo último manda; no lo de las sesiones).
     await offerSlots(availabilityArgs(input.transcript.filter((l) => l.direction === "INBOUND").slice(-6).map((l) => l.body ?? "")));
@@ -2714,12 +2734,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     if (state.pickRefused) {
       return upcomingLabelNow ? `${refusedLead(state.pickRefused).replace(/ Estas siguen libres:$/, "")} Tu llamada sigue el ${upcomingLabelNow}; si prefieres cambiarla, estas están libres:` : refusedLead(state.pickRefused);
     }
+    if (state.slotOffer?.exactHour && !upcomingLabelNow) return "Sí, a esa hora Dayana tiene espacio:";
     if (upcomingLabelNow) {
       return `${matchedWish === false ? "A esa hora no hay espacio en la agenda de Dayana. " : ""}Tu llamada con Dayana sigue el ${upcomingLabelNow}. Si prefieres cambiarla, estas horas están libres:`;
     }
     // Sus horas inventadas no salen junto a las de verdad: la frase de entrada de siempre.
     if (autoOffered && modelWroteHours) return "";
-    return autoOffered ? leadBeforeHours(text) : text;
+    // Los días que «atiende» los dice la lista, no el modelo (Manuel, eval 14-nov: «Dayana atiende de lunes a sábado»).
+    const noDayRange = text
+      .split(/(?<=[.!?])\s+/)
+      .filter((s) => !/\bde (lunes|martes|miercoles|jueves|viernes|sabado|domingo) a (lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/.test(foldForSearch(s)))
+      .join(" ")
+      .trim();
+    return autoOffered ? leadBeforeHours(text) : noDayRange;
   };
   const askWhen = upcomingLabelNow
     ? `Tu llamada con Dayana sigue el ${upcomingLabelNow}. Si quieres cambiarla, dime qué día y a qué hora te queda bien y busco un espacio en su agenda.`

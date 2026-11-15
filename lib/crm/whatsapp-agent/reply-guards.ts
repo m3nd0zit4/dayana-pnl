@@ -377,7 +377,7 @@ export const withoutInventedUrls = (text: string, known: Set<string>, siteHosts:
  * revise» y Dayana nunca recibió nada).
  */
 const HANDOFF =
-  /\b(le (paso|comento|aviso|cuento|consulto|transmito|hago llegar|dejo) (tu|su|el|este|esto|a dayana)|ya le (aviso|paso|comento)|dejame (consultarlo|avisarle|preguntarle|confirmarlo|comentarselo|pasarle)|dayana (te|le) (confirma|escribe|responde|contesta))/;
+  /\b(le (paso|comento|aviso|cuento|consulto|transmito|hago llegar|dejo) (tu|su|el|este|esto|a dayana)|ya le (aviso|paso|comento)|dejame (consultarlo|avisarle|preguntarle|confirmarlo|comentarselo|pasarle)|dayana (te|le) (confirma|escribe|responde|contesta|contactara|contacta|avisara|dira)|dayana se (pondra|pone) en contacto|te contactara|te (escribira|confirmara) dayana)/;
 export const promisesHandoff = (text: string): boolean => HANDOFF.test(foldForSearch(text));
 
 /**
@@ -513,3 +513,19 @@ export const fixZoneClaims = (text: string, offsetMin: number | null): string =>
     return `${pre}${fmtHour(toMin(h1, m1, ap1))}${mid}${fmtHour(expected)}`;
   });
 };
+
+/**
+ * Pregunta qué días u horas hay (Manuel, 14-nov: «De que dia de la semana se puede»;
+ * le contestaron «los días que prefieras, de lunes a sábado» sin horas reales).
+ */
+const ASKS_SLOTS =
+  /\b(que|cuales?) (dias?|horas?|horarios?|espacios?|fechas?)\b|\b(de|a) que (dia|hora)\b|\bcuando (puede|me puede|me podria|podria|seria|es posible)\b|\b(tienes?|tiene|hay|habra) (espacio|cupo|disponib|para (hoy|manana|el))|\bpara cuando\b|\bque disponibilidad\b|\bhorarios? disponibles?\b/;
+export const asksForSlots = (texts: (string | null | undefined)[]): boolean => texts.some((t) => ASKS_SLOTS.test(foldForSearch(t ?? "")));
+
+/**
+ * La respuesta del modelo le pregunta a la persona qué día u hora quiere en vez de darle
+ * las horas libres (auditoría 14-nov: Manuel, Noé, Yaqueline, Silvia; cada vuelta de más
+ * terminaba en horas que no eran las de la agenda o en la zona equivocada).
+ */
+const ASKS_WHEN = /(que|cual|en que) (dia|dias|hora|horario|franja|momento)[^?]{0,60}\?|\ba que hora\b[^?]{0,60}\?|\bcuando (te queda|te sirve|puedes|prefieres)\b|\bdime (que|cual|el) (dia|hora|horario)|\bcuentame (a que hora|que dia|que horario|cuando)/;
+export const asksWhenInstead = (text: string | null | undefined): boolean => ASKS_WHEN.test(foldForSearch(text ?? ""));

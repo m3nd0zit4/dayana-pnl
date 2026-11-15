@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { dayanaOfferedSlot, findFreeSlots, hourLimitsFrom, matchesWish, saysCantMakeIt, pickFreeCallSlots, relaxedWishes, saidPartOfDay, wishFromWords } from "./slots";
+import { dayanaOfferedSlot, exactTimeFrom, pickNearTime, findFreeSlots, hourLimitsFrom, matchesWish, saysCantMakeIt, pickFreeCallSlots, relaxedWishes, saidPartOfDay, wishFromWords } from "./slots";
 
 const TZ = "America/Bogota";
 // Lunes 8:00 a 6:00 p. m., todos los días de la semana.
@@ -247,5 +247,28 @@ describe("dayanaOfferedSlot con las dos horas (botón «Horas libres» con su zo
   test("vale la hora de Colombia de la línea, no la suya leída como de Colombia", () => {
     expect(dayanaOfferedSlot([msg], "2026-11-15T01:00:00.000Z", "America/Bogota")).toBe(true);
     expect(dayanaOfferedSlot([msg], "2026-11-15T03:00:00.000Z", "America/Bogota")).toBe(false);
+  });
+});
+
+describe("exactTimeFrom / pickNearTime: la hora exacta que pide (Ale, Silvia, Manuel, 14-nov)", () => {
+  test("lee la hora exacta en su hora", () => {
+    expect(exactTimeFrom(["exactamente a las 12 hora mi país"])).toBe("12:00");
+    expect(exactTimeFrom(["tipo 3 de la tarde"])).toBe("15:00");
+    expect(exactTimeFrom(["puede ser el lunes a las 6pm hora de Venezuela"])).toBe("18:00");
+    expect(exactTimeFrom(["18.30, 6.30 sería"])).toBe("18:30");
+    expect(exactTimeFrom(["solo puedo a las 10 am"])).toBe("10:00");
+  });
+  test("no inventa: rangos, ambiguas y cantidades no son una hora", () => {
+    expect(exactTimeFrom(["después de las 5"])).toBeNull();
+    expect(exactTimeFrom(["a las 8"])).toBeNull();
+    expect(exactTimeFrom(["en 2 horas"])).toBeNull();
+    expect(exactTimeFrom(["tengo 3 días libres"])).toBeNull();
+  });
+  test("ofrece las más cercanas a esa hora", () => {
+    const mk = (iso: string) => ({ startIso: iso, endIso: iso, dateKey: iso.slice(0, 10), time: "" });
+    const slots = ["2026-11-16T16:45:00.000Z", "2026-11-16T17:00:00.000Z", "2026-11-16T17:15:00.000Z", "2026-11-16T21:00:00.000Z"].map(mk);
+    const near = pickNearTime(slots, "12:00", "America/Bogota", 2).map((s) => s.startIso);
+    expect(near).toEqual(["2026-11-16T16:45:00.000Z", "2026-11-16T17:00:00.000Z"]);
+    expect(matchesWish(slots[3]!, { nearTime: "12:00" }, "America/Bogota")).toBe(false);
   });
 });

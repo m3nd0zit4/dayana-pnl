@@ -12,6 +12,7 @@ import { draftAutoReply, pauseAutoReply, resumeAutoReply, setAiAlways } from "@/
 import { clientContext } from "@/lib/crm/whatsapp-agent/brain";
 import { availableSlots } from "@/lib/crm/whatsapp-agent/calendar";
 import { setMemory } from "@/lib/crm/whatsapp-agent/memory";
+import { getChatInstructions } from "@/lib/crm/whatsapp-agent/chat-instructions";
 import { markAttended } from "@/lib/crm/whatsapp-agent/attention";
 import { MANUAL_PAUSE_REASON } from "@/lib/crm/whatsapp-attention-rules";
 import { spreadSlots } from "@/lib/crm/whatsapp-agent/slots";
@@ -254,6 +255,10 @@ export const POST = withStaff<Params>("write", async ({ req, staff, params }) =>
         name: conversation.participantName,
         client: await clientContext(conversation.contactId),
         phone: conversation.externalThreadId,
+        // Lo que Dayana le dijo a la IA para este chat también vale para la propuesta.
+        chatInstructions: await getChatInstructions(id).catch(() => null),
+        // Pidió un texto: siempre uno, aunque la IA lo escalaría o no escribiría (14-nov).
+        mustWrite: true,
       });
       if (draft.action === "reply" && draft.message) {
         await prisma.conversation.update({

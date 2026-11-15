@@ -4,7 +4,7 @@ import { suggestTimezoneForCountryOrNull } from "@/lib/contact-timezone";
 import { DEFAULT_OPERATIONAL_TZ, zonedDateTimeToUtc } from "@/lib/datetime/zoned-time";
 
 /** Países con varias zonas horarias: además del país hay que saber la ciudad. */
-export const MULTI_ZONE_COUNTRIES = new Set(["MX", "US", "BR", "CA", "ES", "AR", "CL", "RU", "AU"]);
+export const MULTI_ZONE_COUNTRIES = new Set(["MX", "US", "BR", "CA", "ES", "AR", "CL", "RU", "AU", "CD"]);
 
 /** ¿Es una zona IANA que el sistema conoce? */
 export const isValidTimezone = (tz: string | null | undefined): tz is string => {

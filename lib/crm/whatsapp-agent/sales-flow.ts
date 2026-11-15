@@ -180,7 +180,14 @@ export const availabilityArgs = (texts: string[]): { dias?: string[]; franja?: "
 export const leadBeforeHours = (text: string): string => {
   const kept = text
     .split(/(?<=[.!?])\s+|\n+/)
-    .filter((s) => !/[?¿]/.test(s) && !/\b(dime|cuentame|indicame|escribeme)\b/.test(foldForSearch(s)) && !FLOW_QUESTION.test(foldForSearch(s)))
+    .filter(
+      (s) =>
+        !/[?¿]/.test(s) &&
+        !/\b(dime|cuentame|indicame|escribeme)\b/.test(foldForSearch(s)) &&
+        !FLOW_QUESTION.test(foldForSearch(s)) &&
+        // Los días que «atiende» los dice la lista, no el modelo (Manuel, eval 14-nov: «de lunes a sábado»).
+        !/\bde (lunes|martes|miercoles|jueves|viernes|sabado|domingo) a (lunes|martes|miercoles|jueves|viernes|sabado|domingo)\b/.test(foldForSearch(s))
+    )
     .join(" ")
     .trim();
   return kept.split(/\s+/).filter(Boolean).length >= 3 ? kept : "";
