@@ -1389,7 +1389,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         .reverse()
         .map((l) => l.body);
       // Una hora exacta que pidió en sus últimos mensajes («a las 12 hora de mi país», 14-nov).
-      const nearTime = exactTimeFrom(recentInbound.slice(0, 3));
+      const nearTime = exactTimeFrom(recentInbound.slice(0, 1));
       const wish = {
         ...wishFromWords(said ? args : { ...args, franja: undefined }, tz, now),
         ...hourLimitsFrom(recentInbound),
@@ -2645,7 +2645,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   })();
   const named = (text: string | null) =>
     text
-      ? fixZoneClaims(fixNameInReply(withoutPlaceholders(text, sureFirstName(nameInfo)) || text.replace(/[[\]]/g, ""), nameInfo), zoneOffset)
+      ? fixZoneClaims(fixNameInReply(withoutPlaceholders(text, sureFirstName(nameInfo)) || text.replace(/\[[^\]\n]*\]/g, "").trim(), nameInfo), zoneOffset)
       : text;
   // Dijo que sí a la llamada gratis y el modelo le preguntó qué día prefiere, o el país
   // otra vez, sin buscar horas (Moi, Belén, Ana, 21–26 oct: nunca les llegaron). Las
@@ -2659,7 +2659,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // También en la llamada por el taller y cuando contesta un paso de agendar con una palabra
   // («Bogotá» a «¿desde qué ciudad?»): psicología, 14-nov, recibió «Déjame revisar la agenda»
   // y nunca las horas (el modelo escribió «8:30p, 9:00p» y el freno las paró).
-  const bookingStepBefore = /\b(llamada|agend|horario|hora)\b/.test(foldForSearch(lastOutbound?.body ?? "")) || /\b(pais|ciudad)\b.*\?/.test(foldForSearch(lastOutbound?.body ?? ""));
+  const bookingStepBefore = /\b(llamada|agend\w*|horarios?|hora)\b/.test(foldForSearch(lastOutbound?.body ?? "")) || /\b(pais|ciudad)\b.*\?/.test(foldForSearch(lastOutbound?.body ?? ""));
   const modelWroteHours =
     outcome.kind === "reply" &&
     !workshopAskNow &&

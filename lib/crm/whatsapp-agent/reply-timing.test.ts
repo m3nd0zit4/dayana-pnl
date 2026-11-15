@@ -77,3 +77,16 @@ describe("fixZoneClaims (Manuel, Venezuela, 14-nov)", () => {
     expect(fixZoneClaims("las 7:00 p. m. de Colombia son las 7:00 p. m. de tu hora", null)).toBe("las 7:00 p. m. de Colombia son las 7:00 p. m. de tu hora");
   });
 });
+
+describe("revisión 14-nov: preguntas de escucha y del taller no piden horas", () => {
+  test("asksWhenInstead solo con palabras de agenda", async () => {
+    const { asksWhenInstead, asksForSlots, promisesHandoff } = await import("./reply-guards");
+    expect(asksWhenInstead("¿Qué día te pasó eso?")).toBe(false);
+    expect(asksWhenInstead("¿A qué hora te despiertas con la ansiedad?")).toBe(false);
+    expect(asksWhenInstead("Cuéntame a qué hora te parece bien que Dayana te llame para la llamada gratis.")).toBe(true);
+    expect(asksForSlots(["¿Qué día es el taller?"])).toBe(false);
+    expect(asksForSlots(["¿Qué horarios tienes?"])).toBe(true);
+    expect(promisesHandoff("En la llamada, Dayana te contactará por WhatsApp a esa hora")).toBe(false);
+    expect(promisesHandoff("Dayana tiene pendiente retomar contigo y te contactará")).toBe(true);
+  });
+});

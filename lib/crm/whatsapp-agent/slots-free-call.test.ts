@@ -272,3 +272,16 @@ describe("exactTimeFrom / pickNearTime: la hora exacta que pide (Ale, Silvia, Ma
     expect(matchesWish(slots[3]!, { nearTime: "12:00" }, "America/Bogota")).toBe(false);
   });
 });
+
+describe("revisión 14-nov: horas que no son la que pide", () => {
+  test("no puede, llega, una fecha o la hora de Colombia no son su hora exacta", () => {
+    expect(exactTimeFrom(["no puedo a las 4"])).toBeNull();
+    expect(exactTimeFrom(["llego a las 4 a casa"])).toBeNull();
+    expect(exactTimeFrom(["tipo 15 de noviembre"])).toBeNull();
+    expect(exactTimeFrom(["a las 3 hora de Colombia"])).toBeNull();
+  });
+  test("pasada la medianoche en España, la hora de Colombia del día anterior vale", () => {
+    const line = "• Martes, 17 de noviembre, 1:00 a. m. (tu hora) · 7:00 p. m. en Colombia";
+    expect(dayanaOfferedSlot([line], "2026-11-17T00:00:00.000Z", "America/Bogota")).toBe(true);
+  });
+});

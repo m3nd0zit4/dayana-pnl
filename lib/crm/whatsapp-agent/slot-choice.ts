@@ -177,7 +177,9 @@ const pickedNumber = (folded: string, count: number): number | null => {
 const LENIENT_MAX_CHARS = 200;
 
 const SINGLE_YES =
-  /^(si+|sip|claro( que si)?|dale|listo|perfecto|ok(ay)?|de una|vale|esa|esa (me sirve|esta bien)|me sirve|agendala|agendamela|si,? (por favor|porfa|gracias|agendala|perfecto|dale|esa|me sirve)|por favor)[\s,.!]*(por favor|porfa|gracias|dayana)?[\s.!]*$/;
+  // Un sí de verdad: «ok», «vale», «listo», «gracias» solos son acuse (revisión 14-nov: con su
+  // llamada ya agendada, «ok gracias» movía la cita).
+  /^(si+|sip|claro( que si)?|dale|perfecto|de una|esa|esa (me sirve|esta bien)|me sirve|agendala|agendamela|cambiala|si,? (por favor|porfa|gracias|agendala|perfecto|dale|esa|me sirve|cambiala))[\s,.!]*(por favor|porfa|gracias|dayana)?[\s.!]*$/;
 
 export const resolveChoice = (text: string, options: OfferedSlot[], ctx: ChoiceContext, opts: { lenient?: boolean } = {}): Choice => {
   const folded = foldForSearch(text)

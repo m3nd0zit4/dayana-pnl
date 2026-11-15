@@ -378,7 +378,12 @@ export const withoutInventedUrls = (text: string, known: Set<string>, siteHosts:
  */
 const HANDOFF =
   /\b(le (paso|comento|aviso|cuento|consulto|transmito|hago llegar|dejo) (tu|su|el|este|esto|a dayana)|ya le (aviso|paso|comento)|dejame (consultarlo|avisarle|preguntarle|confirmarlo|comentarselo|pasarle)|dayana (te|le) (confirma|escribe|responde|contesta|contactara|contacta|avisara|dira)|dayana se (pondra|pone) en contacto|te contactara|te (escribira|confirmara) dayana)/;
-export const promisesHandoff = (text: string): boolean => HANDOFF.test(foldForSearch(text));
+// Una frase que explica la llamada no es pasarle el mensaje a Dayana (revisión 14-nov: «En la
+// llamada, Dayana te contactará por WhatsApp a esa hora»).
+export const promisesHandoff = (text: string): boolean =>
+  foldForSearch(text)
+    .split(/(?<=[.!?])\s+|\n+/)
+    .some((s) => HANDOFF.test(s) && !/\b(llamada|a esa hora|en la cita|en la sesion)\b/.test(s));
 
 /**
  * Consejos de emergencia que la asistente nunca da (dueña, 24-oct: «es para
@@ -520,12 +525,24 @@ export const fixZoneClaims = (text: string, offsetMin: number | null): string =>
  */
 const ASKS_SLOTS =
   /\b(que|cuales?) (dias?|horas?|horarios?|espacios?|fechas?)\b|\b(de|a) que (dia|hora)\b|\bcuando (puede|me puede|me podria|podria|seria|es posible)\b|\b(tienes?|tiene|hay|habra) (espacio|cupo|disponib|para (hoy|manana|el))|\bpara cuando\b|\bque disponibilidad\b|\bhorarios? disponibles?\b/;
-export const asksForSlots = (texts: (string | null | undefined)[]): boolean => texts.some((t) => ASKS_SLOTS.test(foldForSearch(t ?? "")));
+// No las preguntas del taller, el webinar o una clase (revisión 14-nov: «¿qué día es el taller?»).
+const ABOUT_EVENT = /\b(taller|webinar|evento|clase|curso|live|en vivo|transmision)\b/;
+export const asksForSlots = (texts: (string | null | undefined)[]): boolean =>
+  texts.some((t) => {
+    const f = foldForSearch(t ?? "");
+    return ASKS_SLOTS.test(f) && !ABOUT_EVENT.test(f);
+  });
 
 /**
  * La respuesta del modelo le pregunta a la persona qué día u hora quiere en vez de darle
  * las horas libres (auditoría 14-nov: Manuel, Noé, Yaqueline, Silvia; cada vuelta de más
  * terminaba en horas que no eran las de la agenda o en la zona equivocada).
  */
-const ASKS_WHEN = /(que|cual|en que) (dia|dias|hora|horario|franja|momento)[^?]{0,60}\?|\ba que hora\b[^?]{0,60}\?|\bcuando (te queda|te sirve|puedes|prefieres)\b|\bdime (que|cual|el) (dia|hora|horario)|\bcuentame (a que hora|que dia|que horario|cuando)/;
-export const asksWhenInstead = (text: string | null | undefined): boolean => ASKS_WHEN.test(foldForSearch(text ?? ""));
+const ASKS_WHEN = /(que|cual|en que) (dia|dias|hora|horario|franja)[^?]{0,60}\?|\ba que hora\b[^?]{0,60}\?|\bcuando (te queda|te sirve|puedes|prefieres)\b|\bdime (que|cual|el) (dia|hora|horario)|\bcuentame (a que hora|que dia|que horario)/;
+// Solo si la frase va de agendar (revisión 14-nov: «¿qué día te pasó eso?», «¿a qué hora te despiertas
+// con la ansiedad?» son de escucha, no de agenda).
+const BOOKING_WORDS = /\b(llam\w*|agend\w*|te queda|te sirve|te va bien|prefieres|disponib\w*|con dayana|espacio|cita)\b/;
+export const asksWhenInstead = (text: string | null | undefined): boolean =>
+  foldForSearch(text ?? "")
+    .split(/(?<=[.!?])\s+|\n+/)
+    .some((s) => ASKS_WHEN.test(s) && BOOKING_WORDS.test(s));

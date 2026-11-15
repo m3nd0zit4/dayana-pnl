@@ -315,6 +315,13 @@ export const exactTimeFrom = (textsNewestFirst: (string | null | undefined)[]): 
       .replace(/\b(despues|antes|desde|hasta|a partir) de las? \d{1,2}([:.]\d{2})?/g, " ");
     const m = EXACT.exec(t);
     if (!m) continue;
+    // No la que no puede ni la de otra cosa (revisión 14-nov): «no puedo a las 4», «llego a
+    // las 4 a casa», «tipo 15 de noviembre», ni una hora dicha en la de Colombia.
+    const clause = t.slice(0, m.index).split(/[.,;!?\n]|\bpero\b/).pop() ?? "";
+    const after = t.slice(m.index + m[0].length, m.index + m[0].length + 24);
+    if (/\b(no puedo|no me (sirve|queda)|ocupad[oa]|trabajo|llego|salgo|entro|estoy en|tengo (cita|clase|reunion))\b/.test(clause)) return null;
+    if (/^\s*de (enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/.test(after)) return null;
+    if (/\b(de|en) colombia\b|\bhora colombiana\b/.test(after)) return null;
     const h = Number(m[1]);
     const min = Number(m[2] ?? 0);
     const mark = (m[3] ?? "").replace(/\s/g, "");
@@ -354,8 +361,6 @@ export const dayanaOfferedSlot = (texts: (string | null | undefined)[], startIso
   if (Number.isNaN(d.getTime())) return false;
   const norm = (s: string) => fold(s).replace(/\b([ap])\.?\s?m\b\.?/g, "$1m").replace(/[ \t]+/g, " ");
   const time = norm(getTimeLabelInTz(d, timeZone));
-  const weekday = fold(new Intl.DateTimeFormat("es-CO", { timeZone, weekday: "long" }).format(d));
-  const dayMonth = fold(new Intl.DateTimeFormat("es-CO", { timeZone, day: "numeric", month: "long" }).format(d));
   const hasTime = (line: string) => new RegExp(`(^|[^\\d:])${time.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(line);
   return texts.some((raw) =>
     norm(raw ?? "")
@@ -364,9 +369,19 @@ export const dayanaOfferedSlot = (texts: (string | null | undefined)[], startIso
       .replace(/\d{1,2}:\d{2} [ap]m \(tu hora\)/g, "")
       .split("\n")
       // Con fecha escrita, la fecha manda (otro jueves no vale); sin fecha, el día de la semana.
-      .some((line) =>
-        hasTime(line) && (/\b\d{1,2} de [a-z]+/.test(line) ? new RegExp(`(^|[^\\d])${dayMonth}\\b`).test(line) : new RegExp(`\\b${weekday}\\b`).test(line))
-      )
+      .some((line) => {
+        if (!hasTime(line)) return false;
+        // Con las dos zonas la fecha escrita es la de ella: pasada la medianoche puede ser el
+        // día de al lado del de Colombia (revisión 14-nov, España: «martes 17, 1:00 a. m. (tu
+        // hora) · 7:00 p. m. en Colombia» es el lunes 16 de Dayana).
+        const days = /\ben colombia\b/.test(line) ? [-1, 0, 1] : [0];
+        return days.some((shift) => {
+          const day = new Date(d.getTime() + shift * 86_400_000);
+          const dm = fold(new Intl.DateTimeFormat("es-CO", { timeZone, day: "numeric", month: "long" }).format(day));
+          const wd = fold(new Intl.DateTimeFormat("es-CO", { timeZone, weekday: "long" }).format(day));
+          return /\b\d{1,2} de [a-z]+/.test(line) ? new RegExp(`(^|[^\\d])${dm}\\b`).test(line) : new RegExp(`\\b${wd}\\b`).test(line);
+        });
+      })
   );
 };
 
@@ -566,7 +581,7 @@ export const relaxedWishes = (wish: SlotWish): { step: WishStep; wish: SlotWish 
   const byDay = Boolean(wish.dates?.length || wish.weekdays?.length);
   const steps: { step: WishStep; wish: SlotWish }[] = [{ step: "exact", wish }];
   // Pidió una hora exacta que no está: lo demás que dijo (sus días, su franja) primero.
-  if (wish.nearTime) steps.push({ step: byDay ? "same_days" : "same_time", wish: { ...wish, nearTime: undefined } });
+  if (wish.nearTime) steps.push({ step: byDay ? "same_days" : "any", wish: { ...wish, nearTime: undefined } });
   if (byDay && wish.partOfDay) {
     steps.push({ step: "same_days", wish: { ...keep, weekdays: wish.weekdays, dates: wish.dates } });
     steps.push({ step: "same_time", wish: { ...keep, partOfDay: wish.partOfDay } });
