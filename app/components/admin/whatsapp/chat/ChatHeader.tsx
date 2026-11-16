@@ -230,7 +230,7 @@ const ChatMenu = ({
   const mine = chat.aiMode === "MANUAL" || chat.priority;
   const disabled = !canWrite || busy !== null;
   const { role, toast } = useCrm();
-  const [blocking, setBlocking] = useState<"plain" | "sexual" | "harassment" | null>(null);
+  const [blocking, setBlocking] = useState<"plain" | "sexual" | null>(null);
   // Bloquear desde el CRM (solo la dueña): WhatsApp lo bloquea por la API y el
   // chat sale de las listas. Reportarlo sigue siendo desde su app.
   const blockNumber = async () => {
@@ -239,11 +239,7 @@ const ChatMenu = ({
     const res = await fetch("/api/admin/whatsapp/blocked", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: kind === "sexual" || kind === "harassment" ? "sexual_content" : "block_chat",
-        conversationId: chat.id,
-        ...(kind === "harassment" ? { kind: "harassment" } : {}),
-      }),
+      body: JSON.stringify({ action: kind === "sexual" ? "sexual_content" : "block_chat", conversationId: chat.id }),
     }).catch(() => null);
     const data = (await res?.json().catch(() => null)) as {
       apiBlocked?: boolean;
@@ -254,7 +250,7 @@ const ChatMenu = ({
       toast("No se pudo bloquear. No se cambió nada.", "error");
       return;
     }
-    if (kind === "sexual" || kind === "harassment") {
+    if (kind === "sexual") {
       const r = data?.result;
       toast(
         r?.status === "spared"
@@ -276,19 +272,13 @@ const ChatMenu = ({
     <>
     <CrmConfirmDialog
       open={blocking !== null}
-      title={
-        blocking === "sexual"
-          ? "¿Bloquear por contenido sexual?"
-          : blocking === "harassment"
-            ? "¿Bloquear por acoso a Dayana?"
-            : "¿Bloquear este número?"
-      }
+      title={blocking === "sexual" ? "¿Bloquear por contenido sexual?" : "¿Bloquear este número?"}
       message={
-        blocking === "sexual" || blocking === "harassment"
-          ? `Se le manda UN mensaje («Este número va a ser reportado a WhatsApp y Meta debido a estas acciones…»${blocking === "harassment" ? ", por acoso o intención romántica hacia Dayana" : ""}), WhatsApp lo bloquea, se cancelan sus llamadas gratis próximas y el chat se BORRA del CRM con sus archivos (no se puede deshacer). Reportarlo solo se puede desde tu app.`
+        blocking === "sexual"
+          ? "Se le manda UN mensaje («Este número va a ser reportado a WhatsApp y Meta debido a estas acciones…»), WhatsApp lo bloquea y el chat se BORRA del CRM con sus archivos (no se puede deshacer). Reportarlo solo se puede desde tu app."
           : "WhatsApp lo bloquea (solo si escribió en las últimas 24 h), el chat y el contacto salen del CRM y nada más le sale. Si lo desbloqueas en tu WhatsApp, vuelve. Reportarlo solo se puede desde tu app."
       }
-      confirmLabel={blocking === "sexual" || blocking === "harassment" ? "Bloquear y borrar" : "Bloquear"}
+      confirmLabel={blocking === "sexual" ? "Bloquear y borrar" : "Bloquear"}
       destructive
       onClose={() => setBlocking(null)}
       onConfirm={blockNumber}
@@ -391,9 +381,6 @@ const ChatMenu = ({
             </DropdownMenuItem>
             <DropdownMenuItem className={ITEM} variant="destructive" disabled={busy !== null} onClick={() => setBlocking("sexual")}>
               <ShieldAlert /> Bloquear por contenido sexual
-            </DropdownMenuItem>
-            <DropdownMenuItem className={ITEM} variant="destructive" disabled={busy !== null} onClick={() => setBlocking("harassment")}>
-              <ShieldAlert /> Bloquear por acoso a Dayana
             </DropdownMenuItem>
           </>
         )}

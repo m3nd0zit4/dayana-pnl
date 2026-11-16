@@ -10,7 +10,6 @@ import type { NormalizedEvent, NormalizedMessage } from "./inbound";
 import { rehostAttachment, type StoredAttachment } from "./media";
 import {
   explicitSexualText,
-  intimacyHint,
   sexualHint,
   textVerdictBlocks,
   type SexualSignal,
@@ -192,8 +191,7 @@ const sexualGuardOn = async (): Promise<boolean> => {
  * (`textVerdictBlocks`). Terapia, salud o abuso contado nunca.
  */
 const doubtfulTextSignal = async (event: NormalizedMessage, conversationId: string): Promise<SexualSignal | undefined> => {
-  // También el acoso o la intención íntima con Dayana (owner, 16-nov, Mehmet).
-  if (event.isEcho || event.isHistory || event.system || !(sexualHint(event.body) || intimacyHint(event.body))) return undefined;
+  if (event.isEcho || event.isHistory || event.system || !sexualHint(event.body)) return undefined;
   if (!(await sexualGuardOn())) return undefined;
   const previous = await prisma.conversationMessage.findMany({
     where: { conversationId, externalMessageId: { not: event.externalMessageId }, body: { not: null } },

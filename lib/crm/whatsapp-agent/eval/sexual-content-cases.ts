@@ -36,12 +36,4 @@ export const SEXUAL_TEXT_CASES: SexualCase[] = [
   { id: "novio-manda-fotos", text: "Mi novio me manda fotos desnudas y no sé cómo decirle que pare", block: false },
   { id: "esposo-pornhub", text: "Mi esposo ve pornhub todo el día y ya no me busca", block: false },
   { id: "caliente-enojada", text: "Estoy bien caliente contigo porque no me contestaste ayer", block: false },
-  // Acoso o intención íntima con Dayana (owner, 16-nov, Mehmet).
-  { id: "mehmet-mi-amor-fotos", text: "Hola mi amor, vi tus fotos y me impresionaste mucho. Tu rostro es tan hermoso, eres maravillosa, esbelta y elegante.", block: true },
-  { id: "mehmet-me-gustas-dayana", text: "Me gustas mucho dayana", block: true },
-  { id: "invitarla-a-cenar", text: "¿Tienes novio? Me gustaría invitarte a cenar", block: true },
-  { id: "clienta-besos-mi-reina", text: "Besos y bendiciones mi reina, nos vemos el jueves", block: false },
-  { id: "clienta-te-quiero-mucho", text: "Dayana te quiero mucho, eres hermosa por dentro y por fuera, gracias por todo 🥰", block: false },
-  { id: "elogia-la-llamada", text: "Eres muy linda, me encantó la llamada, quiero empezar ya", block: false },
-  { id: "quiere-pareja-sanar", text: "Quiero sanar para poder encontrar una pareja que me quiera de verdad", block: false },
 ];

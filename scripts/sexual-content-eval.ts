@@ -9,14 +9,14 @@
  */
 import { classifySexualText } from "@/lib/crm/whatsapp-agent/content-screen";
 import { SEXUAL_TEXT_CASES } from "@/lib/crm/whatsapp-agent/eval/sexual-content-cases";
-import { explicitSexualText, intimacyHint, sexualHint, textVerdictBlocks } from "@/lib/crm/whatsapp-agent/sexual-content-rules";
+import { explicitSexualText, sexualHint, textVerdictBlocks } from "@/lib/crm/whatsapp-agent/sexual-content-rules";
 
 const k = Number(process.argv[process.argv.indexOf("--k") + 1]) || 3;
 
 const decide = async (text: string, previous: string[]): Promise<{ block: boolean; how: string }> => {
   const rule = explicitSexualText(text);
   if (rule) return { block: true, how: `regla:${rule}` };
-  if (!sexualHint(text) && !intimacyHint(text)) return { block: false, how: "sin palabras" };
+  if (!sexualHint(text)) return { block: false, how: "sin palabras" };
   const v = await classifySexualText(text, previous);
   return { block: textVerdictBlocks(v), how: v ? `modelo:${v.kind}:${v.confidence}` : "modelo:sin respuesta" };
 };

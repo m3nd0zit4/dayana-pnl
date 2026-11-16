@@ -82,23 +82,6 @@ const HINT = new RegExp(
 );
 export const sexualHint = (text: string | null | undefined): boolean => Boolean(text?.trim()) && HINT.test(plainText(text!));
 
-/**
- * Acoso o intención íntima con Dayana (owner, 16-nov, Mehmet: «Hola mi amor, vi
- * tus fotos… eres maravillosa, esbelta», «Me gustas mucho Dayana», «Necesito una
- * novia»: «tenemos que bloquear a la gente que quiere acosar o tener una
- * intención íntima con Dayana»). Estas palabras solo deciden preguntarle al
- * modelo: una clienta que le escribe «te quiero mucho, eres hermosa, gracias por
- * todo» o alguien que quiere sanar para encontrar pareja no es acoso.
- */
-const INTIMACY_HINT = new RegExp(
-  String.raw`\b(?:mi amor|amor mio|mi vida|mi reina|mi princesa|princesa|preciosa|mamacita|bombon|me gustas|me encantas|me fascinas|estoy (?:enamorad[oa]|loco por ti)|me enamore de ti|te amo|te deseo|te quiero conocer|quiero conocerte|conocerte (?:mejor|en persona)|salir (?:contigo|conmigo)|una cita contigo|(?:invitarte|te invito) a (?:salir|cenar|tomar|un cafe)|(?:muy|tan|mucho|super) (?:hermosa|linda|bella|guapa|preciosa|sexy)|ser mi (?:novia|esposa|pareja)|quieres ser mi|necesito una (?:novia|esposa|mujer)|casate conmigo|casarnos|un beso|besos?\b|besarte|abrazarte|vi tus fotos|tus fotos|tu foto|tu cuerpo|esbelta|eres (?:muy |tan |la mas )?(?:hermosa|linda|bella|guapa|bonita|sexy|preciosa)|que (?:hermosa|linda|bella|guapa|bonita) eres)|[😍😘💋🥰😻]`,
-  "u"
-);
-export const intimacyHint = (text: string | null | undefined): boolean => Boolean(text?.trim()) && INTIMACY_HINT.test(plainText(text!));
-
-/** ¿El bloqueo fue por acoso / intención íntima (no por contenido sexual)? Cambia el aviso. */
-export const isHarassmentSignal = (s: SexualSignal): boolean => /romantic_advance|harassment/.test(s.reason);
-
 /** Lo que contestó el modelo al revisar un texto dudoso. */
 export type TextVerdict = { explicit: boolean; kind: string; confidence: number };
 
@@ -108,14 +91,7 @@ export type TextVerdict = { explicit: boolean; kind: string; confidence: number 
  * terapia, salud, abuso contado como víctima o la pareja propia nunca.
  */
 export const textVerdictBlocks = (v: TextVerdict | null): boolean =>
-  Boolean(
-    v &&
-      v.explicit &&
-      // El acoso romántico es más ambiguo que lo sexual («eres muy linda, me encantó la
-      // llamada» salió 0.85 en el eval del 16-nov): pide casi certeza.
-      v.confidence >= (v.kind === "romantic_advance" ? 0.95 : 0.85) &&
-      !["therapy", "medical", "victim", "none", "other"].includes(v.kind)
-  );
+  Boolean(v && v.explicit && v.confidence >= 0.85 && !["therapy", "medical", "victim", "none", "other"].includes(v.kind));
 
 /** Lo que devolvió Gemini al mirar una foto, sticker o video. */
 export type MediaScreenRaw = {
@@ -188,12 +164,6 @@ export const isScreenableAttachment = (kind: string | null | undefined, mimeType
  */
 export const SEXUAL_CONTENT_NOTICE =
   "Este número va a ser reportado a WhatsApp y Meta debido a estas acciones: aquí no se permite enviar contenido sexual. A partir de ahora el número queda bloqueado.";
-
-/** Lo mismo para el acoso o la intención íntima con Dayana (owner, 16-nov). */
-export const HARASSMENT_NOTICE =
-  "Este número va a ser reportado a WhatsApp y Meta debido a estas acciones: este es un canal profesional y aquí no se permite el acoso ni los mensajes con intención romántica o íntima hacia Dayana. A partir de ahora el número queda bloqueado.";
-
-export const blockNoticeFor = (s: SexualSignal): string => (isHarassmentSignal(s) ? HARASSMENT_NOTICE : SEXUAL_CONTENT_NOTICE);
 
 /** Quién no se bloquea solo (un número personal de Dayana, su equipo): solo se le avisa a ella. */
 export const sparedFromAutoBlock = (input: { personalNumber: boolean; category: string | null }): boolean =>

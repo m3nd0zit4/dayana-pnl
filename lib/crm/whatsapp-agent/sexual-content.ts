@@ -12,7 +12,7 @@ import {
   setNumberHidden,
 } from "../whatsapp-blocked-numbers";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
-import { blockNoticeFor, isHarassmentSignal, signalLabel, sparedFromAutoBlock, type SexualSignal } from "./sexual-content-rules";
+import { SEXUAL_CONTENT_NOTICE, signalLabel, sparedFromAutoBlock, type SexualSignal } from "./sexual-content-rules";
 
 /**
  * Lo que pasa cuando alguien manda contenido sexual (owner, 8-nov), en este
@@ -46,8 +46,6 @@ export type EnforceDeps = {
   blockApi?: (threadId: string) => Promise<{ ok: boolean; error: string | null }>;
   /** Para pruebas: borrar archivos de Blob. */
   deleteBlobs?: (urls: string[]) => Promise<void>;
-  /** Para pruebas: borrar el evento de una llamada gratis en el calendario de Dayana. */
-  deleteCalendarEvent?: (googleAccountId: string, eventId: string) => Promise<void>;
   /** Sin push (pruebas). */
   silent?: boolean;
 };
@@ -149,59 +147,6 @@ export const purgeNumberFromCrm = async (
   return { chats: deleted.count, keptChats: keep.length, messages: messages.length, blobs: urls.length, inboxEvents, contacts };
 };
 
-const defaultDeleteCalendarEvent = async (googleAccountId: string, eventId: string): Promise<void> => {
-  const { getAccountToken } = await import("@/lib/google/connect");
-  const { deleteEvent } = await import("@/lib/google/calendar");
-  await deleteEvent(await getAccountToken(googleAccountId, ["CALENDAR"]), eventId);
-};
-
-/**
- * Las llamadas gratis que la IA le agendó y aún no pasaron se cancelan (owner,
- * 16-nov: «sacar a esta persona»; Mehmet tenía una llamada con Dayana): se borra
- * el evento del calendario y la reserva queda CANCELLED. Si Google no deja
- * borrarlo, la reserva queda igual y Dayana lo ve en el aviso.
- */
-export const cancelUpcomingFreeCalls = async (
-  threadIds: string[],
-  deps: Pick<EnforceDeps, "deleteCalendarEvent"> = {}
-): Promise<{ cancelled: number; failed: number }> => {
-  const chats = await prisma.conversation.findMany({
-    where: { channel: "WHATSAPP", externalThreadId: { in: [...new Set(threadIds.filter(Boolean).flatMap(whatsAppIdVariants))] } },
-    select: { id: true },
-  });
-  if (chats.length === 0) return { cancelled: 0, failed: 0 };
-  const bookings = await prisma.whatsAppBooking.findMany({
-    where: { conversationId: { in: chats.map((c) => c.id) }, status: { in: ["BOOKED", "booked"] }, startsAt: { gt: new Date() } },
-    select: { id: true, googleAccountId: true, calendarEventId: true },
-  });
-  let cancelled = 0;
-  let failed = 0;
-  for (const b of bookings) {
-    try {
-      await (deps.deleteCalendarEvent ?? defaultDeleteCalendarEvent)(b.googleAccountId, b.calendarEventId);
-      await prisma.whatsAppBooking.update({ where: { id: b.id }, data: { status: "CANCELLED" } });
-      cancelled++;
-    } catch (e) {
-      failed++;
-      console.warn("[contenido] no se pudo cancelar la llamada", b.id, e instanceof Error ? e.message.slice(0, 200) : e);
-    }
-  }
-  return { cancelled, failed };
-};
-
-/** ¿Es clienta? Pago aprobado, comprobante, la marca «cliente» o su estado de clienta. */
-const isKnownClient = async (conversationId: string, contactId: string | null, category: string | null): Promise<boolean> => {
-  if (category === "cliente") return true;
-  const [receipts, dossier, paid] = await Promise.all([
-    prisma.whatsAppPaymentReceipt.count({ where: { conversationId } }).catch(() => 0),
-    prisma.whatsAppDossier.findUnique({ where: { conversationId }, select: { stage: true } }).catch(() => null),
-    contactId
-      ? prisma.payment.count({ where: { status: "APPROVED", enrollment: { contactId } } }).catch(() => 0)
-      : Promise.resolve(0),
-  ]);
-  return receipts > 0 || paid > 0 || dossier?.stage === "clienta_activa" || dossier?.stage === "clienta_pasada";
-};
-
 const prettyNumber = (threadId: string): string => (isWhatsAppUserId(threadId) ? threadId : `+${threadId.replace(/\D/g, "")}`);
 
 /**
@@ -226,7 +171,6 @@ export const enforceSexualContent = async (
       externalThreadId: true,
       participantName: true,
       category: true,
-      contactId: true,
       contact: { select: { firstName: true, lastName: true } },
     },
   });
@@ -253,25 +197,6 @@ export const enforceSexualContent = async (
     return { status: "spared", reason: personalNumber ? "personal_number" : `category:${conv.category}` };
   }
 
-  // Una clienta nunca se bloquea solo por lo que dijo el modelo (eval 16-nov: «Besos y
-  // bendiciones mi reina» de una clienta salió como acoso): borrar es irreversible, así
-  // que ella recibe el aviso y Dayana decide. Las reglas inequívocas y Dayana sí bloquean.
-  const modelOnly = input.signal.source === "text" && input.signal.reason.startsWith("model:");
-  if (modelOnly && (await isKnownClient(conv.id, conv.contactId, conv.category))) {
-    if (!deps.silent) {
-      fireNotification({
-        eventType: "WHATSAPP_NUMBER_BLOCKED",
-        title: `Revisa el chat de ${who}: posible ${isHarassmentSignal(input.signal) ? "acoso" : "contenido sexual"} (es clienta, no la bloqueé)`,
-        body: `${prettyNumber(threadId)} es clienta, así que no la bloqueé ni borré el chat. Si de verdad es ${isHarassmentSignal(input.signal) ? "acoso" : "contenido sexual"}, en el chat ⋯ → «Bloquear por ${isHarassmentSignal(input.signal) ? "acoso a Dayana" : "contenido sexual"}».`,
-        href: `/admin/whatsapp?chat=${conv.id}`,
-        entityType: "Conversation",
-        entityId: conv.id,
-        staff: "ALL",
-      });
-    }
-    return { status: "spared", reason: "client" };
-  }
-
   const source = input.signal.source === "staff" ? "staff" : "auto";
   const claim = await recordBlock({ threadId, reason: "sexual_content", source, detail: label });
   if (!claim) return { status: "skipped", reason: "no_hash" };
@@ -288,12 +213,10 @@ export const enforceSexualContent = async (
   }
 
   // 2. El aviso (antes del bloqueo: después WhatsApp ya no lo deja salir).
-  const harassment = isHarassmentSignal(input.signal);
-  const notice = await (deps.sendNotice ?? defaultSendNotice)(conv.id, blockNoticeFor(input.signal));
+  const notice = await (deps.sendNotice ?? defaultSendNotice)(conv.id, SEXUAL_CONTENT_NOTICE);
   // 3. El bloqueo en WhatsApp.
   const api = await (deps.blockApi ?? blockOnWhatsApp)(threadId);
-  // 4. Sus llamadas gratis próximas se cancelan y sale del CRM.
-  const calls = await cancelUpcomingFreeCalls([threadId, ...alt], deps).catch(() => ({ cancelled: 0, failed: 0 }));
+  // 4. Fuera del CRM.
   const purged = await purgeNumberFromCrm([threadId, ...alt], deps);
   await noteBlockActions(
     claim.hash,
@@ -307,8 +230,6 @@ export const enforceSexualContent = async (
       hiddenContacts: purged.contacts,
       apiAccepted: api.ok,
       reportedToMeta: false,
-      cancelledCalls: calls.cancelled,
-      ...(calls.failed ? { callsNotCancelled: calls.failed } : {}),
     },
     { error: api.error }
   );
@@ -316,7 +237,7 @@ export const enforceSexualContent = async (
     action: "WHATSAPP_NUMBER_BLOCKED",
     entityType: "WhatsAppBlockedNumber",
     entityId: claim.hash.slice(0, 16),
-    changes: { reason: harassment ? "harassment" : "sexual_content", signal: label, noticeSent: notice.sent, apiBlocked: api.ok, apiError: api.error, ...calls, ...purged },
+    changes: { reason: "sexual_content", signal: label, noticeSent: notice.sent, apiBlocked: api.ok, apiError: api.error, ...purged },
   });
 
   // 5. Dayana.
@@ -324,15 +245,12 @@ export const enforceSexualContent = async (
     const done = [
       notice.sent ? "le avisé que su número será reportado" : "no pude mandarle el aviso",
       api.ok ? "lo bloqueé en WhatsApp" : "WhatsApp no dejó bloquearlo por la API",
-      ...(calls.cancelled ? [`cancelé ${calls.cancelled === 1 ? "su llamada gratis" : `sus ${calls.cancelled} llamadas gratis`}`] : []),
-      ...(calls.failed ? [`NO pude cancelar ${calls.failed === 1 ? "una llamada" : `${calls.failed} llamadas`} en tu calendario: bórrala tú`] : []),
       "borré el chat del CRM",
     ].join(", ");
-    const why = harassment ? "acoso o intención romántica hacia ti" : "contenido sexual";
     fireNotification({
       eventType: "WHATSAPP_NUMBER_BLOCKED",
-      title: `Bloqueé a ${who} por ${harassment ? "acoso" : "contenido sexual"}`,
-      body: `${prettyNumber(threadId)} (${why}): ${done}. Falta REPORTARLO (solo se puede desde tu app): abre ese chat en tu WhatsApp Business, toca el nombre → «Reportar»${api.ok ? "" : " → «Bloquear y reportar»"}.`,
+      title: `Bloqueé a ${who} por contenido sexual`,
+      body: `${prettyNumber(threadId)} mandó contenido sexual: ${done}. Falta REPORTARLO (solo se puede desde tu app): abre ese chat en tu WhatsApp Business, toca el nombre → «Reportar»${api.ok ? "" : " → «Bloquear y reportar»"}.`,
       href: "/admin/whatsapp/ajustes?tab=avanzado#wa-blocked",
       entityType: "WhatsAppBlockedNumber",
       entityId: claim.hash.slice(0, 16),
