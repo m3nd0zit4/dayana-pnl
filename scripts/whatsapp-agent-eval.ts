@@ -18,6 +18,7 @@
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { COORDINATE_QUESTION } from "@/lib/crm/whatsapp-agent/slot-choice";
 
 const arg = (name: string) => {
   const i = process.argv.indexOf(`--${name}`);
@@ -225,7 +226,10 @@ const main = async () => {
     if (e.anyTool && !e.anyTool.some((t) => tools.includes(t))) failed.push(`no usó ${e.anyTool.join(" ni ")}`);
     for (const t of e.noTool ?? []) if (tools.includes(t)) failed.push(`usó ${t}`);
     for (const re of e.mustMatch ?? []) if (!re.test(reply)) failed.push(`falta ${re}`);
-    for (const re of e.mustNotMatch ?? []) if (re.test(written ?? reply)) failed.push(`no debía decir ${re}`);
+    // La pregunta fija que el código pone bajo la lista de horas («…dime qué día y a qué hora te
+    // sirve…», 12-nov) no es el modelo pidiendo día y franja en vez de dar horas.
+    const ownWords = (written ?? reply).split(COORDINATE_QUESTION).join(" ");
+    for (const re of e.mustNotMatch ?? []) if (re.test(ownWords)) failed.push(`no debía decir ${re}`);
     if (breach && sent) failed.push(`freno: ${breach.breach} («${breach.detail}»)`);
 
     let verdict: Run["verdict"];
