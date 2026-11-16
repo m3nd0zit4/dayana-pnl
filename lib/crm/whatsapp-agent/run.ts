@@ -7,7 +7,6 @@ import { loadImages, pickImages } from "./vision";
 import { prisma } from "@/lib/db";
 import { sendMetaMessage } from "@/lib/meta/send";
 import { fireNotification } from "@/lib/notifications/platform/emit";
-import { decideReceipt } from "./receipts";
 import { getOperationalTimezone } from "../operational-timezone";
 import {
   getWhatsAppAiConfig,
@@ -160,33 +159,6 @@ const ownerIds = async (): Promise<string[]> =>
       select: { id: true },
     })
   ).map((s) => s.id);
-
-/**
- * El comprobante es de un pago que ya entró por el enlace de la página: se
- * confirma solo y queda enlazado a ese pago (`decideReceipt` con `via: "auto"`
- * aplica `likelySamePayment`), y Dayana recibe un aviso, no «Te toca: pago».
- * Devuelve si quedó enlazado; si no, el comprobante sigue por confirmar.
- */
-const confirmPaidByLink = async (receiptId: string, conversationId: string, name: string | null, summary: string | null): Promise<boolean> => {
-  const result = await decideReceipt({ receiptId, decision: "confirm", staffUserId: null, via: "auto" }).catch((e: unknown) => {
-    console.warn("[whatsapp-agent] no se pudo enlazar el comprobante al pago del enlace", receiptId, e);
-    return null;
-  });
-  if (!result?.alreadyRegistered) return false;
-  fireNotification({
-    eventType: "WHATSAPP_AI_INFO",
-    title: `Comprobante de ${result.contactName ?? name ?? "una persona"}: ya estaba pagado por el enlace`,
-    body: [summary, "Ese pago ya está registrado. Quedó enlazado solo: no hay que confirmar ni registrar nada."]
-      .filter(Boolean)
-      .join(" · ")
-      .slice(0, 200),
-    href: `/admin/whatsapp?conversation=${conversationId}`,
-    entityType: "Conversation",
-    entityId: conversationId,
-    staff: "ALL",
-  });
-  return true;
-};
 
 const attachmentLabel = (attachments: unknown): string | null => {
   if (!Array.isArray(attachments) || attachments.length === 0) return null;
@@ -845,14 +817,15 @@ export const runWhatsAppAi = async (input: {
         messageId: receiptMessage?.id ?? null,
         ...receipt,
       })
-        .then(async (saved) => {
-          // Ya entró por el enlace: queda enlazado a ese pago, sin «Te toca: pago» ni registro
-          // manual (Victorino, 26-oct). Si no se pudo, sigue por confirmar como siempre.
-          if (alreadyPaid && (await confirmPaidByLink(saved.id, conversationId, name ?? conversation.participantName, receipt.summary))) return;
+        .then(async () => {
+          // Ya entró por el enlace: igual queda por confirmar. Solo Dayana confirma pagos
+          // (dueña, 15-nov, Ana Villalvazo); la tarjeta del chat le muestra que ese pago entró por la página.
           await notifyReceipt({
             conversationId,
             name: name ?? conversation.participantName ?? `+${phone}`,
-            summary: result.receipt?.summary ?? null,
+            summary: alreadyPaid
+              ? [result.receipt?.summary, "Parece el pago que ya entró por el enlace: revísalo y confírmalo tú"].filter(Boolean).join(" · ")
+              : (result.receipt?.summary ?? null),
             problem: result.receipt?.problem ?? null,
             since: since ?? new Date(),
             staff: config.notify === "OWNERS" ? await ownerIds() : "ALL",

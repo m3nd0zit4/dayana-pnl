@@ -17,7 +17,7 @@ import { diagnosticContextFor } from "../diagnostic-context";
 import { playbooksBlock } from "./playbooks";
 import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt, toMinor } from "./payment-info";
 import { formatMoneyMinor } from "../money";
-import { alreadyPaidReply, alreadyPaidToolNote } from "./receipt-already-paid";
+import { alreadyPaidReply, alreadyPaidToolNote, claimsPaymentConfirmed, paymentReviewReply } from "./receipt-already-paid";
 import { likelySamePayment, providerLabel, webPaymentForReceipt } from "./receipt-web-payment";
 import { dayanaOfferedSlot, exactTimeFrom, hourLimitsFrom, saidPartOfDay, saysCantMakeIt, spreadSlots, wishFromWords, type WishStep } from "./slots";
 import { redactPrices } from "./price-guard";
@@ -2779,7 +2779,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   // No le alcanza y el modelo escaló: sale lo más económico (lo escribe `replyText`), no «Déjame consultarlo».
   const answered: BrainOutcome = (autoOffered || cheaperOnly) && outcome.kind === "escalate" ? { kind: "reply", message: "" } : outcome;
   // Lo delicado y la respuesta al insulto salen tal cual (sin horas, enlaces ni el paso del taller).
-  // El comprobante es de un pago que ya entró por el enlace: «ya quedó registrado», tal cual
+  // El comprobante es de un pago que ya entró por el enlace: «recibido, Dayana lo revisa», tal cual
   // (sin enlaces ni datos de pago, sin el paso del taller). No encima de lo que no es una
   // respuesta normal: una escalación (queja, factura…) sigue a Dayana, y el apoyo, el insulto
   // o el pago por un familiar salen como siempre (el comprobante se enlaza igual en run.ts).
@@ -2833,7 +2833,20 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     state.noReply = "Dayana le escribió hace un momento y le está contestando a ella.";
     log("no_reply", { auto: true }, { ok: true, replaced: shaped.message, note: "Lo decidió el código: Dayana está en la conversación." });
   }
-  const finalOutcome: BrainOutcome = stepAside ? { kind: "reply", message: "" } : shaped;
+  const stepped: BrainOutcome = stepAside ? { kind: "reply", message: "" } : shaped;
+  // Solo Dayana confirma pagos (dueña, 15-nov, Ana Villalvazo: «Tu pago por el enlace ya quedó
+  // registrado ✅»). Si el modelo da un pago por confirmado, registrado o recibido, sale
+  // «Recibí tu comprobante. Dayana revisa tu pago y te confirma por aquí» (sin enlaces ni datos).
+  const claimsPaid = stepped.kind === "reply" && claimsPaymentConfirmed(stepped.message);
+  if (claimsPaid && stepped.kind === "reply") {
+    state.paymentDetails = [];
+    state.paymentLink = null;
+    state.links = [];
+    log("payment_claim", { auto: true }, { ok: true, replaced: stepped.message, note: "El modelo daba el pago por confirmado: solo Dayana lo confirma." });
+  }
+  const finalOutcome: BrainOutcome = claimsPaid
+    ? { kind: "reply", message: paymentReviewReply(sureFirstName(nameInfo), state.receipt?.alreadyPaid ?? null) }
+    : stepped;
 
   return {
     outcome: finalOutcome,
