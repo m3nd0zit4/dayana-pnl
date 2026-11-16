@@ -6,6 +6,7 @@ import {
   findPseudoToolCall,
   givesEmergencyAdvice,
   isClosingLine,
+  leaksInternals,
   PSEUDO_HOLDING,
   promisesHandoff,
   pseudoEscalation,
@@ -302,5 +303,40 @@ describe("withoutRepeatedGreeting (Malka, 28-oct)", () => {
   test("«Hola, te cuento que…» no es solo un saludo: no se corta la frase", () => {
     expect(withoutRepeatedGreeting("Hola, te cuento que el taller es el domingo 15.", greeted, now)).toBe("Te cuento que el taller es el domingo 15.");
     expect(withoutRepeatedGreeting("Buenas noches.", greeted, now)).toBe("Buenas noches.");
+  });
+});
+
+describe("escalada contada en prosa (Mehmet, 16-nov)", () => {
+  const mehmet = "Escalo con category=other, severity=normal, y razón «contenido sexual: halagos y propuestas románticas insistentes»";
+
+  test("no sale nada de ese texto y se escala de verdad, con su razón", () => {
+    expect(withoutToolText(mehmet)).toEqual({ text: "", had: true });
+    expect(pseudoEscalation(mehmet, true)).toEqual({
+      category: "other",
+      severity: "normal",
+      reason: "contenido sexual: halagos y propuestas románticas insistentes",
+      holdingReply: PSEUDO_HOLDING,
+    });
+    expect(leaksInternals(mehmet)).toBe(true);
+  });
+
+  test("otras formas de contar lo interno", () => {
+    expect(leaksInternals("Voy a escalar con Dayana este caso.")).toBe(true);
+    expect(leaksInternals("Escalando el caso a Dayana.")).toBe(true);
+    expect(leaksInternals("Uso offer_free_call_slots para buscar horas.")).toBe(true);
+    expect(leaksInternals("severity: urgent")).toBe(true);
+    expect(pseudoEscalation("Claro.\nEscalo a Dayana con razón «pide factura»", false)?.reason).toBe("pide factura");
+  });
+
+  test("lo normal sale tal cual", () => {
+    for (const text of [
+      "Hola, te bendigo. Soy la asistente de Dayana. ¿En qué te podemos ayudar?",
+      "Entiendo. ¿En qué categoría de tu vida sientes más bloqueo?",
+      "La razón de la llamada es conocerte y ver cómo te puede ayudar Dayana.",
+      "Quiero escalar esa montaña contigo, paso a paso.",
+    ]) {
+      expect(leaksInternals(text)).toBe(false);
+      expect(withoutToolText(text)).toEqual({ text, had: false });
+    }
   });
 });

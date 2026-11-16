@@ -107,9 +107,10 @@ export const screenMedia = async (
 };
 
 const TEXT_PROMPT = `Eres el filtro de moderación del WhatsApp de una terapeuta (Dayana). Las personas le cuentan su vida: sexualidad, pareja, abuso que sufrieron, el cuerpo, la autoestima, problemas médicos. Eso NO es contenido sexual prohibido.
-Prohibido es SOLO: proponerle sexo a quien recibe, pedirle fotos/videos íntimos o desnudos, describirle actos sexuales o genitales con intención sexual, ofrecer/vender contenido sexual o pornografía, acoso sexual.
+Prohibido es SOLO: proponerle sexo a quien recibe, pedirle fotos/videos íntimos o desnudos, describirle actos sexuales o genitales con intención sexual, ofrecer/vender contenido sexual o pornografía, acoso sexual, y ACOSO O INTENCIÓN ROMÁNTICA/ÍNTIMA HACIA DAYANA: coquetearle, piropos sobre su cuerpo o su belleza para conquistarla («vi tus fotos, eres hermosa, esbelta»), declararle amor o atracción («me gustas mucho, Dayana», «estoy enamorado de ti»), pedirle una cita, salir o una relación, decir que busca novia y dirigirse a ella así. Eso es kind "romantic_advance" (explicit=true).
+NO es romantic_advance: el cariño latino de todos los días («besos», «mi reina», «mi amor», «linda», «bendiciones», «te quiero mucho») cuando NO hay coqueteo ni atracción declarada; una clienta o persona agradecida que le dice «eres un ángel, eres hermosa por dentro y por fuera, gracias» o elogia la llamada, la terapia o su trabajo («eres muy linda, me encantó la llamada»); alguien que habla de su propia pareja, su ex o de querer sanar para encontrar pareja; un saludo cordial; organizar una cita de terapia; una queja o enojo («estoy caliente contigo porque no me contestaste»: en Colombia «caliente» es enojado). Ante la duda, NO.
 Clasifica el ÚLTIMO mensaje (los anteriores son contexto).
-Responde SOLO con JSON: {"explicit": true|false, "kind": "harassment"|"solicitation"|"proposition"|"explicit_description"|"sexual_offer"|"therapy"|"medical"|"victim"|"other"|"none", "confidence": número de 0 a 1}`;
+Responde SOLO con JSON: {"explicit": true|false, "kind": "harassment"|"solicitation"|"proposition"|"explicit_description"|"sexual_offer"|"romantic_advance"|"therapy"|"medical"|"victim"|"other"|"none", "confidence": número de 0 a 1}`;
 
 /**
  * Para un texto que solo «suena» sexual (`sexualHint`): ¿es contenido sexual

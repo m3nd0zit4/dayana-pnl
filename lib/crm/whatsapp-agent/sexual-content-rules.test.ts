@@ -1,7 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  blockNoticeFor,
   explicitSexualText,
+  HARASSMENT_NOTICE,
+  intimacyHint,
   isScreenableAttachment,
   mediaVerdict,
   SEXUAL_CONTENT_NOTICE,
@@ -150,5 +153,41 @@ describe("qué se revisa y a quién no se bloquea solo", () => {
     expect(SEXUAL_CONTENT_NOTICE).toContain("va a ser reportado");
     expect(SEXUAL_CONTENT_NOTICE).toContain("debido a estas acciones");
     expect(SEXUAL_CONTENT_NOTICE).not.toMatch(/fue reportado|ya reportamos/);
+  });
+});
+
+describe("acoso o intención íntima con Dayana (Mehmet, 16-nov)", () => {
+  test.each([
+    "Hola mi amor, vi tus fotos y me impresionaste mucho. Tu rostro es tan hermoso, eres maravillosa, esbelta y elegante.",
+    "Me gustas mucho",
+    "Me gustas mucho dayana",
+    "Mucho hermosa muy linda",
+    "Necesito una novia",
+    "¿Quieres salir conmigo? Te invito a cenar",
+    "eres la más hermosa 😍",
+  ])("se le pregunta al modelo: %s", (text) => {
+    expect(intimacyHint(text)).toBe(true);
+  });
+
+  test.each(["Hola, buenas tardes", "Quiero agendar la llamada gratis", "Mi esposo y yo estamos peleando mucho", "Gracias por la información"])(
+    "no hace falta preguntar: %s",
+    (text) => {
+      expect(intimacyHint(text)).toBe(false);
+    }
+  );
+
+  test("el modelo decide: romantic_advance bloquea con confianza alta; el cariño de una clienta no", () => {
+    expect(textVerdictBlocks({ explicit: true, kind: "romantic_advance", confidence: 0.98 })).toBe(true);
+    expect(textVerdictBlocks({ explicit: true, kind: "romantic_advance", confidence: 0.9 })).toBe(false);
+    expect(textVerdictBlocks({ explicit: true, kind: "romantic_advance", confidence: 0.7 })).toBe(false);
+    expect(textVerdictBlocks({ explicit: false, kind: "none", confidence: 0.95 })).toBe(false);
+  });
+
+  test("el aviso dice acoso, no contenido sexual", () => {
+    expect(blockNoticeFor({ source: "text", reason: "model:romantic_advance" })).toBe(HARASSMENT_NOTICE);
+    expect(blockNoticeFor({ source: "staff", reason: "harassment:abc" })).toBe(HARASSMENT_NOTICE);
+    expect(blockNoticeFor({ source: "text", reason: "nude_request" })).toBe(SEXUAL_CONTENT_NOTICE);
+    expect(HARASSMENT_NOTICE).toContain("va a ser reportado");
+    expect(HARASSMENT_NOTICE).not.toContain("contenido sexual");
   });
 });

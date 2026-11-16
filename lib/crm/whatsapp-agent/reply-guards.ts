@@ -159,6 +159,35 @@ const markedArgs = (rest: string): Record<string, string> => {
   return out;
 };
 
+/**
+ * La escalada (o una herramienta) contada en prosa, no escrita como llamada
+ * (Mehmet, 16-nov: le llegó «Escalo con category=other, severity=normal, y razón
+ * «contenido sexual: halagos y propuestas románticas insistentes»»). Son palabras
+ * internas que la persona nunca debe leer: `clave=valor` de las herramientas, el
+ * nombre de una herramienta con guion bajo, o «escalo/escalando» junto a «con»,
+ * «category», «el caso», «a Dayana» o «razón».
+ */
+const INTERNAL_ARG = /\b(?:category|severity|holdingReply|startIso|countryIso)\s*[=:]\s*\S/i;
+const INTERNAL_TOOL =
+  /\b(?:escalate|offer_free_call_slots|book_free_call|register_payment_receipt|send_payment_info|send_payment_link|save_country|request_booking|no_reply|send_community_link|send_affordable_option|send_urgent_session_link|send_sticker)\b/i;
+const PROSE_ESCALATION = /(?:^|[^\p{L}])escal(?:o|ando|ar|ar[ée]|amos|é)(?![\p{L}])(?=[^.\n]{0,60}(?:\bcon\b|category|severity|\bcaso\b|dayana|raz[oó]n))/iu;
+
+export const leaksInternals = (text: string): boolean =>
+  INTERNAL_ARG.test(text) || INTERNAL_TOOL.test(text) || PROSE_ESCALATION.test(text);
+
+/** Los argumentos de una escalada contada en prosa: `clave=valor` y «razón «…»». */
+const proseCall = (text: string): { name: string; args: Record<string, string> } | null => {
+  if (!leaksInternals(text)) return null;
+  const args: Record<string, string> = {};
+  for (const m of text.matchAll(/\b(category|severity|reason|holdingReply)\s*[=:]\s*(?:"([^"]*)"|«([^»]*)»|([^\s,;]+))/gi))
+    args[m[1]] = (m[2] ?? m[3] ?? m[4] ?? "").trim();
+  const why = text.match(/raz[oó]n\s*[«"“]([^»"”]+)[»"”]/i);
+  if (why && !args.reason) args.reason = why[1].trim();
+  const tool = text.match(INTERNAL_TOOL);
+  const name = PROSE_ESCALATION.test(text) || args.category || args.severity ? "escalate" : tool ? toolKey(tool[0]) : "";
+  return { name, args };
+};
+
 /** La primera llamada a herramienta escrita como texto en la respuesta (o null). */
 export const findPseudoToolCall = (text: string): { name: string; args: Record<string, string> } | null => {
   // Primero la forma marcada: en «print(default_api.escalate(…))» la herramienta es escalate, no print.
@@ -172,7 +201,8 @@ export const findPseudoToolCall = (text: string): { name: string; args: Record<s
     const call = pseudoToolCall(line);
     if (call) return call;
   }
-  return CALL_MARKER.test(text) ? { name: "", args: {} } : null;
+  if (CALL_MARKER.test(text)) return { name: "", args: {} };
+  return proseCall(text);
 };
 
 const ESCALATE_CATEGORIES = ["payment", "unknown", "complaint", "clinical", "reschedule", "other"] as const;
@@ -215,7 +245,8 @@ export const pseudoEscalation = (
 
 export const withoutToolText = (text: string): { text: string; had: boolean } => {
   if (pseudoToolCall(text.trim()) || CALL_MARKER.test(text)) return { text: "", had: true };
-  const kept = text.split("\n").filter((line) => !pseudoToolCall(line));
+  // Una frase con palabras internas no sale: se quita su línea entera (Mehmet, 16-nov).
+  const kept = text.split("\n").filter((line) => !pseudoToolCall(line) && !leaksInternals(line));
   const cleaned = kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
   return { text: cleaned, had: cleaned !== text.trim() };
 };
@@ -441,8 +472,9 @@ export const withoutRepeatedGreeting = (
  * «Déjame revisar la agenda» y 6 nunca tuvieron respuesta). Una hora junto a
  * palabras de agenda o de la llamada, y no de un evento, un taller o una clase.
  */
-const OWN_TIME = /\b(a las? \d{1,2}(:\d{2})?|\d{1,2}(:\d{2})?\s*(a\.?\s?m\b|p\.?\s?m\b|am\b|pm\b))/;
-const AGENDA_WORDS = /\b(llamada|llamarte|te llama|espacio|espacios|horario|horarios|disponible|disponibles|agenda|agendar|agendo|cita)\b/;
+// «2:30p», «8:30p, 9:00p» y «14:30» también (Dr Leiner, 16-nov; psicología, 14-nov).
+const OWN_TIME = /\b(a las? \d{1,2}(:\d{2})?|\d{1,2}(:\d{2})?\s*(a\.?\s?m\b|p\.?\s?m\b|am\b|pm\b)|\d{1,2}:\d{2}\s*[ap]?\b)/;
+const AGENDA_WORDS = /\b(llamada|llamarte|te llama|espacio|espacios|horario|horarios|disponible|disponibles|agenda|agendar|agendo|cita|libre|libres|tengo|tiene|hay|te sirve|te queda|te parece|dayana|ofrecer|ofrezco|ofrece)\b/;
 const NOT_A_CALL = /\b(evento|webinar|taller|clase|clases|live|en vivo|curso|meet|sesion de hoy)\b/;
 export const writesOwnHours = (text: string | null | undefined): boolean => {
   const t = foldForSearch(text ?? "");
@@ -451,7 +483,7 @@ export const writesOwnHours = (text: string | null | undefined): boolean => {
 
 /** Lo que ella escribió va de agendar (un día, una hora, la llamada, o un «sí» a la invitación). */
 const SCHEDULE_ASK =
-  /\b(hora|horas|horario|horarios|cuando|dia|dias|agenda|agendar|agendame|llamada|cita|disponible|manana|hoy|lunes|martes|miercoles|jueves|viernes|sabado|domingo|tarde|noche|semana|si|ok|dale|claro|listo|bueno|perfecto|puedo)\b/;
+  /\b(hora|horas|horario|horarios|cuando|dia|dias|agenda|agendar|agendame|llamada|cita|disponible|manana|hoy|lunes|martes|miercoles|jueves|viernes|sabado|domingo|tarde|noche|semana|si|ok|dale|claro|listo|bueno|perfecto|puedo|despues|antes|temprano|tienes|hay|libre|espacio|desocupo|alcanzo)\b|\blas? \d{1,2}\b|\b\d{1,2}:\d{2}\b/;
 export const asksAboutSchedule = (texts: (string | null | undefined)[]): boolean => texts.some((t) => SCHEDULE_ASK.test(foldForSearch(t ?? "")));
 
 /**

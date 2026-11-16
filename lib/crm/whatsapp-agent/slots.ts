@@ -500,7 +500,8 @@ const WORK_RANGE = new RegExp(
   String.raw`\b(trabajo|trabajar|laboro|jornada|turno)\b[^.!?\n]{0,30}?\b(?:de|desde)\s+(?:las\s+)?${TIME}\s*(?:a|hasta|-)\s*(?:las\s+)?${TIME}`
 );
 // «salgo a las 6» (no «sale»: «sale, a las 3 me queda bien»).
-const LEAVE_AT = new RegExp(String.raw`\b(salgo|salimos|termino|me desocupo|desocupo)\b[^.!?\n]{0,25}?\b(?:a|como a|desde)\s+las?\s+${TIME}`);
+// «me desocupo mas tardar 2:15» (Dr Leiner, 16-nov): sin «las».
+const LEAVE_AT = new RegExp(String.raw`\b(salgo|salimos|termino|me desocupo|desocupo)\b[^.!?\n]{0,25}?\b(?:(?:a|como a|desde)\s+las?|(?:a\s+)?mas\s+tardar(?:\s+a)?(?:\s+las?)?)\s+${TIME}`);
 const FREE_FROM = new RegExp(String.raw`\b(?:estoy libre|quedo libre|libre)\b[^.!?\n]{0,15}?\bdesde\s+las?\s+${TIME}`);
 const WORK_UNTIL = new RegExp(String.raw`\b(trabajo|trabajar|laboro|estoy trabajando)\b[^.!?\n]{0,20}?\bhasta\s+las?\s+${TIME}`);
 const AFTER = new RegExp(String.raw`\b(?:despues de|a partir de)\s+las?\s+${TIME}`);
@@ -527,7 +528,10 @@ export const hourLimitsFrom = (textsNewestFirst: (string | null | undefined)[]):
         const w = s.match(WORK_RANGE);
         // Con «no» (no salgo a las 6, no trabajo hasta las 5, no estoy libre desde las 5) esas
         // frases no dan una hora «desde»: no se leen al derecho (revisión 13-nov).
-        const l = w || negated ? null : s.match(LEAVE_AT);
+        // «no alcanzo, … me desocupo mas tardar 2:15»: el «no» de otra parte de la frase no
+        // anula «me desocupo» (Dr Leiner, 16-nov); solo el que va justo antes («no salgo a las 6»).
+        const leave = w ? null : s.match(LEAVE_AT);
+        const l = leave && !/no\s+(?:me\s+)?$/.test(s.slice(0, leave.index)) && !(negated && !/,/.test(s)) ? leave : null;
         const u = w || l || negated ? null : s.match(WORK_UNTIL);
         const f = w || l || u || negated ? null : s.match(FREE_FROM);
         const a = w || l || u || f || negated ? null : s.match(AFTER);

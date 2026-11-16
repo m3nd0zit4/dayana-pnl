@@ -32,7 +32,8 @@ const bodySchema = z.discriminatedUnion("action", [
   // Bloquear desde el CRM el número de un chat (si bloquear en la app no llega a la lista de la API).
   z.object({ action: z.literal("block_chat"), conversationId: z.string().min(6).max(80) }),
   // Contenido sexual que el filtro no vio: aviso, bloqueo, chat borrado (lo mismo que el automático).
-  z.object({ action: z.literal("sexual_content"), conversationId: z.string().min(6).max(80) }),
+  // También el acoso o la intención íntima con Dayana (owner, 16-nov): mismo bloqueo, otro aviso.
+  z.object({ action: z.literal("sexual_content"), conversationId: z.string().min(6).max(80), kind: z.enum(["sexual", "harassment"]).optional() }),
 ]);
 
 export const POST = withStaff("owner", async ({ req, staff }) => {
@@ -55,7 +56,7 @@ export const POST = withStaff("owner", async ({ req, staff }) => {
     const { enforceSexualContent } = await import("@/lib/crm/whatsapp-agent/sexual-content");
     const result = await enforceSexualContent({
       conversationId: parsed.data.conversationId,
-      signal: { source: "staff", reason: staff.id.slice(0, 12) },
+      signal: { source: "staff", reason: `${parsed.data.kind === "harassment" ? "harassment:" : ""}${staff.id.slice(0, 12)}` },
     });
     if (result.status === "skipped") return NextResponse.json({ error: result.reason }, { status: 404 });
     return NextResponse.json({ ok: true, result });

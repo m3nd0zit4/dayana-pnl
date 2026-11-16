@@ -24,7 +24,7 @@ type Row = {
 
 const REASON: Record<string, string> = {
   app: "Lo bloqueaste en tu WhatsApp",
-  sexual_content: "Contenido sexual",
+  sexual_content: "Contenido sexual o acoso",
   manual: "Bloqueado desde el CRM",
 };
 

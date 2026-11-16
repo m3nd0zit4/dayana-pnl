@@ -285,3 +285,11 @@ describe("revisión 14-nov: horas que no son la que pide", () => {
     expect(dayanaOfferedSlot([line], "2026-11-17T00:00:00.000Z", "America/Bogota")).toBe(true);
   });
 });
+
+describe("hourLimitsFrom: «me desocupo mas tardar 2:15» (Dr Leiner, 16-nov)", () => {
+  test("desde esa hora (con media hora para llegar), aunque la frase empiece con «no alcanzo»", () => {
+    expect(hourLimitsFrom(["No alcanzo, tengo un pendiente y me desocupo mas tardar 2:15"]).fromTime).toBe("14:45");
+    expect(hourLimitsFrom(["No tienes después de las 2?"]).fromTime).toBe("14:00");
+    expect(hourLimitsFrom(["no salgo a las 6"]).fromTime).toBeUndefined();
+  });
+});

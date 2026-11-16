@@ -90,3 +90,18 @@ describe("revisión 14-nov: preguntas de escucha y del taller no piden horas", (
     expect(promisesHandoff("Dayana tiene pendiente retomar contigo y te contactará")).toBe(true);
   });
 });
+
+describe("Dr Leiner (16-nov): «¿No tienes después de las 2?» y el modelo escribió «2:30p»", () => {
+  test("es una pregunta de agenda", () => {
+    expect(asksAboutSchedule(["No tienes después de las 2?"])).toBe(true);
+    expect(asksAboutSchedule(["me desocupo mas tardar 2:15"])).toBe(true);
+    expect(asksAboutSchedule(["Gracias, que estés bien"])).toBe(false);
+  });
+  test("«2:30p» escrito por el modelo son horas suyas: van las de la agenda", () => {
+    expect(writesOwnHours("Claro, tengo espacio a las 2:30p, ¿te sirve?")).toBe(true);
+    expect(writesOwnHours("Te puedo ofrecer 2:30p")).toBe(true);
+    expect(writesOwnHours("Dayana tiene 8:30p, 9:00p")).toBe(true);
+    expect(writesOwnHours("Gracias por tu paciencia, nos vemos")).toBe(false);
+    expect(writesOwnHours("El taller es el sábado a las 8:30 a. m.")).toBe(false);
+  });
+});
