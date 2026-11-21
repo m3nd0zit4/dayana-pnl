@@ -278,6 +278,13 @@ The AI answers Dayana's WhatsApp (360dialog coexistence) as her **personal assis
 > - **Free-call booking is code-owned**: hours are offered by code (2 soon + 2 later, `groupedOfferList`), the choice is booked or moved by code (`booking-turn.ts`, `honorOffer`), hours the model writes itself are replaced by the agenda's, and a reschedule of the free call is moved, not escalated.
 > - **Timing**: the AI waits 20 s (35 s after a bare greeting or an unfinished sentence: `reply-timing.ts`), sends one holding reply per pending hand-off, and leads have no daily cap (only a 60/day loop guard).
 > - The eval (`scripts/whatsapp-agent-eval.ts`) mirrors the after-call silence; `--after-call-on` runs those cases without it.
+> - **Audit 21-nov (owner: «muchísimos errores… encuentra una arquitectura que no traiga estos problemas»)** — the recurring cause is several automatic senders deciding alone. First pieces of one shared policy:
+>   - `quick-intents.ts`: simple requests with one right answer are answered by code BEFORE every other rule (waiting room, call check, after-call silence, client mode). Today: joining the community → the link (Naty, Leidy, «Huevos…», Gimena got nothing or another automation). Only the AI switch, MANUAL, a pause or a personal number stop it.
+>   - `send-policy.ts` (`humanActive`): if Dayana or her team wrote in the chat in the last 30 min (15 for holding replies), nothing proactive goes out: the «¿pudiste hablar?» check, the automatic reschedule, the holding reply of an escalation.
+>   - Closing follow-up: once Dayana writes herself after the quote (30 min after it), she owns the follow-up (`dayanaFollowedUp`); «lo dejaré para el mes que viene» = va a pagar, «ya no voy hacer…» = no quiere.
+>   - Call follow-up: the waiting room stays quiet once «¿pudiste hablar?» went out or the person says she talked (`saysTalked`); «Hola si… ya la tuve» is a yes; an automatic «no contestó» flips to «hablaron» when she says she did; no check or timeout reschedule at night (9–19 her zone).
+>   - `leaksInternals`: any snake_case word, JSON, braces, backticks or `=>` in an AI reply is internal and never goes out (Ever got «Confirm_appointment»).
+>   - After-call silence pushes Dayana when the person asks something (not only «Te toca»).
 
 - `context.v2` — reads the last N messages whatever their age, decides "new person" over the whole chat (`situation.ts`), adds older matching messages of the same chat (`context.ts`). Each run stores what it read in `whatsapp_ai_runs.context`.
 - `dossier.enabled` — a file per chat (`whatsapp_dossiers`, `dossier.ts`) built from the WHOLE chat in resumable ~150-message steps; reset when older history is imported or chats are merged; the cron refreshes stale ones.

@@ -240,7 +240,7 @@ const PAID =
   /\b(ya (te )?(pague|transferi|deposite|consigne|envie|mande|hice (el|la) (pago|transferencia|deposito|consignacion|envio))|te (envie|mande|adjunto) el comprobante|ahi (va|esta|te va) el comprobante|ya quedo (el|hecho el) pago|listo el pago)\b/;
 /** «No me interesa», «ya no quiero», «prefiero no». */
 const NO =
-  /\b(no me interesa|ya no (quiero|me interesa|voy a (seguir|tomar|hacer))|no (voy|puedo) a? ?(tomar|hacer|seguir|continuar) (el|con el|la|las|los) (proceso|terapia|sesion)|no gracias|prefiero no|lo dejo (asi|por ahora|para despues)|no estoy interesad[oa])\b/;
+  /\b(no me interesa|ya no (quiero|me interesa|voy a? ?(seguir|tomar|hacer))|no (voy|puedo) a? ?(tomar|hacer|seguir|continuar) (el|con el|la|las|los) (proceso|terapia|sesion)|no gracias|prefiero no|lo dejo (asi|por ahora|para despues)|no estoy interesad[oa])\b/;
 /**
  * «No me alcanza», «no tengo el dinero», «estoy ahorrando». También (28-oct)
  * «no he tenido el dinero» y «por el factor económico» (Andrea, 23/24-oct),
@@ -267,6 +267,9 @@ const noMoney = (t: string): boolean => !MONEY_OK.test(t) && (MONEY.test(t) || M
 const PAY =
   /\b(voy a (pagar|hacer el pago|transferir|enviar|mandar|depositar|empezar|iniciar|comenzar)|te (pago|transfiero|envio|mando|deposito|consigno|enviare|mandare|pagare|transferire)|(estoy|me siento) (muy )?decidid[oa]|si quiero (empezar|iniciar|comenzar|el proceso|hacerlo)|quiero (empezar|iniciar|comenzar)|apenas (me|tenga|reciba|cobre|llegue)|cuando (me paguen|cobre|me llegue|reciba|me depositen|pague|haga el pago|tenga el dinero|tenga la plata)|enviare el comprobante|empezamos|lo hago (el|la|este|esta|en)|hago el pago)\b/;
 /** «Lo voy a pensar», «te aviso», «lo hablo con mi esposo». */
+// «Lo dejaré para el mes que viene» (Adrienne, 16-nov: le siguieron llegando seguimientos),
+// «más adelante», «por ahora no», «espero resolver…»: lo deja para después (con fecha, paga entonces).
+const LATER = /\b(lo (dejare|dejo|voy a dejar) para|mas adelante|por ahora no|por el momento no|en otro momento|espero (resolver|poder|organizarme)|cuando (pueda|tenga|me organice|me paguen))\b/;
 const THINK =
   /\b(lo (voy a )?pens\w+|(te|le) (aviso|confirmo)\b|lo (consulto|hablo|comento|converso)|(dejame|dame) (ver|pensar\w*|unos dias|un tiempo)|tengo que (ver|pensarlo|hablarlo|consultarlo|organizarme)|estamos en contacto|despues te (digo|escribo|aviso|confirmo))/;
 
@@ -412,6 +415,7 @@ export const stateFromReply = (text: string, at: Date, tz: string): { state: Quo
   if (payBy && inDays !== null && inDays >= 2 && (noMoney(t) || THINK.test(t))) return { state: "pagara", payBy };
   if (noMoney(t)) return { state: "sin_dinero", payBy: null };
   if (PAY.test(t)) return { state: "pagara", payBy };
+  if (LATER.test(t)) return payBy ? { state: "pagara", payBy } : { state: "lo_piensa", payBy: null };
   if (THINK.test(t)) return { state: "lo_piensa", payBy: null };
   return null;
 };

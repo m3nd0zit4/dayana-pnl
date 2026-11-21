@@ -2771,6 +2771,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     workshopAskNow &&
     outcome === modelOutcome &&
     !state.bookingNotice &&
+    // Un comprobante no lleva «¿quieres que te la agende?» del taller (psicología, 15-nov).
+    !state.receipt &&
     (!workshopPay || (!state.slotOffer && !state.booking && !state.pendingBooking))
       ? withWorkshopStep(text, workshop, { upcomingLabel: upcomingLabelText, linkSent: false })
       : text;

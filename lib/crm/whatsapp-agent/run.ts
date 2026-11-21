@@ -37,6 +37,7 @@ import { conversationSituation, situationText } from "./situation";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
 import { communityLink } from "./community";
 import { quickIntentFor } from "./quick-intents";
+import { HUMAN_ACTIVE_MIN, humanActive } from "./send-policy";
 import { isBlockedNumber } from "../whatsapp-blocked-numbers";
 import { dossierText, getDossier, updateDossier, type Dossier } from "./dossier";
 import { olderSnippets } from "./context";
@@ -581,6 +582,20 @@ export const runWhatsAppAi = async (input: {
                 category: "clinical",
                 severity: "normal",
                 reason: `Después de su llamada escribió algo delicado («${said.join(" ").slice(0, 160)}»). La IA no le contestó: te toca a ti.`,
+              },
+              conversation.contact?.firstName ?? conversation.participantName ?? null,
+              config,
+              null
+            ).catch((e: unknown) => console.warn("[whatsapp-agent] no se pudo avisar a Dayana", e));
+          } else if (said.some((t) => /\?|^\s*¿|^\s*(cu[aá]nto|c[oó]mo|cu[aá]ndo|d[oó]nde|hasta qu[eé]|me (puedes|podr[ií]as))\b/i.test(t))) {
+            // Preguntó algo después de su llamada y la IA no contesta (Paola, 15-nov: «¿hasta qué
+            // hora tengo plazo?», 16 h sin respuesta): Dayana recibe el aviso, no solo «Te toca».
+            await alertSilently(
+              conversationId,
+              {
+                category: "other",
+                severity: "normal",
+                reason: `Después de su llamada preguntó: «${said.join(" ").slice(0, 160)}». La IA no contesta tras la llamada: te toca a ti.`,
               },
               conversation.contact?.firstName ?? conversation.participantName ?? null,
               config,
@@ -1763,7 +1778,11 @@ const escalate = async (
   const repeated =
     Boolean(holding) &&
     (alreadySaid(holding!, [recentOut[0]?.body]) || (isHoldingLine(holding) && lastHolding >= 0 && !humanSince && alreadyOpen));
-  if (holding && !repeated && status === "ESCALATED" && !(await answeredSince(conversationId, from))) {
+  // Dayana o su equipo están escribiendo en el chat: ellas contestan; el aviso de espera
+  // sobra (auditoría 21-nov: tres «Déjame consultarlo» en la búsqueda de apartamento de
+  // Dayana, uno en una reunión de negocios). «Te toca» y el aviso a Dayana siguen.
+  const humanThere = holding ? await humanActive(conversationId, HUMAN_ACTIVE_MIN.holding) : false;
+  if (holding && !repeated && !humanThere && status === "ESCALATED" && !(await answeredSince(conversationId, from))) {
     await sendAuto(conversationId, holding).catch((e) =>
       console.error("[whatsapp-agent] mensaje de espera", e)
     );

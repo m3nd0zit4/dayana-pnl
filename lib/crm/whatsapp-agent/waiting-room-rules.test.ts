@@ -59,3 +59,14 @@ describe("decideWaiting", () => {
     expect(waitingMessage("not_started", null)).toContain("ya le aviso a Dayana");
   });
 });
+
+describe("la sala de espera no pisa el seguimiento de la llamada (auditoría 21-nov)", () => {
+  test("ya se le preguntó «¿Pudiste hablar?»: no «espérala»", () => {
+    const d = decideWaiting({ ...base, appointment: { ...base.appointment!, checkSentAt: min(1) }, now: min(2), busy: [{ start: min(-60), end: min(10) }] });
+    expect(d.kind).toBe("none");
+  });
+  test("dice que ya habló (Hugo: «sii ya hablé con ella»): no «espérala»", () => {
+    const d = decideWaiting({ ...base, now: min(2), busy: [{ start: min(-60), end: min(10) }], lastInbound: "sii ya hablé con ella" });
+    expect(d.kind).toBe("none");
+  });
+});

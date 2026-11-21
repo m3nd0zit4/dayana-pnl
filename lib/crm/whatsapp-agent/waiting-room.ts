@@ -80,6 +80,16 @@ const lastDayanaMessage = async (conversationId: string): Promise<Date | null> =
   return rows.find((r) => !isAutoSend(r))?.sentAt ?? null;
 };
 
+/** Lo último que escribió la persona (para «ya hablé con ella»). */
+const lastInboundText = async (conversationId: string): Promise<string | null> =>
+  (
+    await prisma.conversationMessage.findFirst({
+      where: { conversationId, direction: "INBOUND" },
+      orderBy: { sentAt: "desc" },
+      select: { body: true },
+    })
+  )?.body ?? null;
+
 /** Decide (y si toca, avisa) para una persona y su cita. true si se le mandó el aviso. */
 const noticeFor = async (input: {
   config: WhatsAppAiConfig;
@@ -108,7 +118,9 @@ const noticeFor = async (input: {
       bookingService: booking?.service ?? null,
       callOutcome: appt.callOutcome,
       rescheduleSentAt: appt.rescheduleSentAt,
+      checkSentAt: appt.outcomeCheckAt,
     },
+    lastInbound: await lastInboundText(input.conversationId),
     busy: (await busyAround(input.config, input.now, appt.id)).filter((b) => b.start.getTime() !== appt.startsAt.getTime()),
     lastDayanaAt: await lastDayanaMessage(input.conversationId),
     notices: { count: appt.waitNoticeCount, lastAt: appt.waitNoticeAt },

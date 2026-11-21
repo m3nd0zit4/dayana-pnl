@@ -136,10 +136,26 @@ export const dayanaWroteSince = (messages: OutcomeMessage[], startsAt: Date): bo
       m.sentAt.getTime() >= startsAt.getTime() - NO_SIGNAL_BEFORE_MIN * 60_000
   );
 
+/**
+ * Dice que ya habló con Dayana, sin que nadie se lo pregunte («sii ya hablé con ella», Hugo,
+ * 19-nov, y le llegó «espérala 5 minutos»; «ya la tuve», Jimena; «ayer me llamó», Luz).
+ */
+const TALKED =
+  /\b(?:ya|si|sii+)\s+(?:la |lo )?(?:tuve|hable|hablamos|me llamo|me llamaron|nos comunicamos|nos llamamos)\b|\bya hablamos\b|\bya me llamo\b|\b(?:ayer|hoy|hace un rato|ahorita)\s+me llamo\b|\bhable con (?:ella|dayana)\b|\bya hable\b/;
+export const saysTalked = (text: string | null | undefined): boolean => TALKED.test(foldForSearch(text ?? ""));
+
 /** La respuesta a «¿Pudiste hablar con Dayana?». `null` si no se entiende. */
 export const checkReply = (text: string): CallOutcome | null => {
-  const t = foldForSearch(text).replace(/[!¡.?¿,]+/g, " ").replace(/\s+/g, " ").trim();
+  // Sin el saludo del principio («Hola si gracias ya la tuve», Jimena, 20-nov: no se entendía
+  // y le llegó «no pudieron hablar, reagendemos»).
+  const t = foldForSearch(text)
+    .replace(/[!¡.?¿,]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^(hola|buenas?( tardes| noches| dias)?|buen dia|buenos dias)( \w+)?\s+(?=(si|no|ya|claro|todavia|aun)\b)/, "")
+    .replace(/^(hola|buenas?( tardes| noches| dias)?|buen dia|buenos dias)\s+/, "");
   if (!t) return null;
+  if (saysTalked(t)) return "answered";
   if (match(PERSON_NO, t) || /^(no|nop|nope|no senor|no senora|todavia no|aun no|nada)\b/.test(t)) return "no_answer";
   if (match(PERSON_YES, t) || /^(si|sii+|claro|ya|asi es|si pude|si hablamos|si gracias|perfecto|excelente|todo bien|muy bien)\b/.test(t)) {
     return "answered";

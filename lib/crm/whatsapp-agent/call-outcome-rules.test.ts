@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  saysTalked,
   callWhenLabel,
   canChangeOutcome,
   CHECK_MAX_AGE_HOURS,
@@ -311,5 +312,18 @@ describe("Dayana corrige cómo terminó (tocó el botón equivocado)", () => {
     expect(canChangeOutcome({ ...a, callOutcome: null }, endsAt)).toBe(false);
     expect(canChangeOutcome({ ...a, callOutcome: "rescheduled" }, endsAt)).toBe(false);
     expect(canChangeOutcome({ ...a, status: "cancelled" }, endsAt)).toBe(false);
+  });
+});
+
+describe("saysTalked / checkReply con saludo (Jimena, Hugo, Luz, 19–20 nov)", () => {
+  test.each(["sii ya hablé con ella", "ayer me llamó", "Hola si gracias ya la tuve", "ya hablamos, gracias"])("ya habló: %s", (t) => {
+    expect(saysTalked(t)).toBe(true);
+  });
+  test.each(["quiero hablar con ella", "hablemos mañana", "¿a qué hora me llama?"])("no: %s", (t) => {
+    expect(saysTalked(t)).toBe(false);
+  });
+  test("«Hola si gracias ya la tuve…» es que sí hablaron", () => {
+    expect(checkReply("Hola si gracias ya la tuve gracias y si me puedes agregar a la comunidad porfavor")).toBe("answered");
+    expect(checkReply("Buenas tardes, no me llamó")).toBe("no_answer");
   });
 });

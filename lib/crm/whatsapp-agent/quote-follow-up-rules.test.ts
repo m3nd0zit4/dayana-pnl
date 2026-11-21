@@ -489,3 +489,16 @@ describe("asksHowToPay (ENNY, 23-oct)", () => {
     expect(asksHowToPay([text])).toBe(false);
   });
 });
+
+describe("stateFromReply: lo deja para después (auditoría 21-nov)", () => {
+  const at16 = new Date("2026-11-16T15:00:00Z");
+  test("Adrienne: «Lo dejaré para el mes que viene» = paga el mes que viene", () => {
+    expect(stateFromReply("Lo dejaré para el mes que viene", at16, "America/Bogota")?.state).toBe("pagara");
+  });
+  test("Mary: «Ya no voy hacer el taller» = no quiere", () => {
+    expect(stateFromReply("Ya no voy hacer el taller", at16, "America/Bogota")?.state).toBe("no_quiere");
+  });
+  test("«Por ahora no, más adelante te escribo» = lo piensa", () => {
+    expect(stateFromReply("Por ahora no, más adelante te escribo", at16, "America/Bogota")?.state).toBe("lo_piensa");
+  });
+});

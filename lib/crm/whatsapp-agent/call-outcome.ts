@@ -9,6 +9,7 @@ import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbo
 import {
   checkMessage,
   checkReply,
+  saysTalked,
   FOLLOW_UP_LOOKBACK_DAYS,
   followUpStep,
   MARK_AFTER_START_MIN,
@@ -28,6 +29,8 @@ import { isFreeCallAppointment } from "./event-title";
 import { offerFreeCallSlots } from "./free-call";
 import { slotLabel } from "./free-call-rules";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
+import { HUMAN_ACTIVE_MIN, humanActive } from "./send-policy";
+import { inSendingHours } from "./quote-follow-up-rules";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { personFirstName } from "@/lib/person-name";
 import { dayanaPaymentInfoAt } from "./dayana-messages";
@@ -223,6 +226,9 @@ const sendReschedule = async (
  * no contestada; el reloj lo reintenta mientras la llamada sea reciente.
  */
 const sendCheck = async (appt: Appt, conv: Conv) => {
+  // Dayana o su equipo le acaban de escribir: la conversación es de ellas (Kate, Yanet: la
+  // pregunta salió 4–6 s después de que Dayana escribió). El reloj vuelve a mirar después.
+  if (await humanActive(conv.id, HUMAN_ACTIVE_MIN.proactive)) return false;
   const claimedAt = new Date();
   const claimed = await prisma.calendarAppointment.updateMany({
     where: { id: appt.id, outcomeCheckAt: null, callOutcome: null },
@@ -289,10 +295,15 @@ const advance = async (appt: Appt, config: WhatsAppAiConfig, now: Date, aiEnable
     assumeMissedAfterHours: config.callFollowUp.assumeMissedAfterHours,
     dayanaWrote: dayanaWroteSince(around, appt.startsAt),
   });
+  // De noche no sale nada solo (Manuel y Leiner, 18-nov: «no lograron comunicarse» a las
+  // 3:48 a. m.): la pregunta y el «no contestó» por tiempo esperan al día, en su hora.
+  const daytime = inSendingHours(new Date(), personZoneOf(conv) ?? (await getOperationalTimezone()));
+  if (!daytime && (next.kind === "ask" || (next.kind === "settle" && next.source === "timeout"))) return "espera_el_dia";
   switch (next.kind) {
     case "settle":
       if (!(await settle(appt.id, next.outcome, next.source, next.reason))) return "ya_decidida";
-      if (next.reschedule) await sendReschedule(appt, conv, config);
+      // Dayana o su equipo le acaban de escribir: no se le manda el mensaje para reagendar encima.
+      if (next.reschedule && !(await humanActive(conv.id, HUMAN_ACTIVE_MIN.proactive))) await sendReschedule(appt, conv, config);
       return next.outcome;
     case "ask":
       await sendCheck(appt, conv);
@@ -361,7 +372,10 @@ export const handleCallFollowUpReply = async (input: {
     where: { conversationId: input.conversationId, status: "active", callOutcome: null, endsAt: { lt: now, gte: new Date(now.getTime() - 7 * DAY) } },
     orderBy: { startsAt: "desc" },
   });
-  if (!appt) return none;
+  if (!appt) {
+    await correctMissedCall(input.conversationId, now).catch(() => undefined);
+    return none;
+  }
   const conv = await loadConversation(input.conversationId);
   if (!conv) return none;
   const booking = await prisma.whatsAppBooking.findFirst({ where: { calendarEventId: appt.eventId }, select: { service: true, createdAt: true } });
@@ -389,7 +403,32 @@ export const handleCallFollowUpReply = async (input: {
   if (!decided) return none;
   if (!(await settle(appt.id, decided.outcome, source, decided.reason))) return none;
   if (decided.outcome === "answered" || (await waitingRoomBlocked(conv, input.config))) return none;
+  if (await humanActive(conv.id, HUMAN_ACTIVE_MIN.proactive)) return none;
   return { handled: (await sendReschedule(appt, conv, input.config, { triggerMessageId: input.triggerMessageId })).sent };
+};
+
+/**
+ * «No contestó» lo decidió el sistema (nadie respondió a tiempo, o lo leyó del chat) y la
+ * persona dice después que sí habló (Luz, 20-nov: «ayer me llamó», y la IA le insistió en
+ * reagendar; Jimena: «ya la tuve»): pasa a «hablaron». Lo que marcó Dayana no se toca.
+ */
+const correctMissedCall = async (conversationId: string, now: Date): Promise<boolean> => {
+  const last = await prisma.conversationMessage.findFirst({
+    where: { conversationId, direction: "INBOUND" },
+    orderBy: { sentAt: "desc" },
+    select: { body: true },
+  });
+  if (!saysTalked(last?.body)) return false;
+  const r = await prisma.calendarAppointment.updateMany({
+    where: {
+      conversationId,
+      callOutcome: "no_answer",
+      callOutcomeSource: { not: "manual" },
+      endsAt: { gte: new Date(now.getTime() - 3 * DAY), lt: now },
+    },
+    data: { callOutcome: "answered", callOutcomeSource: "chat", callOutcomeReason: "Dijo después que sí habló con Dayana.", callOutcomeAt: now },
+  });
+  return r.count > 0;
 };
 
 /** La reserva de la IA (si la agendó ella) dice el servicio: con eso se sabe si es la llamada gratis. */

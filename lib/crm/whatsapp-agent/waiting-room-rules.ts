@@ -1,3 +1,4 @@
+import { saysTalked } from "./call-outcome-rules";
 import { isFreeCallAppointment } from "./event-title";
 import { personFirstName } from "@/lib/person-name";
 
@@ -40,6 +41,8 @@ export type WaitingAppointment = {
   callOutcome?: string | null;
   /** Ya se le mandó el mensaje para reagendar. */
   rescheduleSentAt?: Date | null;
+  /** Ya se le preguntó «¿Pudiste hablar con Dayana?». */
+  checkSentAt?: Date | null;
 };
 
 export type WaitingDecision =
@@ -56,6 +59,8 @@ export const decideWaiting = (input: {
   /** Lo último que Dayana le escribió a esta persona (no la IA, no masivos). */
   lastDayanaAt: Date | null;
   notices: { count: number; lastAt: Date | null };
+  /** Lo que acaba de escribir la persona (si lo hay). */
+  lastInbound?: string | null;
   config?: WaitingConfig;
 }): WaitingDecision => {
   const cfg = input.config ?? DEFAULT_WAITING;
@@ -66,6 +71,10 @@ export const decideWaiting = (input: {
   // llegaron horas para reagendar, eligió «22 de octubre» y recibió «ya le
   // aviso a Dayana. En un momento te llama»): la IA contesta como siempre.
   if (a.callOutcome || a.rescheduleSentAt) return { kind: "none", reason: "la llamada ya se decidió" };
+  // Ya se le preguntó si hablaron, o dice que ya habló (Hugo, Mariana, 19-nov: contestaron
+  // «sí» a «¿Pudiste hablar?» y les llegó «espérala 5 minutos»): lo lee el seguimiento.
+  if (a.checkSentAt) return { kind: "none", reason: "ya se le preguntó si hablaron" };
+  if (saysTalked(input.lastInbound)) return { kind: "none", reason: "dice que ya habló con Dayana" };
 
   const now = input.now.getTime();
   const start = a.startsAt.getTime();
