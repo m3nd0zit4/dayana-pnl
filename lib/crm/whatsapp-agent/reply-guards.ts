@@ -172,8 +172,20 @@ const INTERNAL_TOOL =
   /\b(?:escalate|offer_free_call_slots|book_free_call|register_payment_receipt|send_payment_info|send_payment_link|save_country|request_booking|no_reply|send_community_link|send_affordable_option|send_urgent_session_link|send_sticker)\b/i;
 const PROSE_ESCALATION = /(?:^|[^\p{L}])escal(?:o|ando|ar|ar[ée]|amos|é)(?![\p{L}])(?=[^.\n]{0,60}(?:\bcon\b|category|severity|\bcaso\b|dayana|raz[oó]n))/iu;
 
-export const leaksInternals = (text: string): boolean =>
-  INTERNAL_ARG.test(text) || INTERNAL_TOOL.test(text) || PROSE_ESCALATION.test(text);
+/**
+ * Cualquier nombre de código (Ever, 21-nov: le llegó «Confirm_appointment» solo, sin
+ * paréntesis): una palabra con guion bajo («confirm_appointment», «send_x»), JSON
+ * («"reply": …», «{…}»), comillas invertidas o «=>». Un mensaje en español nunca los
+ * lleva; los enlaces y correos (que sí pueden) se quitan antes de mirar.
+ */
+const SNAKE_CASE = /\b[A-Za-z]+(?:_[A-Za-z0-9]+)+\b/;
+const CODE_SHAPE = /[{}`]|=>|"\w+"\s*:/;
+const withoutLinks = (text: string) => text.replace(/https?:\/\/\S+|\bwww\.\S+|\b[\w.+-]+@[\w-]+\.[\w.]+/gi, " ");
+
+export const leaksInternals = (text: string): boolean => {
+  const t = withoutLinks(text);
+  return INTERNAL_ARG.test(t) || INTERNAL_TOOL.test(t) || PROSE_ESCALATION.test(t) || SNAKE_CASE.test(t) || CODE_SHAPE.test(t);
+};
 
 /** Los argumentos de una escalada contada en prosa: `clave=valor` y «razón «…»». */
 const proseCall = (text: string): { name: string; args: Record<string, string> } | null => {
@@ -183,7 +195,7 @@ const proseCall = (text: string): { name: string; args: Record<string, string> }
     args[m[1]] = (m[2] ?? m[3] ?? m[4] ?? "").trim();
   const why = text.match(/raz[oó]n\s*[«"“]([^»"”]+)[»"”]/i);
   if (why && !args.reason) args.reason = why[1].trim();
-  const tool = text.match(INTERNAL_TOOL);
+  const tool = text.match(INTERNAL_TOOL) ?? withoutLinks(text).match(SNAKE_CASE);
   const name = PROSE_ESCALATION.test(text) || args.category || args.severity ? "escalate" : tool ? toolKey(tool[0]) : "";
   return { name, args };
 };
@@ -206,6 +218,8 @@ export const findPseudoToolCall = (text: string): { name: string; args: Record<s
 };
 
 const ESCALATE_CATEGORIES = ["payment", "unknown", "complaint", "clinical", "reschedule", "other"] as const;
+/** Herramientas escritas como texto que no dejan nada pendiente con la persona. */
+const QUIET_TOOLS = new Set(["confirmappointment", "noreply", "sendsticker"]);
 export const PSEUDO_HOLDING = "Déjame consultarlo con Dayana y te confirmo por aquí.";
 
 /**
@@ -228,6 +242,10 @@ export const pseudoEscalation = (
   if (!call) return null;
   if (call.name !== "escalate") {
     if (!nothingLeft) return null;
+    // Una herramienta que no deja nada pendiente (Ever, 21-nov: «Si esta bien» a la llamada ya
+    // agendada → «Confirm_appointment»): no hay nada que esperar; nada sale y, si su mensaje
+    // pedía respuesta, Dayana lo ve en «Te toca» (run.ts, `tool_text`).
+    if (QUIET_TOOLS.has(call.name)) return null;
     return {
       category: "other",
       severity: "normal",

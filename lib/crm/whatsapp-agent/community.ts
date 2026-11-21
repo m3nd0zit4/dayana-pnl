@@ -37,7 +37,9 @@ export const asksToJoinCommunity = (texts: string[]): boolean => {
   const t = foldForSearch(texts.join(" "));
   // «Grupo» solo si es el de Dayana: «me agregan al grupo del curso», «¿el taller es en
   // grupo?», «sáquenme del grupo» no son la comunidad gratis (revisión 23-oct).
-  const community = /\bcomunidad\b/.test(t) || /\bgrupo (de dayana|de whatsapp|gratis|gratuito|de superacion|de mensajes)\b/.test(t);
+  // «agrégame al grupo» a secas también (Leidy, 16-nov: «me puedes agregar al grupo»): el
+  // grupo de un curso, taller o clase lo excluye `other`.
+  const community = /\bcomunidad\b/.test(t) || /\bgrupo\b/.test(t);
   const other = /\b(curso|taller|clase|clases|meet|zoom|grabacion\w*|pague|compre|sac\w*|salir|no quiero)\b/.test(t);
   return community && !other && /\b(unir\w*|me uno|entrar|entro|ingres\w*|agreg\w*|meter\w*|link|enlace|acceso|no (pude|puedo|me deja))\b/.test(t);
 };

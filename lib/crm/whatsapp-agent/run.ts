@@ -35,6 +35,8 @@ import { closeAttention, openAttention, openAttentionIfNeedsReply, recentOffer }
 import { categoryGate, type CategoryGate } from "./category-gate";
 import { conversationSituation, situationText } from "./situation";
 import { isIgnoredNumber } from "../whatsapp-ignored-numbers";
+import { communityLink } from "./community";
+import { quickIntentFor } from "./quick-intents";
 import { isBlockedNumber } from "../whatsapp-blocked-numbers";
 import { dossierText, getDossier, updateDossier, type Dossier } from "./dossier";
 import { olderSnippets } from "./context";
@@ -286,6 +288,12 @@ export const runWhatsAppAi = async (input: {
     // el modo sale del segmento de la persona (nueva, clienta…) o de lo que
     // Dayana eligió para este chat.
     const routeConfig = await getWhatsAppAiConfig();
+    // Pedidos simples que se contestan siempre, antes de cualquier otra regla (dueña, 21-nov:
+    // «si piden unirse a la comunidad, el link independientemente del historial»). Naty y
+    // Leidy pidieron entrar y no recibieron nada (callada tras la llamada), a «Huevos…» le
+    // llegó «¿Pudiste hablar con Dayana?» y a Gimena la sala de espera. Solo lo paran: la IA
+    // apagada, Dayana que tomó el chat o lo pausó, y un número personal.
+    if (enabled && head.aiModeOverride !== "MANUAL" && (await answerQuickIntent(conversationId, input.triggerMessageId, routeConfig))) return;
     // El segmento y el estado: para el enrutador, y también con el flujo de
     // venta (aunque el enrutador esté apagado) para no ofrecerle la llamada
     // gratis a una clienta o a quien ya la tuvo.
@@ -1849,4 +1857,53 @@ const sendAutoSticker = async (conversationId: string, url: string) => {
 
 const sendAuto = async (conversationId: string, body: string) => {
   await sendMetaMessage({ conversationId, body, isAutoReply: true });
+};
+
+/**
+ * Pedidos simples con una sola respuesta correcta, que no dependen del estado de la
+ * persona (`quick-intents.ts`): hoy, entrar a la comunidad. Se contestan antes de la sala
+ * de espera, el seguimiento de la llamada, el silencio tras la llamada o el modo clienta.
+ * Devuelve si contestó (entonces no sigue nada más en este turno).
+ */
+const answerQuickIntent = async (conversationId: string, triggerMessageId: string, config: WhatsAppAiConfig): Promise<boolean> => {
+  const conv = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: { aiPausedAt: true, blockedAt: true, externalThreadId: true },
+  });
+  if (!conv || conv.aiPausedAt || conv.blockedAt) return false;
+  const recent = await prisma.conversationMessage.findMany({
+    where: { conversationId, kind: "message" },
+    orderBy: [{ sentAt: "desc" }, { id: "desc" }],
+    take: 12,
+    select: { direction: true, body: true, sentAt: true, externalMessageId: true, status: true },
+  });
+  const intent = quickIntentFor({ recent: recent.reverse(), triggerMessageId, community: communityLink(config), now: new Date() });
+  if (!intent) return false;
+  if (await isIgnoredNumber(conv.externalThreadId)) return false;
+  const started = Date.now();
+  const sent = await sendMetaMessage({
+    conversationId,
+    body: `${intent.reply}\n\n${intent.link}`,
+    isAutoReply: true,
+    source: "asistente:comunidad",
+    clientKey: `comunidad:${triggerMessageId}`,
+  }).catch((e: unknown) => {
+    console.warn("[whatsapp-agent] no se pudo mandar el enlace de la comunidad", e);
+    return null;
+  });
+  if (!sent) return false;
+  await prisma.whatsAppAiRun.create({
+    data: {
+      conversationId,
+      status: "REPLIED",
+      reason: "quick:community",
+      triggerMessageId,
+      finishedAt: new Date(),
+      latencyMs: Date.now() - started,
+      toolCalls: [{ tool: "send_community_link", input: { auto: true }, output: { ok: true, note: "Pedido directo: se contesta antes que todo." } }] as unknown as Prisma.InputJsonValue,
+    },
+  });
+  // Si además pidió otra cosa («…y enviarme todos los costos», Leidy), eso lo ve Dayana.
+  if (intent.rest) await openAttention(conversationId, "other").catch(() => undefined);
+  return true;
 };

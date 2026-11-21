@@ -399,13 +399,28 @@ describe("nextFollowUp / followUpDue", () => {
     expect(nextFollowUp(money, CONFIG, BOG)?.at).toEqual(at("2026-10-27T15:00:00Z"));
   });
 
-  test("Dayana le escribió: espera dos días desde su mensaje", () => {
+  test("Dayana le escribió ella misma después de cotizar: el seguimiento lo lleva ella (dueña, 21-nov)", () => {
     const s = quoteSituation([quote, person("Gracias", "2026-10-19T20:05:00Z"), dayana("Con gusto mi bella 🙏", "2026-10-21T14:00:00Z")], {
       now: at("2026-10-22T15:00:00Z"),
       tz: BOG,
       lookbackDays: 14,
     })!;
-    expect(nextFollowUp(s, CONFIG, BOG)?.at).toEqual(at("2026-10-23T14:00:00Z"));
+    expect(nextFollowUp(s, CONFIG, BOG)).toBeNull();
+    // Mariana: acordaron el inicio con Dayana; nada de «¿Cuándo te gustaría empezar?».
+    const mariana = quoteSituation(
+      [quote, person("Listo, empiezo el lunes", "2026-10-19T21:00:00Z"), dayana("OK mi bella, quedo atenta para iniciar lunes 26", "2026-10-19T21:30:00Z")],
+      { now: at("2026-10-24T15:00:00Z"), tz: BOG, lookbackDays: 14 }
+    )!;
+    expect(followUpDue(mariana, CONFIG, { now: at("2026-10-24T15:00:00Z"), tz: BOG, lastOutboundAt: at("2026-10-19T21:30:00Z") })).toBeNull();
+  });
+
+  test("lo que Dayana manda en la media hora de la cotización (el audio) no cuenta como su seguimiento", () => {
+    const s = quoteSituation([quote, dayana("🎤 Quedo atenta mi bella", new Date(quote.sentAt.getTime() + 5 * 60_000).toISOString())], {
+      now: at("2026-10-22T15:00:00Z"),
+      tz: BOG,
+      lookbackDays: 14,
+    })!;
+    expect(nextFollowUp(s, CONFIG, BOG)).not.toBeNull();
   });
 
   test("no sale si su último mensaje está sin contestar, si le escribieron hace menos de 24 h o de noche", () => {

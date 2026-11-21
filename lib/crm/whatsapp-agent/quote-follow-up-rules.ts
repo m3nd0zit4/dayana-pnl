@@ -492,6 +492,13 @@ export const quoteSituation = (
   };
 };
 
+/** Lo que Dayana manda junto con la cotización (el audio, «quedo atenta») sigue siendo la cotización. */
+export const QUOTE_BURST_MS = 30 * 60_000;
+
+/** ¿Dayana le escribió ella misma después de la cotización (pasada la media hora de la cotización)? */
+export const dayanaFollowedUp = (s: Pick<QuoteSituation, "dayanaLastAt" | "quoteAt">): boolean =>
+  s.dayanaLastAt.getTime() > s.quoteAt.getTime() + QUOTE_BURST_MS;
+
 /** El día siguiente a `d` (en su zona), a las 10:00 a. m. */
 const dayAfterAt10 = (d: Date, tz: string) => zonedDateTimeToUtc(addDays(getDateKeyInTz(d, tz), 1), "10:00", tz);
 
@@ -507,6 +514,12 @@ export const nextFollowUp = (
 ): { at: Date; kind: "first" | "second" } | null => {
   if (s.state === "no_quiere" || s.state === "pago_enviado") return null;
   if (s.sent >= config.max) return null;
+  // Dayana le escribió ella misma después de cotizarle: el seguimiento lo lleva ella (dueña,
+  // 21-nov: «muchas veces ya lo hizo personalmente… y lo sigue haciendo»; Mariana: Dayana «quedo
+  // atenta para iniciar lunes 30 de noviembre» y la IA «¿Cuándo te gustaría empezar?»). Lo que
+  // manda en la media hora de la cotización (el audio, «quedo atenta») es parte de ella. Una
+  // cotización nueva de Dayana vuelve a empezar.
+  if (dayanaFollowedUp(s)) return null;
   const repliedSinceLast = Boolean(s.lastPersonAt && (!s.lastSentAt || s.lastPersonAt > s.lastSentAt));
   const kind: "first" | "second" = s.sent === 0 ? "first" : "second";
   let at: Date;

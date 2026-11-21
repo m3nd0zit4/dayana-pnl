@@ -340,3 +340,21 @@ describe("escalada contada en prosa (Mehmet, 16-nov)", () => {
     }
   });
 });
+
+describe("código suelto (Ever, 21-nov: «Confirm_appointment»)", () => {
+  test.each(["Confirm_appointment", "Listo.\nbook_free_call", '{"reply": "Hola"}', "Usa `send_payment_link`", "x => y"])("no sale: %s", (text) => {
+    expect(leaksInternals(text)).toBe(true);
+    expect(withoutToolText(text).had).toBe(true);
+  });
+  test("Ever: «Confirm_appointment» no deja nada pendiente: no escala ni manda «Déjame consultarlo»", () => {
+    expect(pseudoEscalation("Confirm_appointment", true)).toBeNull();
+    expect(pseudoEscalation("book_free_call", true)?.holdingReply).toBe(PSEUDO_HOLDING);
+  });
+  test.each([
+    "Aquí puedes pagar: https://www.dayanabeltran.com/pagar/p/therapy_6?x=a_b",
+    "Escríbele a dayana_beltran@gmail.com si tienes dudas",
+    "Tu llamada es el lunes a las 3:00 p. m. 🙏",
+  ])("normal: %s", (text) => {
+    expect(leaksInternals(text)).toBe(false);
+  });
+});
