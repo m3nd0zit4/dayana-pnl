@@ -702,6 +702,11 @@ const CLIENT_PAYMENT_MODE = `ESTA PERSONA YA ES CLIENTA DE DAYANA y la atiende e
 // Sin la hora: va en el prompt (AHORA). Así las reglas son iguales en cada
 // llamada y Gemini las cobra al 10 % desde su caché (19-oct: con la hora aquí
 // solo reutilizaba las llamadas del mismo minuto).
+/** Con la respuesta en formulario (`structuredReply`): cómo contestar. */
+const STRUCTURED_REPLY_RULE = `
+
+CÓMO CONTESTAS: tu mensaje para la persona va SIEMPRE dentro de la herramienta responder (campo «mensaje»), y solo el mensaje. Nunca escribas texto fuera de una herramienta. Si hay que pasarle el chat a Dayana, usa escalate (con su holdingReply); si no hace falta contestar, no_reply. Primero usa las herramientas que necesites (horas, agendar, datos de pago…) y al final responder.`;
+
 const systemPrompt = (
   config: WhatsAppAiConfig,
   opts: { salesFlow: boolean; autoBook: boolean; clientMode?: boolean } = { salesFlow: false, autoBook: false }
@@ -943,6 +948,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     urgentSession: BrainResult["urgentSession"];
     receipt: BrainResult["receipt"];
     noReply: string | null;
+    /** Lo que el modelo escribió en el formulario `responder` (fase 2): lo único que se le manda. */
+    replyText: string | null;
     slotOffer: BrainResult["slotOffer"];
     bookingNotice: BrainResult["bookingNotice"];
     /** Agendar dijo que ya tiene su llamada o no la pudo mover: no se listan horas. */
@@ -967,6 +974,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     urgentSession: null,
     receipt: null,
     noReply: null,
+    replyText: null,
     slotOffer: null,
     bookingNotice: null,
     keepsCall: null,
@@ -2058,13 +2066,30 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       return log("no_reply", { motivo }, { ok: true, note: "No escribas nada más." });
     },
   });
-  const activeTools = input.clientMode
+  // La respuesta en un formulario (fase 2, `structuredReply`): lo que la persona lee va SOLO en
+  // `responder.mensaje`; el texto suelto del modelo nunca sale (ahí se colaban «Escalo con
+  // category=…», «Confirm_appointment», notas internas). Con `toolChoice: required` cada paso
+  // usa una herramienta, y el turno termina con `responder`, `escalate` o `no_reply`.
+  const structured = config.structuredReply.enabled;
+  const replyTool = tool({
+    description:
+      "Tu mensaje para la persona, tal cual lo va a leer por WhatsApp. Solo el mensaje: nada de notas para Dayana, nombres de herramientas, categorías ni explicaciones de lo que hiciste. Úsala una vez, al final, cuando ya usaste las demás herramientas que necesitabas.",
+    inputSchema: z.object({ mensaje: z.string().min(1).max(1500).describe("El mensaje para la persona, en español, corto (2 o 3 frases).") }),
+    execute: async ({ mensaje }) => {
+      state.replyText = mensaje;
+      return { ok: true };
+    },
+  });
+  const baseTools = input.clientMode
     ? { escalate: tools.escalate, ...paymentTools }
     : toDayana
       ? { ...tools, no_reply: noReplyTool }
       : tools;
+  const activeTools = structured ? { ...baseTools, responder: replyTool } : baseTools;
 
-  const system = systemPrompt(config, { salesFlow: funnelOn && !input.clientMode, autoBook, clientMode: input.clientMode });
+  const system =
+    systemPrompt(config, { salesFlow: funnelOn && !input.clientMode, autoBook, clientMode: input.clientMode }) +
+    (structured ? STRUCTURED_REPLY_RULE : "");
   const result = await generateText({
     model: google(modelId()),
     system,
@@ -2085,7 +2110,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
         }
       : { prompt: promptText }),
     tools: activeTools,
-    stopWhen: [isStepCount(spendLimits(config).maxSteps), hasToolCall("escalate"), hasToolCall("no_reply")],
+    ...(structured ? { toolChoice: "required" as const } : {}),
+    stopWhen: [isStepCount(spendLimits(config).maxSteps), hasToolCall("escalate"), hasToolCall("no_reply"), hasToolCall("responder")],
   });
 
   // Le respondía a Dayana y el modelo no escribió nada ni usó herramientas: es
@@ -2104,14 +2130,20 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     return { ...again, toolCalls: [{ tool: "gemini_blocked", input: { reason: String(blockedBy) }, output: { retried: "sin ejemplos, ficha ni mensajes viejos" } }, ...again.toolCalls] };
   }
   const askedSomething = lastInbound.some((t) => /[?¿]/.test(t));
-  if (toDayana && !blockedBy && !askedSomething && !input.clientMode && !state.outcome && !state.noReply && !result.text.trim() && toolCalls.length === 0) {
+  // Lo que el modelo le escribió a la persona: el formulario (fase 2) o, sin él, su texto.
+  const modelText = structured ? (state.replyText ?? "") : result.text;
+  if (structured && !state.replyText && result.text.trim()) {
+    // Escribió texto suelto en vez del formulario: no sale (puede ser una nota interna).
+    log("loose_text", { auto: true }, { ok: true, replaced: result.text.slice(0, 300), note: "Texto fuera del formulario: no se envió." });
+  }
+  if (toDayana && !blockedBy && !askedSomething && !input.clientMode && !state.outcome && !state.noReply && !modelText.trim() && toolCalls.length === 0) {
     state.noReply = "Le estaba respondiendo a Dayana; no hacía falta que la asistente escribiera.";
   }
   const rawOutcome: BrainOutcome =
     state.outcome ??
-    (state.noReply && !result.text.trim() ? { kind: "reply", message: "" } : null) ??
-    (result.text.trim()
-      ? { kind: "reply", message: toWhatsAppFormat(result.text).slice(0, 1500) }
+    (state.noReply && !modelText.trim() ? { kind: "reply", message: "" } : null) ??
+    (modelText.trim()
+      ? { kind: "reply", message: toWhatsAppFormat(modelText).slice(0, 1500) }
       : {
           kind: "escalate",
           category: "unknown",

@@ -75,6 +75,8 @@ const main = async () => {
     context: { ...base.context, v2: true },
     ...(arg("level") ? { spend: { ...base.spend, level: arg("level") as typeof base.spend.level } } : {}),
     salesFlow: { ...base.salesFlow, enabled: true },
+    // `--formulario`: la respuesta en la herramienta `responder` (fase 2).
+    ...(process.argv.includes("--formulario") ? { structuredReply: { enabled: true } } : {}),
     booking: { ...base.booking, enabled: true },
     freeCall: { ...base.freeCall, autoBook: true },
     payments: {

@@ -423,6 +423,14 @@ export const whatsAppAiConfigSchema = z.object({
    */
   afterCall: z.object({ quiet: z.boolean().default(true) }),
   /**
+   * La respuesta en un formulario (fase 2 de la arquitectura, 22-nov): el modelo no escribe
+   * texto suelto; la respuesta va en la herramienta `responder` (solo el mensaje para la
+   * persona) y las escaladas en `escalate` (categoría y motivo, que la persona nunca ve). El
+   * texto suelto del modelo nunca sale: así no puede filtrarse código ni notas internas
+   * («Escalo con category=…», «Confirm_appointment»). Apagado por defecto hasta medirlo.
+   */
+  structuredReply: z.object({ enabled: z.boolean().default(false) }),
+  /**
    * Recordatorio de la llamada gratis antes de la hora (`free-call-reminder-rules.ts`):
    * «hoy a las … Dayana te llamará por WhatsApp, ten a mano un espacio
    * tranquilo». Encendido por defecto: lo pidió la dueña. Fuera de las 24 h
@@ -543,6 +551,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   waitingRoom: { enabled: false, proactive: false },
   callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
   afterCall: { quiet: true },
+  structuredReply: { enabled: false },
   quoteFollowUp: { enabled: true, firstAfterDays: 2, secondAfterDays: 4, max: 2, lookbackDays: 14 },
   freeCallReminder: { enabled: true, minutesBefore: 60, message: DEFAULT_FREE_CALL_REMINDER },
   noShow: { enabled: true, afterMin: 12, message: DEFAULT_NO_SHOW_MESSAGE },
