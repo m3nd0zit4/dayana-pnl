@@ -423,6 +423,12 @@ export const whatsAppAiConfigSchema = z.object({
    */
   afterCall: z.object({ quiet: z.boolean().default(true) }),
   /**
+   * Reglas y herramientas según la etapa (`prompt-scope.ts`, fase 6, 22-nov): con la llamada
+   * agendada, sin el embudo; tras la llamada, sin las reglas de persona nueva; sin cita, sin
+   * `confirm_appointment`. Apagado por defecto.
+   */
+  stageScope: z.object({ enabled: z.boolean().default(false) }),
+  /**
    * Recordatorio de la llamada gratis antes de la hora (`free-call-reminder-rules.ts`):
    * «hoy a las … Dayana te llamará por WhatsApp, ten a mano un espacio
    * tranquilo». Encendido por defecto: lo pidió la dueña. Fuera de las 24 h
@@ -543,6 +549,7 @@ export const defaultWhatsAppAiConfig = (): WhatsAppAiConfig => ({
   waitingRoom: { enabled: false, proactive: false },
   callFollowUp: { enabled: false, askAfterMin: 10, assumeMissedAfterHours: 24 },
   afterCall: { quiet: true },
+  stageScope: { enabled: false },
   quoteFollowUp: { enabled: true, firstAfterDays: 2, secondAfterDays: 4, max: 2, lookbackDays: 14 },
   freeCallReminder: { enabled: true, minutesBefore: 60, message: DEFAULT_FREE_CALL_REMINDER },
   noShow: { enabled: true, afterMin: 12, message: DEFAULT_NO_SHOW_MESSAGE },

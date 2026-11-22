@@ -9,7 +9,8 @@
  * Uso (contra neondb_dev, como el eval):
  *   GEMINI_MODEL=gemini-3.5-flash-lite bun --env-file=.env scripts/whatsapp-eval-gate.ts            # compara
  *   GEMINI_MODEL=gemini-3.5-flash-lite bun --env-file=.env scripts/whatsapp-eval-gate.ts --update   # guarda la línea base
- * `--k 2` por defecto; `--only a,b` para probar algunos (sin --update).
+ * `--k 2` por defecto; `--only a,b` para probar algunos (sin --update); `--stage-scope` y
+ * `--after-call-on` pasan al eval (un cambio apagado por defecto se mide encendido).
  * Sale con 1 si no pasa.
  */
 import { spawnSync } from "node:child_process";
@@ -27,11 +28,13 @@ const arg = (name: string) => {
 const k = Number(arg("k") ?? 2);
 const only = arg("only");
 const update = process.argv.includes("--update");
+/** Interruptores del eval que la puerta deja pasar (para medir un cambio apagado por defecto). */
+const PASS_THROUGH = ["--stage-scope", "--after-call-on"];
 
 const out = path.join(tmpdir(), `eval-gate-${Date.now()}.json`);
 const run = spawnSync(
   process.execPath,
-  ["scripts/whatsapp-agent-eval.ts", "--k", String(k), "--out", out, ...(only ? ["--only", only] : [])],
+  ["scripts/whatsapp-agent-eval.ts", "--k", String(k), "--out", out, ...(only ? ["--only", only] : []), ...PASS_THROUGH.filter((f) => process.argv.includes(f))],
   { stdio: ["ignore", "inherit", "inherit"], env: process.env }
 );
 if (!fs.existsSync(out)) {

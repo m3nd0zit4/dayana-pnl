@@ -16,6 +16,7 @@ export const SCENARIOS_21NOV: Scenario[] = [
   {
     id: "ever-si-esta-bien-tras-agendar",
     origin: "Ever Lidueña, 21-nov: tras agendar, «Si esta bien» y le llegó «Confirm_appointment»",
+    stage: "llamada_agendada",
     name: "Ever Lidueña",
     phone: "573001112233",
     hasBooking: true,

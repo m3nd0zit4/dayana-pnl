@@ -86,6 +86,7 @@ import { chatInstructionsLine } from "./chat-instructions";
 import { detectOtherLanguage, languageLine, toldSpanishOnly } from "./language";
 import { bookedMessage, offerMessage, type OfferedSlot } from "./slot-choice";
 import { NO_FREE_CALL_STAGES, STAGE_AI_RULE, STAGE_HELP, STAGE_LABEL, type Stage } from "./stage";
+import { AFTER_CALL_RULES, promptScope, type PromptScope } from "./prompt-scope";
 import {
   afterFreeCallBooked,
   afterFreeCallMoved,
@@ -705,9 +706,15 @@ const CLIENT_PAYMENT_MODE = `ESTA PERSONA YA ES CLIENTA DE DAYANA y la atiende e
 // solo reutilizaba las llamadas del mismo minuto).
 const systemPrompt = (
   config: WhatsAppAiConfig,
-  opts: { salesFlow: boolean; autoBook: boolean; clientMode?: boolean } = { salesFlow: false, autoBook: false }
+  opts: { salesFlow: boolean; autoBook: boolean; clientMode?: boolean; scope?: PromptScope } = { salesFlow: false, autoBook: false }
 ): string => {
-  const leadRules = opts.salesFlow ? salesFlowRules(config, { autoBook: opts.autoBook }) : LEGACY_LEAD_RULES;
+  // Fase 6 (`prompt-scope.ts`): con la llamada agendada, sin el embudo; tras la llamada, sin
+  // las reglas de persona nueva.
+  const leadRules = opts.salesFlow
+    ? salesFlowRules(config, { autoBook: opts.autoBook, scope: opts.scope === "booked" ? "booked" : undefined })
+    : opts.scope === "after_call"
+      ? AFTER_CALL_RULES
+      : LEGACY_LEAD_RULES;
   const clinicalRule = `${opts.salesFlow ? CLINICAL_SALES : CLINICAL_LEGACY}
 ${SEXUAL_RULE}`;
   const parts = [
@@ -2059,13 +2066,26 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
       return log("no_reply", { motivo }, { ok: true, note: "No escribas nada más." });
     },
   });
+  // Reglas y herramientas según la etapa (fase 6, `stageScope`, apagado por defecto).
+  const scope = promptScope({
+    enabled: config.stageScope.enabled,
+    stage: input.stage,
+    clientMode: input.clientMode,
+    guest: Boolean(guestEvent),
+    workshopFlow,
+    upcomingCall: Boolean(upcomingForLead),
+  });
+  // Sin cita no hay nada que confirmar (Ever, 21-nov: el modelo escribió «Confirm_appointment»).
+  const { confirm_appointment: _confirmAppointment, ...withoutConfirm } = tools;
+  void _confirmAppointment;
+  const scopedTools = scope === "lead" ? withoutConfirm : tools;
   const activeTools = input.clientMode
     ? { escalate: tools.escalate, ...paymentTools }
     : toDayana
-      ? { ...tools, no_reply: noReplyTool }
-      : tools;
+      ? { ...scopedTools, no_reply: noReplyTool }
+      : scopedTools;
 
-  const system = systemPrompt(config, { salesFlow: funnelOn && !input.clientMode, autoBook, clientMode: input.clientMode });
+  const system = systemPrompt(config, { salesFlow: funnelOn && !input.clientMode, autoBook, clientMode: input.clientMode, scope });
   const result = await generateText({
     model: google(modelId()),
     system,

@@ -10,6 +10,7 @@
  *
  *   GEMINI_MODEL=gemini-3.5-flash bun scripts/whatsapp-agent-eval.ts [--k 3] [--only id1,id2] [--out informe.json] [--no-judge] [--level ahorro]
  *
+ * `--stage-scope`: con las reglas según la etapa encendidas (fase 6).
  * `--level`: el nivel de gasto (`spend.ts`) con el que contesta: ahorro, equilibrado, completo.
  *
  * Contra `neondb_dev` (lee la configuración, los manuales y los datos del
@@ -81,6 +82,8 @@ const main = async () => {
     salesFlow: { ...base.salesFlow, enabled: true },
     booking: { ...base.booking, enabled: true },
     freeCall: { ...base.freeCall, autoBook: true },
+    // `--stage-scope`: las reglas y herramientas según la etapa (fase 6, `prompt-scope.ts`).
+    ...(process.argv.includes("--stage-scope") ? { stageScope: { enabled: true } } : {}),
     payments: {
       sendLinks: true,
       receipts: true,
