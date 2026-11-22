@@ -12,6 +12,7 @@ import { recipientFromContact, sendWhatsAppToRecipient } from "../whatsapp-outbo
 import { trustedContactTimezone } from "./booking-time";
 import { isFreeCallAppointment, meetCode } from "./event-title";
 import { NO_SHOW_GIVE_UP_MIN, noShowStep, noShowText, type DayanaIdentity } from "./no-show-rules";
+import { proactiveGate } from "./send-policy";
 
 /**
  * El aviso de sesión sin asistir (reglas en `no-show-rules.ts`): las sesiones
@@ -154,6 +155,15 @@ export const sweepSessionNoShows = async (config: WhatsAppAiConfig, now = new Da
       continue;
     }
 
+    // La puerta única: si Dayana ya le está escribiendo, no hace falta el mensaje.
+    if (!testDeps?.send) {
+      const gate = await proactiveGate({ conversationId: appt.conversationId, kind: "no_show", personTz: dayanaTz, now });
+      if (gate.action === "defer") continue;
+      if (gate.action === "skip") {
+        await prisma.calendarAppointment.updateMany({ where: { id: appt.id, noShowState: null }, data: { noShowState: "dayana_wrote", noShowAt: now } });
+        continue;
+      }
+    }
     // Se reclama antes de enviar: sale una sola vez.
     const claimed = await prisma.calendarAppointment.updateMany({
       where: { id: appt.id, noShowState: null },

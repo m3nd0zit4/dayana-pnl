@@ -24,6 +24,9 @@
  */
 export {};
 
+// La puerta única no frena de noche en las pruebas (corren a cualquier hora).
+process.env.E2E_IGNORE_DAY_HOURS = "1";
+
 process.env.NOTIFICATIONS_DRY_RUN = "true";
 
 const main = async () => {

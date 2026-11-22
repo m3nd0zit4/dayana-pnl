@@ -14,6 +14,7 @@ import { followUpDue, followUpText, isQuoteLine, QUOTE_FOLLOW_UP_SOURCE, QUOTE_S
 import { quoteLinesFor, quoteZoneFor } from "./quote-follow-up-view";
 import { computeSegment } from "./segment-store";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
+import { proactiveGate } from "./send-policy";
 
 /**
  * El envío del seguimiento del cierre (reglas en `quote-follow-up-rules.ts`):
@@ -99,6 +100,9 @@ const advance = async (conversationId: string, config: WhatsAppAiConfig, now: Da
   const lastOutboundAt = [...lines].reverse().find((l) => l.direction === "OUTBOUND" && l.kind !== "system")?.sentAt ?? null;
   const due = followUpDue(s, config.quoteFollowUp, { now, tz, lastOutboundAt });
   if (!due) return "not_due";
+  // La puerta única (`send-policy.ts`): Dayana escribiendo, la persona que acaba de escribir,
+  // otro automático hace poco, de noche. Espera a la siguiente pasada.
+  if ((await proactiveGate({ conversationId, kind: "quote_follow_up", personTz: tz, now })).action !== "send") return "not_due";
 
   // Solo «tuvo la llamada», sin dudas de pago (comprobante por revisar, dice que pagó).
   const seg = await computeSegment(conversationId).catch(() => null);

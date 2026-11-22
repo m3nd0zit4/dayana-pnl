@@ -29,8 +29,7 @@ import { isFreeCallAppointment } from "./event-title";
 import { offerFreeCallSlots } from "./free-call";
 import { slotLabel } from "./free-call-rules";
 import { GUARD_SELECT, waitingRoomBlocked } from "./waiting-room";
-import { HUMAN_ACTIVE_MIN, humanActive } from "./send-policy";
-import { inSendingHours } from "./quote-follow-up-rules";
+import { HUMAN_ACTIVE_MIN, humanActive, proactiveGate } from "./send-policy";
 import { isWhatsAppAutoReplyEnabled } from "../whatsapp-autoreply";
 import { personFirstName } from "@/lib/person-name";
 import { dayanaPaymentInfoAt } from "./dayana-messages";
@@ -228,7 +227,6 @@ const sendReschedule = async (
 const sendCheck = async (appt: Appt, conv: Conv) => {
   // Dayana o su equipo le acaban de escribir: la conversación es de ellas (Kate, Yanet: la
   // pregunta salió 4–6 s después de que Dayana escribió). El reloj vuelve a mirar después.
-  if (await humanActive(conv.id, HUMAN_ACTIVE_MIN.proactive)) return false;
   const claimedAt = new Date();
   const claimed = await prisma.calendarAppointment.updateMany({
     where: { id: appt.id, outcomeCheckAt: null, callOutcome: null },
@@ -295,15 +293,20 @@ const advance = async (appt: Appt, config: WhatsAppAiConfig, now: Date, aiEnable
     assumeMissedAfterHours: config.callFollowUp.assumeMissedAfterHours,
     dayanaWrote: dayanaWroteSince(around, appt.startsAt),
   });
-  // De noche no sale nada solo (Manuel y Leiner, 18-nov: «no lograron comunicarse» a las
-  // 3:48 a. m.): la pregunta y el «no contestó» por tiempo esperan al día, en su hora.
-  const daytime = inSendingHours(new Date(), personZoneOf(conv) ?? (await getOperationalTimezone()));
-  if (!daytime && (next.kind === "ask" || (next.kind === "settle" && next.source === "timeout"))) return "espera_el_dia";
+  // La puerta única (`send-policy.ts`): Dayana escribiendo, la persona que acaba de escribir,
+  // otro automático hace poco, de noche (Manuel y Leiner, 18-nov: 3:48 a. m.). Si espera, no se
+  // decide nada todavía: el reloj vuelve a mirar. Solo lo que sale sin que la persona lo pidiera:
+  // la pregunta y el «no contestó» por tiempo. Si ella escribió «no me llamaron», las horas son la
+  // respuesta (solo se frenan si Dayana le está escribiendo).
+  const gateKind = next.kind === "ask" ? "call_check" : next.kind === "settle" && next.reschedule && next.source === "timeout" ? "reschedule" : null;
+  if (gateKind) {
+    const gate = await proactiveGate({ conversationId: conv.id, kind: gateKind, personTz: personZoneOf(conv) ?? (await getOperationalTimezone()), now });
+    if (gate.action !== "send") return `espera: ${gate.why}`;
+  }
   switch (next.kind) {
     case "settle":
       if (!(await settle(appt.id, next.outcome, next.source, next.reason))) return "ya_decidida";
-      // Dayana o su equipo le acaban de escribir: no se le manda el mensaje para reagendar encima.
-      if (next.reschedule && !(await humanActive(conv.id, HUMAN_ACTIVE_MIN.proactive))) await sendReschedule(appt, conv, config);
+      if (next.reschedule && (gateKind || !(await humanActive(conv.id, HUMAN_ACTIVE_MIN.proactive)))) await sendReschedule(appt, conv, config);
       return next.outcome;
     case "ask":
       await sendCheck(appt, conv);

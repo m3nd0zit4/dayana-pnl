@@ -16,6 +16,7 @@ import { proposeForApproval } from "./whatsapp-agent/approvals";
 import { openAttention } from "./whatsapp-agent/attention";
 import { polishReply } from "./whatsapp-agent/wording";
 import { effectiveAiMode } from "./whatsapp-agent/mode";
+import { proactiveGate } from "./whatsapp-agent/send-policy";
 
 /**
  * Autoevaluación → WhatsApp.
@@ -348,6 +349,17 @@ export const runDiagnosticOutreach = async (
     if (!opts.force && isLiveChat(conv.lastInboundAt)) {
       await setStatus(diagnosticId, "SKIPPED", "Ya estaba conversando por WhatsApp: la IA sigue esa conversación con la autoevaluación.");
       return { status: "SKIPPED", reason: "Ya estaba conversando.", conversationId: conversation.id };
+    }
+
+    // La puerta única (`send-policy.ts`): Dayana o su equipo ya le están escribiendo → ellas
+    // siguen; el saludo de la asistente sobra. (Lo demás de la puerta no aplica: la persona acaba
+    // de llenar la autoevaluación y este envío no se repite más tarde.)
+    if (!opts.force) {
+      const gate = await proactiveGate({ conversationId: conversation.id, kind: "diagnostic", personTz: "America/Bogota" });
+      if (gate.action === "skip") {
+        await setStatus(diagnosticId, "SKIPPED", `No se le escribió: ${gate.why}.`);
+        return { status: "SKIPPED", reason: gate.why, conversationId: conversation.id };
+      }
     }
 
     await refreshTemplatesIfPending().catch(() => undefined);

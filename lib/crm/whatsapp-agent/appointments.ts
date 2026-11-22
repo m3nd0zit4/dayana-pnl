@@ -23,6 +23,7 @@ import { bookingFollowsEvent, CANCELLED_BOOKING, listedUntil } from "./free-call
 import { getTimeLabelInTz, isValidIanaTimeZone } from "@/lib/datetime/zoned-time";
 import { personFirstName } from "@/lib/person-name";
 import { appointmentGreetingName } from "./chat-name";
+import { proactiveGate } from "./send-policy";
 
 /**
  * Las citas del Google Calendar de Dayana, ligadas a cada persona.
@@ -609,6 +610,10 @@ export const sendDueReminders = async (opts: { now?: Date } = {}): Promise<Remin
       result.skipped++;
       continue;
     }
+    // La puerta única (`send-policy.ts`): con Dayana escribiendo o la persona que acaba de
+    // escribir, espera al siguiente turno del reloj (la ventana del de 24 h es de dos horas).
+    const gate24 = await proactiveGate({ conversationId: appt.conversationId, kind: "reminder_24h", personTz: await personZone(appt, tz), now });
+    if (gate24.action !== "send") continue;
     // Reclamo: si otro proceso ya lo tomó, no se manda dos veces.
     const claimed = await prisma.calendarAppointment.updateMany({
       where: { id: appt.id, reminderSentAt: null },
@@ -773,6 +778,18 @@ export const sendSoonReminders = async (
       continue;
     }
 
+    // La puerta única: Dayana le está escribiendo (ya no hace falta) o la persona acaba de
+    // escribir (espera unos minutos: la IA le contesta).
+    const gate1h = await proactiveGate({ conversationId: appt.conversationId, kind: "reminder_1h", personTz: await personZone(appt, tz), now });
+    if (gate1h.action === "defer") continue;
+    if (gate1h.action === "skip") {
+      const marked = await prisma.calendarAppointment.updateMany({
+        where: { id: appt.id, reminderSoonSentAt: null },
+        data: { reminderSoonSentAt: now, reminderSoonSkipped: `No hizo falta: ${gate1h.why}.`.slice(0, 300) },
+      });
+      result.notNeeded += marked.count;
+      continue;
+    }
     // Reclamo: si otro proceso ya lo tomó, no se manda dos veces.
     const claimed = await prisma.calendarAppointment.updateMany({
       where: { id: appt.id, reminderSoonSentAt: null },

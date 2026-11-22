@@ -33,6 +33,9 @@
  */
 export {};
 
+// La puerta única no frena de noche en las pruebas (corren a cualquier hora).
+process.env.E2E_IGNORE_DAY_HOURS = "1";
+
 process.env.NOTIFICATIONS_DRY_RUN = "true";
 // Los avisos quedan en la base de desarrollo: sin clave, Inngest rechaza el
 // evento del correo (si no, saldría a Inngest con la clave del .env).

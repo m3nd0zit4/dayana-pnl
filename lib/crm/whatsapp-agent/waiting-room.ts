@@ -11,6 +11,7 @@ import type { WhatsAppAiConfig } from "../whatsapp-ai-config";
 import { readCalendar } from "./calendar";
 import { DEFAULT_WAITING, decideWaiting, waitingMessage, type WaitingDecision } from "./waiting-room-rules";
 import { appointmentGreetingName } from "./chat-name";
+import { proactiveGate } from "./send-policy";
 
 /**
  * La sala de espera de la llamada gratis, con la base y el calendario. Las
@@ -127,6 +128,11 @@ const noticeFor = async (input: {
   });
   if (decision.kind === "none") return { sent: false, decision, holdAi: Boolean(decision.holdAi) };
   if (input.onlyBusy && decision.kind !== "busy") return { sent: false, decision, holdAi: false };
+  // El reloj (nadie escribió): pasa por la puerta única; con Dayana escribiendo no sale.
+  if (input.onlyBusy) {
+    const gate = await proactiveGate({ conversationId: input.conversationId, kind: "waiting_room", personTz: await getOperationalTimezone(), now: input.now });
+    if (gate.action !== "send") return { sent: false, decision: { kind: "none", reason: gate.why }, holdAi: false };
+  }
 
   // Reclamo atómico: dos mensajes seguidos de la persona no mandan dos avisos.
   const claimed = await prisma.calendarAppointment.updateMany({
