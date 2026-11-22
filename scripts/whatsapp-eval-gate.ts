@@ -2,7 +2,8 @@
  * La puerta de evaluación (fase 5 de la arquitectura, 22-nov): antes de publicar un cambio de
  * la IA de WhatsApp, se corre el eval y se compara con la línea base guardada. No se publica si:
  *
- * - un caso que pasaba SIEMPRE (k de k) ahora no pasa ninguna vez (algo se rompió);
+ * - un caso que pasaba SIEMPRE (k de k) ahora no pasa ninguna vez, ni en otras `CONFIRM_K`
+ *   corridas solo de ese caso (algo se rompió; una sola tanda de k=2 es azar);
  * - el total de casos que pasan baja más de `TOLERANCE` (el modelo varía un poco entre corridas);
  * - a alguien le llegaría texto interno («se filtró texto interno»), en cualquier caso.
  *
@@ -18,7 +19,7 @@ import fs from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { compareToBaseline, type Baseline, type EvalReport } from "@/lib/crm/whatsapp-agent/eval/gate";
+import { CONFIRM_K, compareToBaseline, suspectBroken, withConfirmation, type Baseline, type EvalReport } from "@/lib/crm/whatsapp-agent/eval/gate";
 
 const BASELINE = path.join(process.cwd(), "lib/crm/whatsapp-agent/eval/baseline.json");
 const arg = (name: string) => {
@@ -31,17 +32,20 @@ const update = process.argv.includes("--update");
 /** Interruptores del eval que la puerta deja pasar (para medir un cambio apagado por defecto). */
 const PASS_THROUGH = ["--stage-scope", "--after-call-on"];
 
-const out = path.join(tmpdir(), `eval-gate-${Date.now()}.json`);
-const run = spawnSync(
-  process.execPath,
-  ["scripts/whatsapp-agent-eval.ts", "--k", String(k), "--out", out, ...(only ? ["--only", only] : []), ...PASS_THROUGH.filter((f) => process.argv.includes(f))],
-  { stdio: ["ignore", "inherit", "inherit"], env: process.env }
-);
-if (!fs.existsSync(out)) {
-  console.error(`❌ El eval no dejó informe (salió con ${run.status}).`);
-  process.exit(1);
-}
-const report = JSON.parse(fs.readFileSync(out, "utf8")) as EvalReport;
+const runEval = (runK: number, ids: string | undefined): EvalReport => {
+  const out = path.join(tmpdir(), `eval-gate-${Date.now()}.json`);
+  const run = spawnSync(
+    process.execPath,
+    ["scripts/whatsapp-agent-eval.ts", "--k", String(runK), "--out", out, ...(ids ? ["--only", ids] : []), ...PASS_THROUGH.filter((f) => process.argv.includes(f))],
+    { stdio: ["ignore", "inherit", "inherit"], env: process.env }
+  );
+  if (!fs.existsSync(out)) {
+    console.error(`❌ El eval no dejó informe (salió con ${run.status}).`);
+    process.exit(1);
+  }
+  return JSON.parse(fs.readFileSync(out, "utf8")) as EvalReport;
+};
+let report = runEval(k, only);
 
 if (update) {
   if (only) {
@@ -60,6 +64,14 @@ if (update) {
 }
 
 const baseline = fs.existsSync(BASELINE) ? (JSON.parse(fs.readFileSync(BASELINE, "utf8")) as Baseline) : null;
+// Un caso que pasaba siempre y ahora no pasó: se confirma con más corridas (el azar del modelo).
+const suspects = suspectBroken(report, baseline);
+if (suspects.length) {
+  console.log(`
+No pasaron y antes siempre: ${suspects.join(", ")}. Otra vez, ${CONFIRM_K} veces cada uno…
+`);
+  report = withConfirmation(report, runEval(CONFIRM_K, suspects.join(",")));
+}
 const verdict = compareToBaseline(report, baseline, { k, partial: Boolean(only) });
 console.log("");
 for (const line of verdict.lines) console.log(line);

@@ -17,7 +17,32 @@ export type Baseline = {
 
 /** Cuántos casos menos que la línea base se aceptan (el modelo varía un poco). */
 export const TOLERANCE = 2;
+/**
+ * Un caso que pasaba siempre y ahora no pasó ninguna de las k veces se vuelve a correr
+ * `CONFIRM_K` veces antes de llamarlo roto (22-nov: con k=2, la misma versión sin cambios dio
+ * «se rompieron» 3 casos que en la corrida siguiente pasaban: era el azar del modelo).
+ */
+export const CONFIRM_K = 4;
 export const LEAK = "se filtró texto interno";
+
+/** Los casos que habría que dar por rotos (pasaban k de k, ahora ninguna vez). */
+export const suspectBroken = (report: EvalReport, baseline: Baseline | null): string[] =>
+  baseline ? report.results.filter((r) => baseline.cases[r.id] === baseline.k && r.passes === 0).map((r) => r.id) : [];
+
+/**
+ * Junta la segunda corrida de los sospechosos: el que pasó alguna vez no está roto (cuenta
+ * como que pasa), y lo que la persona recibiría en esa segunda corrida también se revisa
+ * (texto interno).
+ */
+export const withConfirmation = (report: EvalReport, rerun: EvalReport): EvalReport => {
+  const again = new Map(rerun.results.map((r) => [r.id, r]));
+  return {
+    results: report.results.map((r) => {
+      const a = again.get(r.id);
+      return a ? { ...r, passes: a.passes > 0 ? 1 : 0, runs: [...r.runs, ...a.runs] } : r;
+    }),
+  };
+};
 
 export const compareToBaseline = (
   report: EvalReport,
@@ -40,7 +65,7 @@ export const compareToBaseline = (
   }
   if (baseline.k !== opts.k) lines.push(`⚠️ La línea base es con k=${baseline.k}; esta corrida con k=${opts.k}.`);
   // Un caso que pasaba siempre y ahora no pasa nunca: algo se rompió.
-  const broken = report.results.filter((r) => baseline.cases[r.id] === baseline.k && r.passes === 0);
+  const broken = report.results.filter((r) => suspectBroken({ results: [r] }, baseline).length > 0);
   if (broken.length) {
     ok = false;
     lines.push(`❌ Se rompieron (pasaban siempre, ahora nunca): ${broken.map((r) => r.id).join(", ")}`);
