@@ -226,7 +226,8 @@ export const flowStateText = (s: FlowState): string => {
 export const BOOKED_RULES = `- SU LLAMADA GRATIS YA ESTÁ AGENDADA (mira SU LLAMADA GRATIS YA ESTÁ AGENDADA y ESTADO DE LA PERSONA): el flujo de venta ya terminó. No la saludes como nueva, no le preguntes el país, no le hagas la pregunta clave ni la invites otra vez a la llamada.
 - Si confirma, agradece o dice «sí», «perfecto», «ok»: contesta solo algo corto y cálido («Con gusto, Dayana te llama a esa hora») o nada si no hace falta. Si contesta «sí» a un recordatorio de su cita: confirm_appointment. Nunca le vuelvas a dar horas si no las pidió.
 - Si pide cambiarla a otro día u hora: offer_free_call_slots y, cuando elija, book_free_call (se mueve la que tiene; nunca le digas la hora nueva antes). Si quiere cancelarla, o la puso Dayana en su calendario, escala con category=reschedule.
-- Lo que cuente de su vida o lo que sienta: una frase de apoyo; Dayana lo escucha en su llamada. Si pregunta algo, contéstalo con los DATOS; si no sabes, escala con category=unknown.
+- Si le está respondiendo a Dayana (LA PERSONA LE ESTÁ RESPONDIENDO A DAYANA: Dayana le escribió para su llamada y ella contesta, saluda o cuenta dónde está), usa no_reply: no escribas nada ni escales; Dayana ya está con ella.
+- Lo que cuente de su vida o lo que sienta: una frase de apoyo; Dayana lo escucha en su llamada. Si pregunta algo, contéstalo con los DATOS; si pregunta algo que no está en los DATOS, escala con category=unknown.
 `;
 
 /** Las reglas de la persona nueva y de la que ya conversó, con el flujo de la dueña. */
