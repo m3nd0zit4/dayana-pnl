@@ -18,6 +18,7 @@ import { playbooksBlock } from "./playbooks";
 import { activePaymentLinkFor, enabledMethods, paymentDetails, paymentMethodsForPrompt, toMinor } from "./payment-info";
 import { formatMoneyMinor } from "../money";
 import { alreadyPaidReply, alreadyPaidToolNote, claimsPaymentConfirmed, paymentReviewReply } from "./receipt-already-paid";
+import { DATA_LATER_REPLY, methodFor, promisesPaymentData, withoutUnbackedDayanaClaims } from "./claims";
 import { likelySamePayment, providerLabel, webPaymentForReceipt } from "./receipt-web-payment";
 import { dayanaOfferedSlot, exactTimeFrom, hourLimitsFrom, saidPartOfDay, saysCantMakeIt, spreadSlots, wishFromWords, type WishStep } from "./slots";
 import { redactPrices } from "./price-guard";
@@ -2418,6 +2419,8 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
   }
   // El enlace de pago que Dayana le creó en el CRM: si el modelo lo vuelve a escribir, no es inventado.
   const crmPayUrl = input.contactId ? ((await activePaymentLinkFor(input.contactId).catch(() => null))?.url ?? null) : null;
+  // Prometió los datos de pago y el código no supo cuáles pegar (fase 4): no sale la promesa sola.
+  let dataPromiseUnmet = false;
   const replyText = (message: string) => {
     let text = state.urgentSession ? withoutHoyMismo(withoutFakeLinks(message) || message) : message;
     // La comunidad o el curso ofrecidos sin su herramienta (eval 21-oct: «aquí puedes
@@ -2594,17 +2597,22 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     // le llegaba la promesa sin los datos. Con las mismas reglas que la herramienta,
     // el código pega la forma de pago que nombra (o la única que hay).
     if (
-      methods.length > 0 &&
       state.paymentDetails.length === 0 &&
       !state.paymentLink &&
       !chatLink &&
       !chatPayInfo &&
-      /\b(te comparto|aqui (tienes|van|te dejo)|te paso|te envio) (los |las )?(datos|cuenta|cuentas)\b/.test(foldForSearch(text))
+      promisesPaymentData(text)
     ) {
-      const named = methods.find((m) => foldForSearch(text).includes(foldForSearch(m.label))) ?? (methods.length === 1 ? methods[0] : null);
+      // Fase 4 (22-nov, `claims.ts`): la que nombra por su palabra principal («Western Union»,
+      // no «Western Union – Banco Unión»: Gissella recibió la promesa sola dos veces) o la de
+      // su país; si no se puede saber cuál, la promesa no sale sola (`dataPromiseUnmet`).
+      const countryIso = state.country?.iso ?? inferLocaleFromPhone(`+${input.phone}`, "CO")?.countryIso ?? null;
+      const named = methodFor(text, methods, countryIso);
       if (named) {
         state.paymentDetails.push(named.details);
         log("send_payment_info", { method: named.key, auto: true }, { ok: true, label: named.label, note: "Lo pegó el código: la respuesta prometía los datos sin la herramienta." });
+      } else {
+        dataPromiseUnmet = true;
       }
     }
     // El enlace de Dayana copiado a mano: lo pega el código debajo, como send_payment_link.
@@ -2643,10 +2651,19 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     const wall = (zone: string) => new Date(now.toLocaleString("en-US", { timeZone: zone })).getTime();
     return Math.round((wall(tz) - wall(timezone)) / 60_000);
   })();
-  const named = (text: string | null) =>
-    text
-      ? fixZoneClaims(fixNameInReply(withoutPlaceholders(text, sureFirstName(nameInfo)) || text.replace(/\[[^\]\n]*\]/g, "").trim(), nameInfo), zoneOffset)
-      : text;
+  // Lo que Dayana hizo o pidió solo con una nota o instrucción suya para este chat (fase 4,
+  // `claims.ts`: «Dayana me pidió que te confirmara el depósito», «Dayana intentó comunicarse»).
+  const dayanaNoted = Boolean(input.chatInstructions?.trim() || input.memory?.trim());
+  const named = (text: string | null) => {
+    if (!text) return text;
+    const backed = withoutUnbackedDayanaClaims(text, dayanaNoted);
+    if (backed.removed) log("dayana_claim", { auto: true }, { ok: true, replaced: text, note: "Decía algo de Dayana sin respaldo: esa frase no salió." });
+    if (!backed.text) return "";
+    return fixZoneClaims(
+      fixNameInReply(withoutPlaceholders(backed.text, sureFirstName(nameInfo)) || backed.text.replace(/\[[^\]\n]*\]/g, "").trim(), nameInfo),
+      zoneOffset
+    );
+  };
   // Dijo que sí a la llamada gratis y el modelo le preguntó qué día prefiere, o el país
   // otra vez, sin buscar horas (Moi, Belén, Ana, 21–26 oct: nunca les llegaron). Las
   // busca el código, como la herramienta (con los días o la franja que dijo ahora), y
@@ -2805,6 +2822,17 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
           ),
         }
       : answered;
+  // Prometió los datos de pago y no se pudo saber cuáles (fase 4): la promesa no sale sola
+  // (Gissella, Yuri). Sale que Dayana se los comparte y Dayana recibe el aviso.
+  const promiseUnmet = dataPromiseUnmet && shaped.kind === "reply" && state.paymentDetails.length === 0 && !state.paymentLink;
+  if (promiseUnmet && shaped.kind === "reply") {
+    log("payment_data_promise", { auto: true }, { ok: true, replaced: shaped.message, note: "Prometía los datos de pago sin saber cuáles: Dayana se los comparte." });
+    state.silentEscalation ??= {
+      category: "payment",
+      severity: "normal",
+      reason: `Pidió cómo pagar («${lastInbound.join(" ").slice(0, 150)}») y no se supo qué forma de pago le corresponde: mándale tú los datos.`,
+    };
+  }
   // Dayana le escribió hace un momento y la persona le contesta a ella: esa
   // conversación es de Dayana (Raquel, 22-oct: a su respuesta al audio de
   // Dayana la IA metió «Quedamos listas…» encima). La IA no se mete, salvo con
@@ -2835,7 +2863,7 @@ export const think = async (input: BrainInput): Promise<BrainResult> => {
     state.noReply = "Dayana le escribió hace un momento y le está contestando a ella.";
     log("no_reply", { auto: true }, { ok: true, replaced: shaped.message, note: "Lo decidió el código: Dayana está en la conversación." });
   }
-  const stepped: BrainOutcome = stepAside ? { kind: "reply", message: "" } : shaped;
+  const stepped: BrainOutcome = stepAside ? { kind: "reply", message: "" } : promiseUnmet ? { kind: "reply", message: DATA_LATER_REPLY } : shaped;
   // Solo Dayana confirma pagos (dueña, 15-nov, Ana Villalvazo: «Tu pago por el enlace ya quedó
   // registrado ✅»). Si el modelo da un pago por confirmado, registrado o recibido, sale
   // «Recibí tu comprobante. Dayana revisa tu pago y te confirma por aquí» (sin enlaces ni datos).
