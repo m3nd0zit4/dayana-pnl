@@ -104,6 +104,15 @@ const SalesFlowSection = () => {
         checked={config.quoteFollowUp.enabled}
         onChange={(v) => change("wa-quote-followup", "quoteFollowUp.enabled", v)}
       />
+      <ToggleRow
+        id="wa-stage-scope"
+        label="Reglas según la etapa de la persona"
+        help="La asistente solo lee las reglas del paso en que está cada persona: a quien ya agendó no le repite el camino para agendar ni le vuelve a dar horas, y a quien ya tuvo la llamada no la trata como nueva."
+        info="Probado con los 90 casos de prueba antes de publicarlo. Si notas algo raro, apágalo y todo vuelve a ser como antes."
+        state={states["wa-stage-scope"]}
+        checked={config.stageScope.enabled}
+        onChange={(v) => change("wa-stage-scope", "stageScope.enabled", v)}
+      />
       <SettingRow
         id="wa-call-followup-hours"
         label="Horas sin respuesta para darla por no contestada"

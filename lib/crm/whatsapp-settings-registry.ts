@@ -265,6 +265,12 @@ export const WHATSAPP_SETTINGS: WhatsAppSettingEntry[] = [
     tab: "ia",
   },
   {
+    id: "wa-stage-scope",
+    label: "Reglas según la etapa de la persona",
+    keywords: ["etapa", "estado", "llamada agendada", "tuvo la llamada", "reglas", "prompt", "embudo"],
+    tab: "ia",
+  },
+  {
     id: "wa-call-followup-hours",
     label: "Horas para dar la llamada por no contestada",
     keywords: ["horas", "no contestó", "sin respuesta", "reagendar"],
