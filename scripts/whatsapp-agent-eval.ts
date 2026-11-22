@@ -45,7 +45,11 @@ const main = async () => {
   const { conversationSituation, situationText } = await import("@/lib/crm/whatsapp-agent/situation");
   const { SCENARIOS: BASE_SCENARIOS } = await import("@/lib/crm/whatsapp-agent/eval/scenarios");
   const { SCENARIOS_14NOV } = await import("@/lib/crm/whatsapp-agent/eval/scenarios-14nov");
-  const SCENARIOS = [...BASE_SCENARIOS, ...SCENARIOS_14NOV];
+  const { SCENARIOS_21NOV } = await import("@/lib/crm/whatsapp-agent/eval/scenarios-21nov");
+  const SCENARIOS = [...BASE_SCENARIOS, ...SCENARIOS_14NOV, ...SCENARIOS_21NOV];
+  const { quickIntentFor } = await import("@/lib/crm/whatsapp-agent/quick-intents");
+  const { communityLink } = await import("@/lib/crm/whatsapp-agent/community");
+  const { leaksInternals, pseudoEscalation, withoutToolText } = await import("@/lib/crm/whatsapp-agent/reply-guards");
   const { gradeReply } = await import("@/lib/crm/whatsapp-agent/eval/graders");
   const { judgePasses, judgeReply } = await import("@/lib/crm/whatsapp-agent/eval/judge");
 
@@ -104,6 +108,25 @@ const main = async () => {
   const openWs = await openWorkshopForAi(now).catch(() => null);
 
   const runOnce = async (s: (typeof scenarios)[number]): Promise<Run> => {
+    // Los pedidos simples que run.ts contesta antes que todo (`quick-intents.ts`, 21-nov): la
+    // comunidad sale aunque esté callada tras la llamada.
+    const quick = quickIntentFor({
+      recent: s.transcript.map((l, i) => ({ direction: l.direction, body: l.body, sentAt: new Date(now.getTime() - (s.transcript.length - i) * 3600_000) })),
+      triggerMessageId: "eval",
+      community: communityLink(config),
+      now,
+    });
+    if (quick) {
+      const reply = `${quick.reply}
+
+${quick.link}`;
+      const e = s.expect;
+      const failed: string[] = [];
+      if (e.outcome && e.outcome !== "reply") failed.push(`esperaba ${e.outcome}, hizo reply`);
+      for (const re of e.mustMatch ?? []) if (!re.test(reply)) failed.push(`falta ${re}`);
+      for (const re of e.mustNotMatch ?? []) if (re.test(reply)) failed.push(`no debía decir ${re}`);
+      return { outcome: "reply", reply, tools: ["send_community_link"], failed, pass: failed.length === 0 };
+    }
     // El silencio después de la llamada, como run.ts (dueña, 13-nov, Merylin): en «tuvo la
     // llamada» la IA no contesta (Dayana lo ve en «Te toca»), salvo hablando del taller; y a
     // un comprobante solo le acusa recibo (como a una clienta).
@@ -187,19 +210,29 @@ const main = async () => {
     // Agendó y después escaló: run.ts le manda la confirmación del código (sin aviso de espera).
     const draft = o?.kind === "reply" ? polishReply(o.message) : polishReply(result.bookingNotice?.text ?? (result.holdingReply?.trim() || "Déjame consultarlo con Dayana y te confirmo por aquí."));
     const breach = promiseBreach({ text: draft, backing, hasBooking: booked, bookingToday: false });
+    // Como run.ts: el texto interno (herramientas escritas, «category=…», nombres de código) no
+    // sale; si no queda nada y era una escalada escrita, sale su aviso de espera.
+    const stripped = o?.kind === "reply" ? withoutToolText(draft) : { text: draft, had: false };
+    const pseudo = stripped.had ? pseudoEscalation(o?.kind === "reply" ? o.message : draft, !stripped.text.trim()) : null;
     const sent: string | null = silentClient || repeatedReceipt || quiet
       ? null
       : breach
         ? BREACH_HOLDING[breach.breach]
-        : o?.kind === "reply"
-          ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks })
-          : draft;
+        : pseudo
+          ? pseudo.holdingReply
+          : o?.kind === "reply"
+            ? stripped.text.trim()
+              ? withPaymentBlocks(stripped.text, { ...result.paymentBlocks, links: result.linkBlocks })
+              : null
+            : draft;
     const reply = sent ?? (quiet ? "(no le escribe: le está respondiendo a Dayana y no hace falta contestar)" : "(no le escribe: se lo pasa a Dayana)");
     // Las reglas se miran sobre lo que escribió el modelo (antes del freno): si
     // el freno lo tapa, el prompt igual falló y tiene que verse.
     const written = silentClient || repeatedReceipt || quiet ? null : o?.kind === "reply" ? withPaymentBlocks(draft, { ...result.paymentBlocks, links: result.linkBlocks }) : draft;
     const tools = result.toolCalls.map((c) => c.tool);
     const failed: string[] = [];
+    // Lo que recibiría la persona nunca lleva texto interno (fase 5: la puerta de evaluación lo exige).
+    if (sent && leaksInternals(sent)) failed.push("se filtró texto interno");
     if (written) {
       for (const g of gradeReply({
         reply: written,
